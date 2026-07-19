@@ -1,3 +1,7 @@
+# Wisdom — Corrected Implementation Plan (v3)
+
+> v3 adds the **Curse Breaker** mode (internal name: **Stronghold Discernment Engine, "SDE"**) as a first-class part of the MVP vertical slice. See §19 at the bottom for the full amendment. Where §19 conflicts with earlier sections, §19 wins.
+
 # Wisdom — Corrected Implementation Plan (v2)
 
 > Status: DRAFT for founder approval. No application code will be written until this plan is explicitly approved. Encoded as UTF-8.
