@@ -582,47 +582,62 @@ Audited files: `src/routes/wisdom.index.tsx`, `src/routes/wisdom.$sessionId.tsx`
 
 The following supersedes the corresponding text in §§3–5. Physical inventory is derived directly from the table-by-table list, not from group subtotals.
 
-### §3 (superseded) — Physical table inventory: **35**
+### §3 (superseded v3.4) — Physical table inventory: **39**
 
-Ordered, one physical table per row:
+Mechanically enumerated, one physical table per row (no collapsing):
 
 1. profiles
 2. user_roles
 3. admin_audit
 4. source_audit
 5. source_approvals
-6. sessions
-7. messages
-8. signals
-9. personas
-10. persona_facts
-11. persona_fact_confirmations
-12. patterns
-13. pattern_events
-14. pattern_evidence
-15. pattern_relationships
-16. pattern_feedback
-17. interpretations
-18. stronghold_categories
-19. source_documents
-20. source_passages
-21. biblical_archetypes
-22. archetype_mirrors
-23. archetype_passages
-24. practices
-25. practice_assignments
-26. discernments
-27. prayers
-28. prayer_lines
-29. prayer_line_sources
-30. formation_events
-31. check_ins
-32. prompt_versions
-33. model_configs
-34. pipeline_runs
-35. eval_cases + eval_runs + eval_results counted separately → replace with: `eval_cases`, `eval_runs`, `eval_results`.
+6. stronghold_category_approvals
+7. archetype_approvals
+8. sessions
+9. messages
+10. signals
+11. personas
+12. persona_facts
+13. persona_fact_confirmations
+14. patterns
+15. pattern_events
+16. pattern_evidence
+17. pattern_relationships
+18. pattern_feedback
+19. interpretations
+20. stronghold_categories
+21. source_documents
+22. source_passages
+23. biblical_archetypes
+24. archetype_mirrors
+25. archetype_passages
+26. practices
+27. practice_assignments
+28. discernments
+29. prayers
+30. prayer_lines
+31. prayer_line_sources
+32. formation_events
+33. check_ins
+34. prompt_versions
+35. model_configs
+36. pipeline_runs
+37. eval_cases
+38. eval_runs
+39. eval_results
 
-Final count: **35 physical tables**, plus the single security-barrier view `pipeline_runs_curator_v` (view, not counted as a table). Guest data stays on-device.
+**Diff vs prior stated inventory (v3.3 said "35"):**
+
+- `stronghold_category_approvals` — **added to numbered list**. Declared in §21.13 §4.3 and present in the §5 matrix, but omitted from the prior numbered list. Not a new table this turn.
+- `archetype_approvals` — **added to numbered list**. Same reconciliation as above.
+- `eval_cases` — **added to numbered list**. Previously collapsed into a single row 35 alongside the next two.
+- `eval_runs` — **added to numbered list**. Same collapse.
+- `eval_results` — **added to numbered list**. Same collapse.
+- All other 34 entries — unchanged.
+
+No `removed`, no `renamed from`, no `merged into` entries. Removing the `support` role and its policies removed enum values and RLS rows, not tables. `archetype_mirrors` retains its row — only its `passage_refs jsonb` column is dropped in §4.3; `archetype_passages` is a new normalized sibling, not a rename or merge.
+
+**Final mechanically calculated count: 39 physical tables**, plus the single security-barrier view `pipeline_runs_curator_v` (view, not counted). Guest data stays on-device.
 
 ### §4.1 (superseded) — Enums
 
@@ -670,7 +685,12 @@ Every write-producing pipeline target carries `idempotency_key text not null`, u
 
 - `patterns` — `unique (user_id, idempotency_key)`
 - `pattern_events` — `unique (user_id, idempotency_key)`
-- `interpretations` — `unique (session_id, category)` already exists; add `unique (session_id, idempotency_key)`
+- `interpretations` — **corrected (v3.4).** A single Curse Breaker pipeline run writes up to 14 rows (one per `interpretation_category`), so a single `(session_id, idempotency_key)` pair is invalid — it would reject 13 of the 14 rows on the first write and duplicate on retry. Replaced with a two-level scheme:
+  - **Durable category identity:** `unique (session_id, category)` — one row per category per session, forever. This is the UPSERT target on retry.
+  - **Pipeline-level request key:** `request_key text not null` on every row, identical across the 14 rows produced by one run. Not unique on its own; used to prove co-provenance and for observability (`pipeline_runs.idempotency_key = interpretations.request_key`).
+  - **Per-row idempotency key:** `idempotency_key text generated always as (request_key || ':' || category::text) stored`, with `unique (session_id, idempotency_key)` — mechanically equal to `unique (session_id, category)` once `request_key` is fixed, so the two uniques are consistent by construction.
+  - **Retry behaviour:** the server function issues a single `insert ... on conflict (session_id, category) do update set ...` for all 14 rows in one statement inside one transaction. A retry with the same `request_key` UPSERTs the same 14 `(session_id, category)` rows in place (no duplicates, no orphans); a retry with a *different* `request_key` is treated as a new run and also UPSERTs in place, overwriting prior category output for that session. Partial runs (fewer than 14 categories) are permitted — subsequent runs top up missing categories without touching existing ones unless the same `(session_id, category)` is re-emitted.
+  - **Transactional guarantee:** all 14 UPSERTs plus the `pipeline_runs` row for the CB run commit together or roll back together. No category can be persisted without its sibling `pipeline_runs` record and vice versa.
 - `discernments` — `unique (session_id, idempotency_key)`
 - `prayers` — `unique (session_id, idempotency_key)`
 - `practice_assignments` — `unique (user_id, idempotency_key)`
