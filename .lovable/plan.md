@@ -398,3 +398,151 @@ Kept from v2 in principle:
 - [ ] §20 Founder decisions 1–14
 
 No application code will be written until every box above is ticked.
+
+---
+
+## 21. Frozen Amendments (v3.1)
+
+v3 is approved in principle and frozen. The following amendments are binding; where they conflict with earlier sections, §21 wins.
+
+### 21.1 Curse Breaker performance — two-pass + progressive streaming
+
+Curse Breaker stage 5 (`cb_stronghold_category_hypothesis_generation`) is split:
+
+- **Pass 1 — cheap signal scoring.** Single small-model call scores all 14 categories on `signal_present ∈ {none, weak, moderate, strong}` with a one-sentence rationale each. Every category produces an `interpretations` row (auditable, even at `signal=none`).
+- **Pass 2 — deep analysis.** Only categories with `weak+` signal proceed to full evidence / counter-evidence / missing-evidence / biblical retrieval / alternative explanations. Zero-signal categories keep the pass-1 rationale as their audit trail.
+
+Parallelization: `cb_possible_root_generation`, `cb_competing_explanations_analysis`, and `cb_biblical_retrieval_curse_stronghold` run in parallel per surviving category once pass 1 completes. Fan-in barrier before `cb_discernment`.
+
+Streaming: UI renders cards progressively via the `/api/wisdom/stream` server route. Order: pass-1 grid skeleton → per-category deep cards as they resolve → discernment → Prayer Lineage → pattern-breaking act.
+
+UI grouping (amends §9): "Supported categories" (weak+) rendered by default; "Other explanations examined" is a collapsed section listing zero-signal categories with pass-1 rationale.
+
+Latency: **35s p95 remains the initial target.** During the vertical slice, measured p95 is recorded weekly in `pipeline_runs`. If real p95 exceeds 35s across two consecutive weeks with a stable prompt/model, the target is revised and re-approved before beta.
+
+### 21.2 Deterministic rendering enforcement (broadened)
+
+- Prohibited browser-side AI imports across **all** client code: `src/components/**`, `src/routes/**` (component/loader body), `src/lib/**` that is not `*.server.ts` or `*.functions.ts` handler body, `src/hooks/**`.
+- ESLint `no-restricted-imports` blocks `ai`, `@ai-sdk/*`, `openai`, `@anthropic-ai/*`, and any Lovable AI Gateway helper outside server-only modules.
+- CI job "browser-bundle-inspection" builds the client bundle and greps the emitted chunks for AI SDK symbols; failure blocks merge.
+- All model calls live in `*.server.ts` or inside `.handler()` bodies of `*.functions.ts` / server routes. No exceptions.
+
+### 21.3 Prayer movements — primary + multi
+
+`prayer_lines` amended: `primary_movement prayer_movement not null`, `movements prayer_movement[] not null default '{}'` with a check that `primary_movement = any(movements)`. Rendering groups by `primary_movement`; secondary movements shown as chips.
+
+### 21.4 Persona memory — sensitivity is independent
+
+- `persona_facts.status persona_fact_status` enum reduced to lifecycle only: `session_only | proposed | accepted | rejected | deleted`.
+- `persona_facts.sensitivity text` in `{normal, sensitive}` is independent of `status`.
+- Promotion rule: a fact with `sensitivity='sensitive'` cannot move `proposed → accepted` without an explicit second confirmation event (`formation_event` type `pattern_edited` reused with `payload.kind='sensitive_persona_fact_confirmation'` — or a new event type added at Prompt 2 if the founder prefers).
+
+### 21.5 Rejected-pattern handling — scoped, not global-NOT
+
+- `pattern_feedback` (rejections) stores `reason text`, `scope text` (`this_session | this_topic | this_persona | permanent`), `evidence_snapshot jsonb`, `rejected_at timestamptz`.
+- Retrieval behavior:
+  - Suppress return of the **exact rejected claim** as fact within `scope`.
+  - Downrank (not exclude) closely equivalent hypotheses within `scope`.
+  - Never a permanent global NOT filter unless `scope='permanent'` **and** admin-audited.
+- Reconsideration: allowed only when new evidence exists that materially changes `pattern_evidence.kind='supporting'`; the reconsideration writes a `formation_event` (`pattern_confidence_changed`) with an explicit rationale referencing the new evidence rows.
+
+### 21.6 Support access — hardened
+
+- Only `admin` can mint a support grant (server function; `curator` explicitly denied and audited on attempt).
+- Grant record fields: `user_id`, `granted_by (admin)`, `purpose text`, `table_scope text[]` (minimum necessary), `granted_at`, `expires_at`, `revoked_at`, `consent_event_id`.
+- User consent required before the grant activates (in-app modal; consent event stored).
+- Visible in-app notifications: banner when access begins, banner when it ends; both recorded in `admin_audit`.
+- Every read/write under a support grant writes an `admin_audit` row (immutable, append-only).
+- Curators cannot mint, inherit, or be delegated support access.
+
+### 21.7 Evaluation activation rules
+
+Two-tier gate for activating a `prompt_version` or `model_config`:
+
+**Hard invariants — zero regression permitted:**
+- Cross-user privacy (no cross-user data leak in any red-team case)
+- Citation validity (every rendered citation resolves; correct translation/canon)
+- Prayer Lineage structural coverage (100% lines have ≥1 `prayer_line_sources` row; ≥1 S1 per lineage)
+- Source-tier correctness for direct claims (claim tier matches supporting source tier)
+- No invented first-person statements attributed to God
+
+**Scored qualitative dimensions:**
+- Each activation runs the golden set N=5 times.
+- A dimension regresses only if the new mean is (a) statistically significantly lower than the active baseline (Welch's t, p<0.05) **and** (b) more than 2 percentage points below baseline.
+- Any regression blocks activation.
+
+Every activation and rollback writes an immutable `admin_audit` row referencing the `eval_run_id`.
+
+### 21.8 Guest migration
+
+- Payload limits: ≤ 500 KB compressed; ≤ 200 messages; ≤ 20 sessions per migration call.
+- Every imported object validated by Zod at the server boundary; unknown fields dropped.
+- Conflict rule when the authenticated account already has data:
+  - Sessions are always imported as **new** records (never merged into existing sessions).
+  - Accepted `patterns` and `persona_facts` on the authed account are **never** overwritten or silently merged.
+  - Imported memories arrive with `status='proposed'` and require user confirmation in a review screen before promotion.
+- Migration is idempotent per `idempotency_key` (guest-device id + timestamp); replays return the same server response.
+
+### 21.9 Stronghold corpus — named ownership and phased seeding
+
+- Corpus owners named before implementation: **Founder** (source-of-truth, S6 approval), **Curator A** (S1–S3), **Curator B** (S4–S5). Recorded in `source_documents.approved_by` and in a `CORPUS_OWNERS.md` under `docs/` (added at Prompt 2).
+- Vertical-slice seeding: only the stronghold categories and biblical anchors required for the first slice ("helping without boundaries" + one Curse Breaker case).
+- Private beta gate: all 14 categories reviewed and `status='approved'` with S1–S5 anchors present; two-curator sign-off recorded in `source_audit`.
+
+### 21.10 Four distinct modes on shared infrastructure
+
+`session.mode` retains all four values; each has a distinct pipeline profile over the shared stage library (§6.1):
+
+- **Companion** — listening + clarification. No `patterns.status='proposed'` write; no `persona_facts` promotion beyond `session_only`; renders reflection + optional prayer.
+- **Pattern** — event chain + competing hypotheses + proposed pattern memory (writes `patterns.status='proposed'`, `persona_facts.status='proposed'`).
+- **Deep Wisdom** — full stage graph with maximum source depth, alternatives, and counter-evidence surfaced.
+- **Curse Breaker** — SDE stages (§6.2) with the 14-category two-pass process (§21.1).
+
+Latency budgets per §12 (Companion 8s / Pattern 18s / Deep Wisdom 35s / Curse Breaker 35s initial).
+
+### 21.11 Prompt 1 — audit-only, not rebuild
+
+Existing static UI is retained. Only the following missing elements will be added (typed mocks, no backend):
+
+- Curse Breaker entry point (mode chip + hero suggestion + optional dedicated route `/wisdom/curse-breaker`).
+- Composer mode extended to four modes with distinct placeholders and explanatory copy per §21.10.
+- Typed mock Curse Breaker result cards: Repeated Experience, Possible Roots, Fourteen-Category Discernment Grid (supported + "Other explanations examined" collapsed), Competing Explanations, Biblical Mirrors, Prayer Lineage (with `primary_movement` + chips), Pattern-Breaking Act, Formation Check-in.
+- Responsive verification (mobile 375, tablet 768, desktop ≥ 1280) and accessibility pass (axe on every route, keyboard-only journey, reduced-motion).
+
+Frozen. Any further change requires a new numbered amendment in §22+.
+
+---
+
+## 22. Existing-UI Gap Report (against §21.11)
+
+Audited files: `src/routes/wisdom.index.tsx`, `src/routes/wisdom.$sessionId.tsx`, `src/components/wisdom/{AppShell,primitives}.tsx`, `src/lib/wisdom/{schemas.ts,mock/*}`.
+
+**Present**
+- Wisdom home with hero, suggestions grid, and composer (`src/routes/wisdom.index.tsx`).
+- Three-mode selector: `companion | pattern | deep` with per-mode hint copy.
+- Session view route and seeded example.
+- App shell with sidebar/nav and design tokens (parchment/gold on Nova dark canvas).
+- Typed schemas in `src/lib/wisdom/schemas.ts` (patterns, prayers, prayer lines, biblical mirrors).
+
+**Missing (to add during audit pass, typed mocks only)**
+1. Fourth mode `curse_breaker` in the composer mode chip group, with distinct label, hint, placeholder ("What keeps returning that you sense is more than habit?"), and explanatory line.
+2. Curse Breaker hero suggestion tile on `/wisdom` (e.g. "Something keeps returning in my family").
+3. Route `src/routes/wisdom.curse-breaker.tsx` — dedicated entry that pre-selects the mode and shows a short pastoral preamble + consent line before the composer.
+4. Typed contracts under `src/lib/wisdom/contracts/v1/sde/*.ts` and mock DTOs under `src/lib/wisdom/mock/curseBreaker.ts` for the eight card types in §21.11.
+5. Card components in `src/components/wisdom/curseBreaker/`:
+   - `RepeatedExperienceCard`
+   - `PossibleRootsCard`
+   - `FourteenCategoryGrid` (supported default + collapsed "Other explanations examined")
+   - `CompetingExplanationsCard`
+   - `BiblicalMirrorsCard` (passage-level citation chips)
+   - `PrayerLineageCard` (grouped by `primary_movement`, secondary movement chips, tier chips, derivation tooltip, edit affordance)
+   - `PatternBreakingActCard`
+   - `FormationCheckInCard`
+6. Per-mode composer copy map replacing the current inline ternary (Companion / Pattern / Deep Wisdom / Curse Breaker).
+7. Session view (`/wisdom/$sessionId`) branches on `session.mode` and renders the Curse Breaker card stack for the seeded Curse Breaker example.
+8. Responsive audit: verify hero, composer, mode chips, and card stack at 375 / 768 / 1280 CSS px; fix wrap/overflow.
+9. Accessibility audit: axe pass on `/wisdom`, `/wisdom/curse-breaker`, `/wisdom/$sessionId`; keyboard reachability of mode chips and collapsed section; `prefers-reduced-motion` disables card entrance transitions.
+10. Copy deck entry for Curse Breaker in `src/lib/wisdom/copy/v1.ts` (create the file if absent) so the renderer stays deterministic.
+
+**Not-in-scope for the audit pass** (per §21.11): any backend, any AI call, any real streaming — only typed mocks + static cards. Backend migrations are deferred pending the final review of the 32-table schema and RLS matrix (§20).
+
