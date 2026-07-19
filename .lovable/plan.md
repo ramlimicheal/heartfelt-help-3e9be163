@@ -685,7 +685,12 @@ Every write-producing pipeline target carries `idempotency_key text not null`, u
 
 - `patterns` — `unique (user_id, idempotency_key)`
 - `pattern_events` — `unique (user_id, idempotency_key)`
-- `interpretations` — `unique (session_id, category)` already exists; add `unique (session_id, idempotency_key)`
+- `interpretations` — **corrected (v3.4).** A single Curse Breaker pipeline run writes up to 14 rows (one per `interpretation_category`), so a single `(session_id, idempotency_key)` pair is invalid — it would reject 13 of the 14 rows on the first write and duplicate on retry. Replaced with a two-level scheme:
+  - **Durable category identity:** `unique (session_id, category)` — one row per category per session, forever. This is the UPSERT target on retry.
+  - **Pipeline-level request key:** `request_key text not null` on every row, identical across the 14 rows produced by one run. Not unique on its own; used to prove co-provenance and for observability (`pipeline_runs.idempotency_key = interpretations.request_key`).
+  - **Per-row idempotency key:** `idempotency_key text generated always as (request_key || ':' || category::text) stored`, with `unique (session_id, idempotency_key)` — mechanically equal to `unique (session_id, category)` once `request_key` is fixed, so the two uniques are consistent by construction.
+  - **Retry behaviour:** the server function issues a single `insert ... on conflict (session_id, category) do update set ...` for all 14 rows in one statement inside one transaction. A retry with the same `request_key` UPSERTs the same 14 `(session_id, category)` rows in place (no duplicates, no orphans); a retry with a *different* `request_key` is treated as a new run and also UPSERTs in place, overwriting prior category output for that session. Partial runs (fewer than 14 categories) are permitted — subsequent runs top up missing categories without touching existing ones unless the same `(session_id, category)` is re-emitted.
+  - **Transactional guarantee:** all 14 UPSERTs plus the `pipeline_runs` row for the CB run commit together or roll back together. No category can be persisted without its sibling `pipeline_runs` record and vice versa.
 - `discernments` — `unique (session_id, idempotency_key)`
 - `prayers` — `unique (session_id, idempotency_key)`
 - `practice_assignments` — `unique (user_id, idempotency_key)`
