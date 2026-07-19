@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { SESSIONS } from "@/lib/wisdom/mock/seed";
 
-export const Route = createFileRoute("/wisdom")({
+export const Route = createFileRoute("/wisdom/")({
   head: () => ({ meta: [{ title: "Wisdom — begin a session" }] }),
   component: WisdomHome,
 });

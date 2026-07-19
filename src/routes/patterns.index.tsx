@@ -29,8 +29,8 @@ function PatternsList() {
   return (
     <div className="space-y-8">
       <header className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-gold">Patterns</p>
-        <h1 className="font-serif text-3xl leading-tight">The loops beneath your story.</h1>
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary">Patterns</p>
+        <h1 className="text-3xl leading-tight">The loops beneath your story.</h1>
         <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground">
           Every pattern is a hypothesis you can accept, edit, rename, reject, or leave
           unsure. Rejected patterns never silently return.
@@ -51,7 +51,7 @@ function PatternsList() {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="font-serif text-lg leading-snug">{h.name}</p>
+                  <p className="text-lg leading-snug">{h.name}</p>
                   <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{h.description}</p>
                 </div>
                 <ConfidenceBar value={h.confidence} />

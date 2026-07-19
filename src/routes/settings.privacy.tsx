@@ -10,8 +10,8 @@ function Privacy() {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-gold">Privacy</p>
-        <h1 className="font-serif text-3xl leading-tight">Your data, your controls.</h1>
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary">Privacy</p>
+        <h1 className="text-3xl leading-tight">Your data, your controls.</h1>
       </header>
 
       <Card eyebrow="Do not remember" title="Per-message control.">
