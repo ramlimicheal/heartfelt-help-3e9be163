@@ -178,7 +178,7 @@ export const recordSignal = createServerFn({ method: "POST" })
         source_span_start: data.spanStart ?? null,
         source_span_end: data.spanEnd ?? null,
         span_text: data.spanText ?? null,
-        payload: data.payload,
+        payload: data.payload as never,
       })
       .select("id")
       .single();
