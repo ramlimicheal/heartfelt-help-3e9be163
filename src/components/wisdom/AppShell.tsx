@@ -69,7 +69,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen w-full max-w-[1500px]">
-        {/* Desktop left rail — Nova style */}
+        {/* Desktop left rail */}
         <aside className="hidden shrink-0 border-r border-panel-border/60 md:flex md:w-64 md:flex-col">
           <div className="flex items-center gap-2.5 px-5 pt-6 pb-4">
             <span className="grid size-8 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[0_0_24px_0] shadow-primary-glow">

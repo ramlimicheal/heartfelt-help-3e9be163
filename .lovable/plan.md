@@ -521,7 +521,7 @@ Audited files: `src/routes/wisdom.index.tsx`, `src/routes/wisdom.$sessionId.tsx`
 - Wisdom home with hero, suggestions grid, and composer (`src/routes/wisdom.index.tsx`).
 - Three-mode selector: `companion | pattern | deep` with per-mode hint copy.
 - Session view route and seeded example.
-- App shell with sidebar/nav and design tokens (parchment/gold on Nova dark canvas).
+- App shell with sidebar/nav and design tokens (parchment/gold on dark canvas).
 - Typed schemas in `src/lib/wisdom/schemas.ts` (patterns, prayers, prayer lines, biblical mirrors).
 
 **Missing (to add during audit pass, typed mocks only)**
