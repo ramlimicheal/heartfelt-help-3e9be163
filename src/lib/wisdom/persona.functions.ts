@@ -52,7 +52,7 @@ export const proposePersonaFact = createServerFn({ method: "POST" })
         persona_id: persona.id,
         user_id: context.userId,
         key: data.key,
-        value: data.value,
+        value: data.value as never,
         status: "proposed",
         sensitivity: data.sensitivity,
         origin: "inferred",
@@ -114,7 +114,7 @@ export const correctPersonaFact = createServerFn({ method: "POST" })
     const admin = await getAdmin();
     const { error } = await admin
       .from("persona_facts")
-      .update({ value: data.value, status: "corrected" })
+      .update({ value: data.value as never, status: "corrected" })
       .eq("id", data.factId);
     if (error) throw new Error(error.message);
     return { ok: true };
