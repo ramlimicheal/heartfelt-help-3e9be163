@@ -575,3 +575,228 @@ Audited files: `src/routes/wisdom.index.tsx`, `src/routes/wisdom.$sessionId.tsx`
 - §5 RLS: `source_approvals` — `anon: none`, `authenticated: none`, `curator: RW own reviewer rows + R all`, `admin: R`, `support: none`, `service_role: ALL`. Grants: `GRANT SELECT,INSERT,UPDATE ON source_approvals TO authenticated` restricted by policy to rows where `reviewer_id = auth.uid()`. Reject or supersede via new `source_approvals` row, never `UPDATE`/`DELETE` of a decided row (append-only decisions; a superseding row references the prior via `supersedes_approval_id`).
 - §14 acceptance criteria: replace Welch t-test line with paired bootstrap over 150 cases × ≥ 3 runs, 95% CI.
 - §20 founder decisions: add "reviewer_id assignments for founder / theological_editor / pastoral_reviewer roles" as a Prompt 1 blocker.
+
+---
+
+## 21.13 Frozen Amendments (v3.3) — §§3–5 corrections
+
+The following supersedes the corresponding text in §§3–5. Physical inventory is derived directly from the table-by-table list, not from group subtotals.
+
+### §3 (superseded) — Physical table inventory: **35**
+
+Ordered, one physical table per row:
+
+1. profiles
+2. user_roles
+3. admin_audit
+4. source_audit
+5. source_approvals
+6. sessions
+7. messages
+8. signals
+9. personas
+10. persona_facts
+11. persona_fact_confirmations
+12. patterns
+13. pattern_events
+14. pattern_evidence
+15. pattern_relationships
+16. pattern_feedback
+17. interpretations
+18. stronghold_categories
+19. source_documents
+20. source_passages
+21. biblical_archetypes
+22. archetype_mirrors
+23. archetype_passages
+24. practices
+25. practice_assignments
+26. discernments
+27. prayers
+28. prayer_lines
+29. prayer_line_sources
+30. formation_events
+31. check_ins
+32. prompt_versions
+33. model_configs
+34. pipeline_runs
+35. eval_cases + eval_runs + eval_results counted separately → replace with: `eval_cases`, `eval_runs`, `eval_results`.
+
+Final count: **35 physical tables**, plus the single security-barrier view `pipeline_runs_curator_v` (view, not counted as a table). Guest data stays on-device.
+
+### §4.1 (superseded) — Enums
+
+- `app_role` = `admin | curator | user`
+- `source_tier` = `S1 | S2 | S3 | S4 | S5 | S6 | S7 | S8`
+- `tradition` (controlled vocab, unchanged)
+- `period` (unchanged)
+- **`canon_profile` = `protestant_66 | ethiopian_orthodox_tewahedo_research | comparative_early_christian_literature`** — canon only, no `founder_default` here.
+- **`source_profile` = `founder_default`** (extensible). A `source_profile` row selects one `canon_profile` as its base and an ordered list of optional source layers (patristic depth, tradition weighting, etc.). `founder_default` is never a canon.
+- `source_status` = `draft | in_review | approved | superseded | retired`
+- `session_mode` = `companion | pattern | deep_wisdom | curse_breaker`
+- **`persona_fact_status` = `session_only | proposed | accepted | rejected | deleted`** (`sensitive` removed).
+- **`sensitivity` = `normal | sensitive | hidden`** (independent column; not part of lifecycle).
+- **`memory_directive` = `normal | session_only | do_not_remember`** (message-level).
+- **`signal_origin` = `explicit | inferred`**
+- `pattern_status` (unchanged)
+- `pattern_relation` (unchanged)
+- `hypothesis_status` (unchanged)
+- `interpretation_category` (unchanged 14 layers)
+- `prayer_movement` (unchanged 9)
+- `derivation_type` (unchanged)
+- `formation_event_type` (unchanged)
+- `check_in_result` (unchanged)
+- `run_status` (unchanged)
+- **`eval_dimension` = `persona_fidelity | event_chain_fidelity | hypothesis_quality | counter_evidence | biblical_grounding | context_integrity | source_tier_accuracy | prayer_pattern_fit | prayer_lineage | action_fit | non_shaming_tone | unsupported_certainty | user_correction_behavior | citation_validity | category_coverage | refusal_correctness | latency | cost | safety`** — PRD dimensions restored in full.
+
+### §4.3 (deltas — only rows that change or are added)
+
+- **profiles**: `canon_profile canon_profile not null default 'protestant_66'`, `source_profile source_profile not null default 'founder_default'` (replaces the single-column design).
+- **messages**: add `memory_directive memory_directive not null default 'normal'`. A message with `do_not_remember` may be used in the current response but the pipeline MUST NOT persist any downstream row that references it (signals, persona_facts, patterns, formation_events). Enforced by (a) a `messages_do_not_remember_guard` trigger on `signals`, `persona_facts.source_message_ids`, `pattern_evidence.source_message_ids`, `formation_events.payload->>'source_message_id'`, and (b) pipeline stage validators.
+- **signals**: `origin signal_origin not null`, `source_message_id uuid not null references messages(id) on delete cascade`, `source_span jsonb not null` (`{start:int,end:int}`), `confidence numeric(3,2) not null check (confidence between 0 and 1)`. Provenance is required, not optional.
+- **persona_facts**: `status persona_fact_status` (per new enum). Sensitive facts (`sensitivity in ('sensitive','hidden')`) may enter `proposed` but transition to `accepted` ONLY after a matching row exists in `persona_fact_confirmations`. Enforced by trigger.
+- **persona_fact_confirmations** *(new)*: `id`, `persona_fact_id fk cascade`, `user_id`, `confirmed_at timestamptz`, `method text` (`explicit_ui|dedicated_prompt`), `evidence_message_id uuid`. Unique `(persona_fact_id)`. Row exists ⇒ user explicitly confirmed. No row ⇒ acceptance blocked for sensitive facts.
+- **prayer_lines**: remove singular `movement`. Add `primary_movement prayer_movement not null`, `movements prayer_movement[] not null check (array_length(movements,1) >= 1 and primary_movement = ANY(movements))`.
+- **archetype_mirrors**: `passage_refs jsonb` is DROPPED. Passage relationships move to `archetype_passages`.
+- **archetype_passages** *(new)*: `id`, `archetype_id fk cascade`, `source_passage_id fk`, `weight numeric(3,2) not null check (weight between 0 and 1)`, `narrative_role text not null` (`protagonist|antagonist|witness|type|antitype|chorus|frame`), `classification text not null check in ('descriptive','prescriptive','mixed')`, `notes text`. Unique `(archetype_id, source_passage_id, narrative_role)`.
+- **source_approvals**: `role app_role not null` is DERIVED SERVER-SIDE from `has_role(reviewer_id, ...)` at insert time via a `before insert` trigger — never client-provided. `decision` in (`approve|reject|request_changes`). Append-only. Publication trigger on `source_documents`:
+  - `status` may transition to `approved` only if **≥ 2 distinct `reviewer_id` rows with `decision='approve'` for the current `version`, each with role in (`curator`,`admin`), and reviewer_id ≠ the row's most-recent editor**.
+  - The same rule applies to `stronghold_categories` and `biblical_archetypes` via mirror tables `stronghold_category_approvals` and `archetype_approvals` (identical shape/unique constraints/triggers).
+- Remove all mentions of "support" from user tables (see §5).
+
+### §4.4 Idempotency — exact per-target constraints
+
+Every write-producing pipeline target carries `idempotency_key text not null`, unique per user (or per session where noted):
+
+- `patterns` — `unique (user_id, idempotency_key)`
+- `pattern_events` — `unique (user_id, idempotency_key)`
+- `interpretations` — `unique (session_id, category)` already exists; add `unique (session_id, idempotency_key)`
+- `discernments` — `unique (session_id, idempotency_key)`
+- `prayers` — `unique (session_id, idempotency_key)`
+- `practice_assignments` — `unique (user_id, idempotency_key)`
+- `formation_events` — `unique (user_id, idempotency_key)`
+- `check_ins` — `unique (user_id, idempotency_key)`
+- `pipeline_runs` — `unique (session_id, stage, idempotency_key)`
+- Guest→account migration — `unique (user_id, migration_id)` on every migrated row family (see §21.12).
+
+Reads outside these constraints do not have idempotency claims. Server functions accept and forward the key; retries with the same key are guaranteed no-ops at the DB layer, not the app layer.
+
+### §4.5 Prayer-line source enforcement (transactional)
+
+"Every prayer line has ≥ 1 `prayer_line_sources` row" is enforced database-side, not in app code:
+
+1. `prayers.status text not null default 'draft'` with `check in ('draft','committed','retracted')`.
+2. Constraint trigger `prayers_commit_requires_sources`, **DEFERRABLE INITIALLY DEFERRED, FOR EACH ROW**, on `UPDATE OF status ON prayers WHEN (NEW.status = 'committed')`: raises if any `prayer_lines` row for the prayer has zero `prayer_line_sources` children.
+3. Server function `commitPrayer` wraps prayer + lines + sources + `UPDATE prayers SET status='committed'` in a single transaction. The deferred trigger fires at COMMIT; an incomplete prayer aborts the whole transaction.
+4. Read paths (`getPrayer`, session card renderer, formation timeline) filter `status = 'committed'`. Draft prayers are never rendered.
+
+Combined effect: an incomplete prayer cannot exist in `committed` state, and no reader ever sees `draft` prayers — the invariant is unbreakable across retries, partial failures, and concurrent writers.
+
+### §5 (superseded) — RLS Policy Matrix + Grants (least-privilege)
+
+Roles: `anon`, `authenticated` (owner via `auth.uid()`), `curator`, `admin`, `service_role`. **`support` is removed from the MVP schema entirely.** No standing support policies exist. If support tooling is built post-MVP, it is a set of narrowly-scoped server functions that (a) verify a per-user consent grant, (b) write an immutable `admin_audit` row before any read, and (c) use `service_role` — never a base-table RLS elevation.
+
+**Curators have no read access to any user-owned table.** Curators have no base-table access to `pipeline_runs`; instead they read `pipeline_runs_curator_v` (a `security_barrier = true` view exposing only `stage, status, latency_ms, tokens_in, tokens_out, cost_usd, retrieval_hits, created_at::date`, with no `session_id`, `user_id`, `prompt`, `output`, or `error` columns).
+
+**Per-table matrix (RLS + grants)**
+
+| Table | Owner (`authenticated`, `auth.uid()=user_id`) | curator | admin | anon | service_role |
+|---|---|---|---|---|---|
+| profiles | SELECT, UPDATE | none | none | none | ALL |
+| user_roles | SELECT own | none | (RW via server fn only, anti-escalation trigger) | none | ALL |
+| admin_audit | none | none | SELECT | none | INSERT, SELECT |
+| source_audit | none | SELECT | SELECT | none | INSERT, SELECT |
+| source_approvals | none | INSERT, SELECT | SELECT | none | ALL |
+| stronghold_category_approvals | none | INSERT, SELECT | SELECT | none | ALL |
+| archetype_approvals | none | INSERT, SELECT | SELECT | none | ALL |
+| sessions | SELECT, INSERT, UPDATE, DELETE own | none | none | none | ALL |
+| messages | SELECT, INSERT own (no UPDATE, no DELETE) | none | none | none | ALL |
+| signals | SELECT own via parent join (no direct writes) | none | none | none | INSERT via server fn, ALL |
+| personas | SELECT, INSERT, UPDATE, DELETE own | none | none | none | ALL |
+| persona_facts | SELECT, UPDATE own (INSERT via server fn only) | none | none | none | ALL |
+| persona_fact_confirmations | SELECT, INSERT own (append-only) | none | none | none | ALL |
+| patterns | SELECT, UPDATE own (INSERT via server fn) | none | none | none | ALL |
+| pattern_events | SELECT own via parent (no direct writes) | none | none | none | ALL |
+| pattern_evidence | SELECT own via parent (no direct writes) | none | none | none | ALL |
+| pattern_relationships | SELECT own via parent (no direct writes) | none | none | none | ALL |
+| pattern_feedback | SELECT, INSERT own | none | none | none | ALL |
+| interpretations | SELECT own via parent (no direct writes) | none | none | none | ALL |
+| discernments | SELECT own via parent (no direct writes) | none | none | none | ALL |
+| prayers | SELECT, UPDATE own (INSERT/status-transition via server fn) | none | none | none | ALL |
+| prayer_lines | SELECT own via parent; UPDATE `user_edited`, `edited_text` only | none | none | none | ALL |
+| prayer_line_sources | SELECT own via parent (no direct writes) | none | none | none | ALL |
+| practice_assignments | SELECT, UPDATE own (INSERT via server fn) | none | none | none | ALL |
+| check_ins | SELECT, INSERT own | none | none | none | ALL |
+| formation_events | SELECT own (NO direct INSERT/UPDATE/DELETE; all writes through server fn) | none | none | none | INSERT, SELECT |
+| stronghold_categories | SELECT approved | SELECT all, INSERT, UPDATE draft rows | SELECT | SELECT approved | ALL |
+| biblical_archetypes | SELECT approved | SELECT all, INSERT, UPDATE draft rows | SELECT | SELECT approved | ALL |
+| archetype_mirrors | SELECT approved | SELECT all, INSERT, UPDATE draft rows | SELECT | SELECT approved | ALL |
+| archetype_passages | SELECT approved | SELECT all, INSERT, UPDATE draft rows | SELECT | SELECT approved | ALL |
+| practices | SELECT approved | SELECT all, INSERT, UPDATE draft rows | SELECT | SELECT approved | ALL |
+| source_documents | SELECT approved | SELECT all, INSERT, UPDATE draft rows | SELECT | none | ALL |
+| source_passages | SELECT approved | SELECT all, INSERT, UPDATE draft rows | SELECT | none | ALL |
+| prompt_versions | none | SELECT, INSERT, UPDATE draft (NO activation) | SELECT, UPDATE `active` only | none | ALL |
+| model_configs | none | SELECT, INSERT, UPDATE draft (NO activation) | SELECT, UPDATE `active` only | none | ALL |
+| pipeline_runs | none | none (curators read `pipeline_runs_curator_v`) | SELECT | none | ALL |
+| eval_cases | none | SELECT, INSERT, UPDATE | SELECT | none | ALL |
+| eval_runs | none | SELECT, INSERT | SELECT | none | ALL |
+| eval_results | none | SELECT, INSERT via parent | SELECT | none | ALL |
+
+**Grants correspond to the matrix — no blanket grants.** Illustrative:
+
+```sql
+-- messages: owners insert/select their own; no update/delete
+GRANT SELECT, INSERT ON public.messages TO authenticated;
+GRANT ALL ON public.messages TO service_role;
+
+-- formation_events: no direct write for owners
+GRANT SELECT ON public.formation_events TO authenticated;
+GRANT SELECT, INSERT ON public.formation_events TO service_role;
+
+-- source_documents: owners read only approved
+GRANT SELECT ON public.source_documents TO authenticated;
+GRANT SELECT ON public.source_documents TO curator;
+GRANT INSERT, UPDATE ON public.source_documents TO curator;  -- policy scopes to draft rows
+GRANT ALL ON public.source_documents TO service_role;
+
+-- source_approvals: curator INSERT + SELECT only; no UPDATE, no DELETE
+GRANT SELECT, INSERT ON public.source_approvals TO curator;
+GRANT ALL ON public.source_approvals TO service_role;
+
+-- pipeline_runs: no direct grant to curator; view is the only surface
+GRANT SELECT ON public.pipeline_runs_curator_v TO curator;
+GRANT ALL ON public.pipeline_runs TO service_role;
+
+-- user_roles: read own; writes only via server fn
+GRANT SELECT ON public.user_roles TO authenticated;
+GRANT ALL ON public.user_roles TO service_role;
+```
+
+Child ownership continues to resolve via `EXISTS (select 1 from parent p where p.id = child.parent_id and p.user_id = auth.uid())` — never denormalized `user_id`. `has_role` remains the only path for role checks (SECURITY DEFINER, `stable`, `search_path = public`).
+
+---
+
+## First migration batch proposal (Prompt 2)
+
+Not to be executed until §21.13 is signed off. Ordered, single-transaction files:
+
+1. `0001_enums.sql` — every enum in §4.1 (canon_profile, source_profile, source_status, session_mode, persona_fact_status, sensitivity, memory_directive, signal_origin, prayer_movement, derivation_type, formation_event_type, check_in_result, hypothesis_status, pattern_status, pattern_relation, run_status, eval_dimension, interpretation_category, tradition-check, period, app_role, source_tier).
+2. `0002_extensions.sql` — `create extension if not exists pgcrypto; create extension if not exists vector; create extension if not exists pg_trgm;`.
+3. `0003_identity_and_governance.sql` — `profiles`, `user_roles`, `has_role()`, `admin_audit`, `source_audit`, role anti-escalation trigger, `update_updated_at_column()` + triggers.
+4. `0004_governance_approvals.sql` — `source_approvals`, `stronghold_category_approvals`, `archetype_approvals` with server-side `role` derivation trigger and unique constraints.
+5. `0005_session_io.sql` — `sessions`, `messages` (incl. `memory_directive`), `signals` (with required provenance + FK), `messages_do_not_remember_guard()` trigger stub referenced by later tables.
+6. `0006_persona_graph.sql` — `personas`, `persona_facts`, `persona_fact_confirmations`, sensitive-accept trigger.
+7. `0007_pattern_graph.sql` — `patterns`, `pattern_events`, `pattern_evidence`, `pattern_relationships`, `pattern_feedback`, idempotency constraints, do-not-remember guard wiring.
+8. `0008_sde.sql` — `stronghold_categories`, `interpretations` (unique per session×category + idempotency).
+9. `0009_corpus.sql` — `source_documents`, `source_passages` (pgvector + FTS indexes), publication triggers referencing `source_approvals`.
+10. `0010_archetypes_practices.sql` — `biblical_archetypes`, `archetype_mirrors`, `archetype_passages`, `practices`, `practice_assignments`.
+11. `0011_discernment_prayer.sql` — `discernments`, `prayers` (with `status`), `prayer_lines` (with `primary_movement`, `movements[]`, check), `prayer_line_sources`, deferrable `prayers_commit_requires_sources` constraint trigger.
+12. `0012_formation.sql` — `formation_events` (append-only; INSERT revoked from `authenticated`), `check_ins`, emit trigger for check-in → formation_event.
+13. `0013_ops.sql` — `prompt_versions`, `model_configs`, `pipeline_runs`, `pipeline_runs_curator_v` view (`security_barrier=true`), activation policies restricting `UPDATE ... active` to `admin`.
+14. `0014_eval.sql` — `eval_cases`, `eval_runs`, `eval_results` with parent-scoped INSERT policy.
+15. `0015_rls_grants.sql` — every GRANT + POLICY exactly as §5 above; verifies with a `pg_policies` self-test.
+16. `0016_seed_governance.sql` — insert `founder_default` source_profile row, seed `stronghold_categories` (draft), seed accountable reviewer role assignments for the two named curators + one theological editor (real `auth.users.id` provided at seed time — no placeholders).
+
+Every file includes GRANTs immediately after each CREATE TABLE and enables RLS before creating policies, per platform rules. No `ALTER DATABASE` statements.
+
+Amend §22: awaiting sign-off before Prompt 2 / database migrations. (Prompt 1's UI audit is complete.)
