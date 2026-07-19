@@ -14,16 +14,188 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          payload: Json
+          target_id: string | null
+          target_table: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          canon_profile: Database["public"]["Enums"]["canon_profile"]
+          created_at: string
+          display_name: string | null
+          id: string
+          source_profile: Database["public"]["Enums"]["source_profile"]
+          updated_at: string
+        }
+        Insert: {
+          canon_profile?: Database["public"]["Enums"]["canon_profile"]
+          created_at?: string
+          display_name?: string | null
+          id: string
+          source_profile?: Database["public"]["Enums"]["source_profile"]
+          updated_at?: string
+        }
+        Update: {
+          canon_profile?: Database["public"]["Enums"]["canon_profile"]
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          source_profile?: Database["public"]["Enums"]["source_profile"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          assigned_by: string | null
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "curator" | "user"
+      canon_profile:
+        | "protestant_66"
+        | "ethiopian_orthodox_tewahedo_research"
+        | "comparative_early_christian_literature"
+      check_in_result: "kept" | "partial" | "missed" | "deferred"
+      derivation_type: "direct" | "inferred" | "pattern_matched"
+      eval_dimension:
+        | "persona_fidelity"
+        | "event_chain_fidelity"
+        | "hypothesis_quality"
+        | "counter_evidence"
+        | "biblical_grounding"
+        | "context_integrity"
+        | "source_tier_accuracy"
+        | "prayer_pattern_fit"
+        | "prayer_lineage"
+        | "action_fit"
+        | "non_shaming_tone"
+        | "unsupported_certainty"
+        | "user_correction_behavior"
+        | "citation_validity"
+        | "category_coverage"
+        | "refusal_correctness"
+        | "latency"
+        | "cost"
+        | "safety"
+      formation_event_type:
+        | "signal"
+        | "pattern_update"
+        | "interpretation"
+        | "prayer"
+        | "practice_assigned"
+        | "check_in"
+        | "memory_change"
+      hypothesis_status: "proposed" | "supported" | "weakened" | "rejected"
+      interpretation_category:
+        | "biblical_curse"
+        | "stronghold"
+        | "chosen_behavior"
+        | "trauma_wound"
+        | "systemic_injustice"
+        | "physiological"
+        | "spiritual_attack"
+        | "generational_sin"
+        | "identity_lie"
+        | "vow_or_agreement"
+        | "unforgiveness"
+        | "idolatry"
+        | "fear_bondage"
+        | "ignorance"
+      memory_directive: "normal" | "session_only" | "do_not_remember"
+      pattern_relation:
+        | "causes"
+        | "reinforces"
+        | "masks"
+        | "contradicts"
+        | "precedes"
+      pattern_status: "active" | "archived" | "rejected"
+      persona_fact_status:
+        | "session_only"
+        | "proposed"
+        | "accepted"
+        | "rejected"
+        | "deleted"
+      prayer_movement:
+        | "adoration"
+        | "confession"
+        | "renunciation"
+        | "forgiveness"
+        | "deliverance"
+        | "healing"
+        | "blessing"
+        | "commissioning"
+        | "thanksgiving"
+      run_status: "started" | "succeeded" | "failed" | "skipped"
+      sensitivity: "normal" | "sensitive" | "hidden"
+      session_mode: "companion" | "pattern" | "deep_wisdom" | "curse_breaker"
+      signal_origin: "explicit" | "inferred"
+      source_profile: "founder_default"
+      source_status:
+        | "draft"
+        | "in_review"
+        | "approved"
+        | "superseded"
+        | "retired"
+      source_tier: "S1" | "S2" | "S3" | "S4" | "S5" | "S6" | "S7" | "S8"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +322,102 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "curator", "user"],
+      canon_profile: [
+        "protestant_66",
+        "ethiopian_orthodox_tewahedo_research",
+        "comparative_early_christian_literature",
+      ],
+      check_in_result: ["kept", "partial", "missed", "deferred"],
+      derivation_type: ["direct", "inferred", "pattern_matched"],
+      eval_dimension: [
+        "persona_fidelity",
+        "event_chain_fidelity",
+        "hypothesis_quality",
+        "counter_evidence",
+        "biblical_grounding",
+        "context_integrity",
+        "source_tier_accuracy",
+        "prayer_pattern_fit",
+        "prayer_lineage",
+        "action_fit",
+        "non_shaming_tone",
+        "unsupported_certainty",
+        "user_correction_behavior",
+        "citation_validity",
+        "category_coverage",
+        "refusal_correctness",
+        "latency",
+        "cost",
+        "safety",
+      ],
+      formation_event_type: [
+        "signal",
+        "pattern_update",
+        "interpretation",
+        "prayer",
+        "practice_assigned",
+        "check_in",
+        "memory_change",
+      ],
+      hypothesis_status: ["proposed", "supported", "weakened", "rejected"],
+      interpretation_category: [
+        "biblical_curse",
+        "stronghold",
+        "chosen_behavior",
+        "trauma_wound",
+        "systemic_injustice",
+        "physiological",
+        "spiritual_attack",
+        "generational_sin",
+        "identity_lie",
+        "vow_or_agreement",
+        "unforgiveness",
+        "idolatry",
+        "fear_bondage",
+        "ignorance",
+      ],
+      memory_directive: ["normal", "session_only", "do_not_remember"],
+      pattern_relation: [
+        "causes",
+        "reinforces",
+        "masks",
+        "contradicts",
+        "precedes",
+      ],
+      pattern_status: ["active", "archived", "rejected"],
+      persona_fact_status: [
+        "session_only",
+        "proposed",
+        "accepted",
+        "rejected",
+        "deleted",
+      ],
+      prayer_movement: [
+        "adoration",
+        "confession",
+        "renunciation",
+        "forgiveness",
+        "deliverance",
+        "healing",
+        "blessing",
+        "commissioning",
+        "thanksgiving",
+      ],
+      run_status: ["started", "succeeded", "failed", "skipped"],
+      sensitivity: ["normal", "sensitive", "hidden"],
+      session_mode: ["companion", "pattern", "deep_wisdom", "curse_breaker"],
+      signal_origin: ["explicit", "inferred"],
+      source_profile: ["founder_default"],
+      source_status: [
+        "draft",
+        "in_review",
+        "approved",
+        "superseded",
+        "retired",
+      ],
+      source_tier: ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8"],
+    },
   },
 } as const

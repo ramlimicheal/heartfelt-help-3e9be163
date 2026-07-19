@@ -687,12 +687,13 @@ Every write-producing pipeline target carries `idempotency_key text not null`, u
 
 - `patterns` — `unique (user_id, idempotency_key)`
 - `pattern_events` — `unique (user_id, idempotency_key)`
-- `interpretations` — **corrected (v3.4).** A single Curse Breaker pipeline run writes up to 14 rows (one per `interpretation_category`), so a single `(session_id, idempotency_key)` pair is invalid — it would reject 13 of the 14 rows on the first write and duplicate on retry. Replaced with a two-level scheme:
-  - **Durable category identity:** `unique (session_id, category)` — one row per category per session, forever. This is the UPSERT target on retry.
-  - **Pipeline-level request key:** `request_key text not null` on every row, identical across the 14 rows produced by one run. Not unique on its own; used to prove co-provenance and for observability (`pipeline_runs.idempotency_key = interpretations.request_key`).
-  - **Per-row idempotency key:** `idempotency_key text generated always as (request_key || ':' || category::text) stored`, with `unique (session_id, idempotency_key)` — mechanically equal to `unique (session_id, category)` once `request_key` is fixed, so the two uniques are consistent by construction.
-  - **Retry behaviour:** the server function issues a single `insert ... on conflict (session_id, category) do update set ...` for all 14 rows in one statement inside one transaction. A retry with the same `request_key` UPSERTs the same 14 `(session_id, category)` rows in place (no duplicates, no orphans); a retry with a *different* `request_key` is treated as a new run and also UPSERTs in place, overwriting prior category output for that session. Partial runs (fewer than 14 categories) are permitted — subsequent runs top up missing categories without touching existing ones unless the same `(session_id, category)` is re-emitted.
-  - **Transactional guarantee:** all 14 UPSERTs plus the `pipeline_runs` row for the CB run commit together or roll back together. No category can be persisted without its sibling `pipeline_runs` record and vice versa.
+- `interpretations` — **corrected (v3.6).** A single Curse Breaker pipeline run writes up to 14 rows (one per `interpretation_category`), so a single `(session_id, idempotency_key)` pair is invalid. PostgreSQL generated columns cannot depend on an enum-to-text cast in a stable/immutable expression, so `idempotency_key` is NOT a generated column. Resolution:
+  - **Durable category identity:** `unique (session_id, category)` — one row per category per session; the UPSERT target on retry.
+  - **Pipeline-level request key:** `request_key text not null` on every row, identical across the 14 rows produced by one run; mirrored to `pipeline_runs.idempotency_key` for co-provenance.
+  - **Per-row key options (pick either at implementation, both accepted):**
+    1. `idempotency_key text not null` populated in **validated server code** as `request_key || ':' || category`, with `unique (session_id, idempotency_key)`; or
+    2. **Composite uniqueness** `unique (session_id, request_key, category)` with no derived column at all.
+  - **Retry behaviour:** one `insert ... on conflict (session_id, category) do update set ...` covering all 14 rows plus the sibling `pipeline_runs` row in a single transaction. Same `request_key` retry UPSERTs the same rows in place; a new `request_key` also UPSERTs in place (overwrites prior output for that session). Partial runs top up missing categories without disturbing existing ones.
 - `discernments` — `unique (session_id, idempotency_key)`
 - `prayers` — `unique (session_id, idempotency_key)`
 - `practice_assignments` — `unique (user_id, idempotency_key)`
@@ -718,7 +719,7 @@ Every write-producing pipeline target carries `idempotency_key text not null`, u
     - `unique (guest_migration_id, guest_record_id)` — a partial unique index `where guest_migration_id is not null` so native rows are unaffected.
   - **Retry behaviour:** one batch, many records; safe under interleaved retries. Each imported row is inserted with `on conflict (guest_migration_id, guest_record_id) do nothing`, so a resumed migration re-emits the full payload and only inserts what is missing. `guest_migrations.status` advances `pending → in_progress → completed` (or `failed`/`partial`); only the batch row's `status` and `record_counts` are updated, never the imported rows.
   - **Sensitive-fact rule preserved:** `persona_facts` imported with `sensitivity in ('sensitive','hidden')` land in `status = 'proposed'`; they cannot transition to `accepted` until a matching `persona_fact_confirmations` row is created post-migration (§4.3 unchanged).
-  - **RLS:** `guest_migrations` owner scope `auth.uid() = user_id`; INSERT/SELECT/UPDATE own; no DELETE for owners. `service_role ALL`. Curator/admin: `none`.
+  - **RLS (corrected v3.6):** owner grants are `SELECT, INSERT` **only** on `guest_migrations`. Owner may create the batch row (initial `status='pending'`, `payload_hash`, `record_counts`, `started_at`) but **cannot UPDATE or DELETE** it — no owner grant is issued for those verbs and no owner UPDATE policy exists. All transitions of `status`, `payload_hash`, `record_counts`, `completed_at`, and `error` occur exclusively through an authenticated `createServerFn` that authorizes the caller (`auth.uid() = user_id`) and performs the write via `supabaseAdmin` (`service_role`, RLS-bypassed). `curator` and `admin` receive `none` on this table — no read, no write. `service_role ALL`.
 
 Reads outside these constraints do not have idempotency claims. Server functions accept and forward the key; retries with the same key are guaranteed no-ops at the DB layer, not the app layer.
 
