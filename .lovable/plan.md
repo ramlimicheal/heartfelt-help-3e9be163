@@ -582,7 +582,7 @@ Audited files: `src/routes/wisdom.index.tsx`, `src/routes/wisdom.$sessionId.tsx`
 
 The following supersedes the corresponding text in §§3–5. Physical inventory is derived directly from the table-by-table list, not from group subtotals.
 
-### §3 (superseded v3.4) — Physical table inventory: **39**
+### §3 (superseded v3.5) — Physical table inventory: **40**
 
 Mechanically enumerated, one physical table per row (no collapsing):
 
@@ -625,6 +625,7 @@ Mechanically enumerated, one physical table per row (no collapsing):
 37. eval_cases
 38. eval_runs
 39. eval_results
+40. guest_migrations
 
 **Diff vs prior stated inventory (v3.3 said "35"):**
 
@@ -633,11 +634,12 @@ Mechanically enumerated, one physical table per row (no collapsing):
 - `eval_cases` — **added to numbered list**. Previously collapsed into a single row 35 alongside the next two.
 - `eval_runs` — **added to numbered list**. Same collapse.
 - `eval_results` — **added to numbered list**. Same collapse.
+- `guest_migrations` — **added** (v3.5). New batch record required by the corrected guest-migration idempotency scheme in §4.6.
 - All other 34 entries — unchanged.
 
 No `removed`, no `renamed from`, no `merged into` entries. Removing the `support` role and its policies removed enum values and RLS rows, not tables. `archetype_mirrors` retains its row — only its `passage_refs jsonb` column is dropped in §4.3; `archetype_passages` is a new normalized sibling, not a rename or merge.
 
-**Final mechanically calculated count: 39 physical tables**, plus the single security-barrier view `pipeline_runs_curator_v` (view, not counted). Guest data stays on-device.
+**Final mechanically calculated count: 40 physical tables**, plus the single security-barrier view `pipeline_runs_curator_v` (view, not counted). Guest data stays on-device until a migration batch is committed.
 
 ### §4.1 (superseded) — Enums
 
@@ -697,7 +699,26 @@ Every write-producing pipeline target carries `idempotency_key text not null`, u
 - `formation_events` — `unique (user_id, idempotency_key)`
 - `check_ins` — `unique (user_id, idempotency_key)`
 - `pipeline_runs` — `unique (session_id, stage, idempotency_key)`
-- Guest→account migration — `unique (user_id, migration_id)` on every migrated row family (see §21.12).
+- Guest→account migration — **corrected (v3.5).** `unique (user_id, migration_id)` on every imported row is invalid: one batch legitimately contains many sessions, messages, patterns, etc. Replaced with a batch-record + per-row scheme:
+  - **Batch table `guest_migrations`** (one row per migration attempt):
+    - `id uuid pk default gen_random_uuid()`
+    - `user_id uuid not null references auth.users(id) on delete cascade`
+    - `migration_id text not null` (stable device UUID from IndexedDB, §21.12)
+    - `status text not null check in ('pending','in_progress','completed','failed','partial')`
+    - `payload_hash text not null` (sha256 of canonicalized payload; detects payload drift on retry)
+    - `record_counts jsonb not null default '{}'` (per-table planned/committed counts)
+    - `started_at timestamptz not null default now()`
+    - `completed_at timestamptz`
+    - `error text`
+    - `unique (user_id, migration_id)` — the *batch* is idempotent; a retry with the same `migration_id` resolves to the same batch row.
+    - Payload-drift rule: on retry, if `payload_hash` differs from the stored value while `status <> 'completed'`, the server function rejects the retry (`409 payload_hash_mismatch`); if `status = 'completed'`, retries are treated as a no-op regardless of payload.
+  - **Every imported row on every migrated target** (`sessions`, `messages`, `signals`, `personas`, `persona_facts`, `patterns`, `pattern_events`, `pattern_evidence`, `pattern_relationships`, `pattern_feedback`, `interpretations`, `discernments`, `prayers`, `prayer_lines`, `prayer_line_sources`, `practice_assignments`, `formation_events`, `check_ins`) carries:
+    - `guest_migration_id uuid null references guest_migrations(id) on delete restrict` (null for natively-created rows)
+    - `guest_record_id text null` (the client-side IndexedDB row id; opaque to the server)
+    - `unique (guest_migration_id, guest_record_id)` — a partial unique index `where guest_migration_id is not null` so native rows are unaffected.
+  - **Retry behaviour:** one batch, many records; safe under interleaved retries. Each imported row is inserted with `on conflict (guest_migration_id, guest_record_id) do nothing`, so a resumed migration re-emits the full payload and only inserts what is missing. `guest_migrations.status` advances `pending → in_progress → completed` (or `failed`/`partial`); only the batch row's `status` and `record_counts` are updated, never the imported rows.
+  - **Sensitive-fact rule preserved:** `persona_facts` imported with `sensitivity in ('sensitive','hidden')` land in `status = 'proposed'`; they cannot transition to `accepted` until a matching `persona_fact_confirmations` row is created post-migration (§4.3 unchanged).
+  - **RLS:** `guest_migrations` owner scope `auth.uid() = user_id`; INSERT/SELECT/UPDATE own; no DELETE for owners. `service_role ALL`. Curator/admin: `none`.
 
 Reads outside these constraints do not have idempotency claims. Server functions accept and forward the key; retries with the same key are guaranteed no-ops at the DB layer, not the app layer.
 
