@@ -1,7 +1,18 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { BookOpen, Compass, Hand, Sparkles, User } from "lucide-react";
+import {
+  BookOpen,
+  Compass,
+  Hand,
+  Moon,
+  Plus,
+  Settings,
+  Sparkles,
+  Sun,
+  User,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { SESSIONS } from "@/lib/wisdom/mock/seed";
 
 type NavItem = { to: string; label: string; Icon: typeof Compass };
 
@@ -14,23 +25,23 @@ const NAV: NavItem[] = [
 ];
 
 function useTheme() {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
   useEffect(() => {
-    const saved = (typeof window !== "undefined" && window.localStorage.getItem("wisdom-theme")) as
-      | "light"
-      | "dark"
-      | null;
+    const saved =
+      typeof window !== "undefined"
+        ? (window.localStorage.getItem("wisdom-theme") as "light" | "dark" | null)
+        : null;
     const initial: "light" | "dark" =
       saved ??
       (typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light");
+      window.matchMedia?.("(prefers-color-scheme: light)").matches
+        ? "light"
+        : "dark");
     setTheme(initial);
   }, []);
   useEffect(() => {
     if (typeof document === "undefined") return;
-    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.classList.toggle("light", theme === "light");
     if (typeof window !== "undefined") window.localStorage.setItem("wisdom-theme", theme);
   }, [theme]);
   return { theme, toggle: () => setTheme((t) => (t === "dark" ? "light" : "dark")) };
@@ -48,26 +59,49 @@ export function AppShell({ children }: { children?: ReactNode }) {
     pathname === "/welcome" || pathname === "/onboarding" || pathname === "/auth";
 
   if (isFullBleed) {
-    return <div className="min-h-screen bg-background text-foreground">{children ?? <Outlet />}</div>;
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        {children ?? <Outlet />}
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1400px]">
-        {/* Desktop left rail */}
-        <aside className="hidden shrink-0 border-r border-panel-border md:flex md:w-60 md:flex-col">
-          <div className="px-6 pt-8 pb-6">
-            <Link to="/wisdom" className="flex items-center gap-2">
-              <span className="grid size-8 place-items-center rounded-lg bg-gold-soft text-gold">
-                <Sparkles className="size-4" strokeWidth={1.75} />
-              </span>
-              <span className="font-serif text-xl leading-none">Wisdom</span>
-            </Link>
-            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-              Scripture-first pattern and prayer intelligence.
-            </p>
+      <div className="mx-auto flex min-h-screen w-full max-w-[1500px]">
+        {/* Desktop left rail — Nova style */}
+        <aside className="hidden shrink-0 border-r border-panel-border/60 md:flex md:w-64 md:flex-col">
+          <div className="flex items-center gap-2.5 px-5 pt-6 pb-4">
+            <span className="grid size-8 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[0_0_24px_0] shadow-primary-glow">
+              <Sparkles className="size-4" strokeWidth={2} />
+            </span>
+            <div className="leading-tight">
+              <p className="text-sm font-semibold">Wisdom</p>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                Scripture-first
+              </p>
+            </div>
           </div>
-          <nav className="flex flex-col gap-0.5 px-3">
+
+          <div className="px-3">
+            <Link
+              to="/wisdom"
+              className="flex w-full items-center justify-between rounded-xl bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+            >
+              <span className="inline-flex items-center gap-2">
+                <Plus className="size-4" strokeWidth={2} />
+                New session
+              </span>
+              <span className="rounded-md bg-primary-foreground/10 px-1.5 py-0.5 text-[10px]">
+                ⌘K
+              </span>
+            </Link>
+          </div>
+
+          <nav className="mt-6 flex flex-col gap-0.5 px-3">
+            <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              Space
+            </p>
             {NAV.map(({ to, label, Icon }) => {
               const active = isActive(pathname, to);
               return (
@@ -75,32 +109,66 @@ export function AppShell({ children }: { children?: ReactNode }) {
                   key={to}
                   to={to}
                   className={[
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition",
+                    "group flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition",
                     active
                       ? "bg-surface text-foreground"
                       : "text-muted-foreground hover:bg-surface/60 hover:text-foreground",
                   ].join(" ")}
                 >
-                  <Icon className="size-4" strokeWidth={1.75} />
+                  <Icon
+                    className={["size-4", active ? "text-primary" : ""].join(" ")}
+                    strokeWidth={1.75}
+                  />
                   <span>{label}</span>
                   {active && (
-                    <span className="ml-auto size-1.5 rounded-full bg-gold" aria-hidden />
+                    <span className="ml-auto size-1.5 rounded-full bg-primary" aria-hidden />
                   )}
                 </Link>
               );
             })}
           </nav>
-          <div className="mt-auto space-y-1 px-3 pb-6">
+
+          <div className="mt-6 px-3">
+            <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              Recent
+            </p>
+            <ul className="space-y-0.5">
+              {SESSIONS.slice(0, 5).map((s) => (
+                <li key={s.id}>
+                  <Link
+                    to="/wisdom/$sessionId"
+                    params={{ sessionId: s.id }}
+                    className={[
+                      "block truncate rounded-md px-2.5 py-1.5 text-xs transition",
+                      pathname.includes(s.id)
+                        ? "bg-surface text-foreground"
+                        : "text-muted-foreground hover:bg-surface/60 hover:text-foreground",
+                    ].join(" ")}
+                  >
+                    {s.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="mt-auto space-y-0.5 px-3 pb-5">
             <Link
               to="/settings/privacy"
-              className="block rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-surface/60 hover:text-foreground"
+              className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs text-muted-foreground hover:bg-surface/60 hover:text-foreground"
             >
+              <Settings className="size-3.5" strokeWidth={1.75} />
               Privacy &amp; memory
             </Link>
             <button
               onClick={toggle}
-              className="w-full rounded-lg px-3 py-2 text-left text-xs text-muted-foreground hover:bg-surface/60 hover:text-foreground"
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-muted-foreground hover:bg-surface/60 hover:text-foreground"
             >
+              {theme === "dark" ? (
+                <Sun className="size-3.5" strokeWidth={1.75} />
+              ) : (
+                <Moon className="size-3.5" strokeWidth={1.75} />
+              )}
               {theme === "dark" ? "Light" : "Dark"} theme
             </button>
           </div>
@@ -109,23 +177,27 @@ export function AppShell({ children }: { children?: ReactNode }) {
         {/* Main */}
         <main className="min-w-0 flex-1 pb-24 md:pb-8">
           {/* Mobile header */}
-          <header className="flex items-center justify-between border-b border-panel-border px-4 py-3 md:hidden">
+          <header className="flex items-center justify-between border-b border-panel-border/60 px-4 py-3 md:hidden">
             <Link to="/wisdom" className="flex items-center gap-2">
-              <span className="grid size-7 place-items-center rounded-md bg-gold-soft text-gold">
-                <Sparkles className="size-3.5" strokeWidth={1.75} />
+              <span className="grid size-7 place-items-center rounded-lg bg-primary text-primary-foreground">
+                <Sparkles className="size-3.5" strokeWidth={2} />
               </span>
-              <span className="font-serif text-lg leading-none">Wisdom</span>
+              <span className="text-sm font-semibold">Wisdom</span>
             </Link>
             <button
               onClick={toggle}
               aria-label="Toggle theme"
-              className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-surface/60"
+              className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-surface/60 hover:text-foreground"
             >
-              {theme === "dark" ? "Light" : "Dark"}
+              {theme === "dark" ? (
+                <Sun className="size-4" strokeWidth={1.75} />
+              ) : (
+                <Moon className="size-4" strokeWidth={1.75} />
+              )}
             </button>
           </header>
 
-          <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-8 md:py-10">
+          <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-10 md:py-10">
             {children ?? <Outlet />}
           </div>
         </main>
@@ -146,7 +218,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
                   ].join(" ")}
                 >
                   <Icon
-                    className={["size-5", active ? "text-gold" : ""].join(" ")}
+                    className={["size-5", active ? "text-primary" : ""].join(" ")}
                     strokeWidth={1.75}
                   />
                   <span>{label}</span>
