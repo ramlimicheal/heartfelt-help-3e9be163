@@ -93,10 +93,13 @@ function WisdomHome() {
         </p>
 
         <div className="mt-8 grid gap-2 sm:grid-cols-2">
-          {SUGGESTIONS.map(({ Icon, label, prompt }) => (
+          {SUGGESTIONS.map(({ Icon, label, prompt, mode: sugMode }) => (
             <button
               key={label}
-              onClick={() => setText(prompt)}
+              onClick={() => {
+                setText(prompt);
+                setMode(sugMode);
+              }}
               className="group flex items-center gap-3 rounded-2xl border border-panel-border bg-surface/60 px-4 py-3 text-left text-sm transition hover:border-primary/40 hover:bg-surface"
             >
               <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary transition group-hover:bg-primary/25">
@@ -110,6 +113,7 @@ function WisdomHome() {
             </button>
           ))}
         </div>
+
       </section>
 
       {/* Composer */}
@@ -146,10 +150,9 @@ function WisdomHome() {
             })}
           </div>
           <p className="hidden text-[11px] text-muted-foreground md:block">
-            {mode === "companion" && "Gentle listening — no pattern yet."}
-            {mode === "pattern" && "1–3 competing hypotheses with evidence."}
-            {mode === "deep" && "Full pipeline: signals, event chain, mirrors, lineage, act."}
+            {COPY.modes[mode === "curse_breaker" ? "curse_breaker" : mode].hint}
           </p>
+
           <div className="ml-auto flex items-center gap-2">
             <button
               onClick={openSeed}
