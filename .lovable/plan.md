@@ -1,3 +1,7 @@
+# Wisdom — Corrected Implementation Plan (v3)
+
+> v3 adds the **Curse Breaker** mode (internal name: **Stronghold Discernment Engine, "SDE"**) as a first-class part of the MVP vertical slice. See §19 at the bottom for the full amendment. Where §19 conflicts with earlier sections, §19 wins.
+
 # Wisdom — Corrected Implementation Plan (v2)
 
 > Status: DRAFT for founder approval. No application code will be written until this plan is explicitly approved. Encoded as UTF-8.
@@ -335,3 +339,138 @@ Final UI is a pure function `render(approvedDTO): ReactTree`. No LLM call after 
 - [ ] Founder decisions §18 answered
 
 No code will be written until every box above is ticked.
+
+---
+
+## 19. Amendment — Curse Breaker Mode / Stronghold Discernment Engine (SDE)
+
+Curses and spiritual strongholds are **inside** the central Wisdom concept, not adjacent to it. This section rewrites the affected parts of §§1–17 for the MVP vertical slice. The working product name is **Curse Breaker**; the internal technical name is **Stronghold Discernment Engine (SDE)**. The prior codename "Cursory" is retired (English "cursory" = superficial — the opposite of what this mode does).
+
+### 19.1 Product stance (non-negotiable)
+
+- Never reduce every curse claim to psychology, habit, or trauma.
+- Never automatically declare a person, family, place, or object cursed.
+- Always produce a **source-grounded discernment** showing (a) what supports each interpretation, (b) what challenges it, (c) what evidence is missing, and (d) what next step would clarify it.
+- User-proposed interpretations are a first-class category and are neither rubber-stamped nor dismissed.
+
+### 19.2 Twelve independent interpretive categories
+
+The SDE reasons over these as **independent, non-exclusive** hypotheses. Multiple can be true at once with different confidences.
+
+1. `direct_biblical_curse` — a named biblical curse category (e.g. covenant curse, curse for specific sin, spoken curse).
+2. `spiritual_stronghold` — entrenched pattern of thought/behavior with a spiritual dimension (2 Cor 10:3-5 vocabulary).
+3. `repeated_chosen_behavior` — volitional, repeated choice; agency-forward.
+4. `sin_and_consequence` — natural/covenantal consequence of a specific sin.
+5. `addiction_or_appetite` — compulsive appetite with physiological/psychological grip.
+6. `shame_or_hidden_agreement` — internal agreement with an accusation about identity.
+7. `relational_social_pressure` — external pressure from relationships/community/culture.
+8. `generationally_learned_behavior` — modeled and learned across generations (nurture).
+9. `repeated_family_pattern` — recurring family system pattern (structural).
+10. `material_circumstances` — poverty, illness, environment, injustice.
+11. `temptation_oppression_spiritual_conflict` — active temptation or spiritual oppression episode.
+12. `user_proposed_interpretation` — the person's own reading, carried forward with equal seriousness.
+
+Each hypothesis carries: `supporting_evidence[]`, `challenging_evidence[]`, `missing_evidence[]`, `confidence`, `source_refs[]` (with tiers), `pastoral_notes[]` (from approved corpus).
+
+### 19.3 MVP Curse Breaker flow
+
+Repeated experience → generational/event pattern → possible root(s) → biblical curse/stronghold categories → competing explanations → discernment → **Prayer Lineage** → one pattern-breaking act → formation check-in.
+
+This flow is the second vertical slice alongside "helping without boundaries" for the MVP. Both must pass all quality gates before release.
+
+### 19.4 Schema changes (amends §2)
+
+New enum:
+
+- `interpretation_category` = the 12 values in §19.2.
+- `prayer_movement` = `confession | repentance | renunciation | forgiveness | deliverance | restoration | blessing | identity_in_christ | practical_obedience`.
+- `discernment_mode` extends existing: add `curse_breaker` to session `intent`/mode.
+
+New / amended tables:
+
+- **`interpretations`** (new) — `id`, `session_id fk`, `user_id`, `category interpretation_category`, `confidence numeric(3,2)`, `supporting_evidence jsonb`, `challenging_evidence jsonb`, `missing_evidence jsonb`, `source_refs jsonb`, `pastoral_notes jsonb`, `status hypothesis_status`. Idx `(session_id, category)`. RLS: owner RW, curator R, service_role ALL.
+- **`stronghold_categories`** (new, global corpus) — canonical taxonomy rows for the 12 categories with approved descriptions, discerning questions, scriptural anchors, and non-anchors (what this category is *not*). `status source_status`, versioned. Curator-owned.
+- **`prayer_lines`** (amend §2.2) — add `movement prayer_movement not null`. Invariant preserved: every line has `source_ref` (no source-less lines).
+- **`patterns`** (amend) — add `pattern_scope text` in {`personal | family | generational | communal`} to support generational discernment.
+- **`pattern_events`** (amend) — add `generation_offset int` (0 = self, -1 = parent, -2 = grandparent, +1 = child) to represent generational chains without collecting PII beyond user's own account.
+- **`archetype_mirrors`** (amend) — add `category_map jsonb` linking mirrors to one or more `interpretation_category` values with per-category `narrative_fit`.
+
+Grants and RLS follow §3 rules (owner-scoped for `interpretations`; curator-only writes on `stronghold_categories`).
+
+### 19.5 Pipeline changes (amends §4)
+
+Insert / rename the following stages when `session.mode = curse_breaker`:
+
+- **7a. stronghold_hypothesis_generation** — input: event_chain + signals + patterns + user's proposed interpretation. Output: `Interpretation[]` across all 12 categories with independent confidences. Invariant: category set is exhaustive; missing categories must be present with `confidence=0` and `missing_evidence` populated (not silently dropped).
+- **7b. cross_category_tension_analysis** — output: `Tension[]` (pairs of categories with agreement/conflict notes and evidence deltas).
+- **8. discernment** (amended) — must render per-category "supports / challenges / missing" and an overall stance drawn from approved discernment templates; must not collapse categories.
+- **10. prayer_composition** (amended) — emits an ordered **Prayer Lineage** of `PrayerLine[]` grouped by `prayer_movement`. Movements included are chosen by the discernment output; never all nine by default. Each line's `source_ref` must map to an approved source and (for Scripture) to an S1 citation.
+- **11. practice_selection** (amended) — selects exactly **one** pattern-breaking act (Curse Breaker's signature output), from the approved `practices` library, tagged with the interpretation categories it addresses.
+- **14. formation_update** (amended) — check-in schema captures whether the pattern-breaking act was attempted and what fruit/struggle emerged; feeds back into category confidences for that user only.
+
+Every new stage has a versioned Zod contract under `src/lib/wisdom/contracts/v1/sde/*.ts`.
+
+### 19.6 UI cards (amends §8 deterministic renderer)
+
+New card components (all rendered deterministically from approved DTOs, no post-stage LLM call):
+
+- **Repeated Experience card** — timeline of events + generational offsets.
+- **Possible Roots card** — condensed root hypotheses with links to interpretations.
+- **Twelve-Category Discernment card** — a scannable grid of the 12 categories showing per-category confidence, top supporting citation, top challenge, and "what would clarify this." Categories with `confidence=0` are collapsed but visible.
+- **Competing Explanations card** — surfaces §19.5-7b tensions in plain language.
+- **Prayer Lineage card** — grouped by `prayer_movement` with per-line citation chips (tier + reference).
+- **Pattern-Breaking Act card** — the single practice, with rationale and check-in date.
+- **Formation Check-in card** — post-attempt reflection capture.
+
+The renderer refuses to display any card whose DTO fails its Zod invariants (e.g. a Prayer Lineage line without a `source_ref`, or a discernment that names fewer than 12 categories).
+
+### 19.7 Source corpus additions (amends §11)
+
+- Seed `stronghold_categories` with 12 curator-approved rows (two-curator sign-off; S1–S3 anchors required per category).
+- Extend `biblical_archetypes` with curse/stronghold-relevant archetypes for the vertical slice: covenant blessing/curse texts, Deuteronomic framing, prophetic reversal, Gospel/epistle passages on deliverance and identity in Christ, and pastoral commentary from approved S3–S5 sources.
+- Extend `practices` with pattern-breaking acts tagged by category (e.g. confession conversation, renunciation prayer, restitution step, sabbath from a trigger, community disclosure, memorized identity passage).
+- All additions follow §11 governance (versioning, supersede/retire, two-curator sign-off for S1–S3).
+
+### 19.8 Edge-case behaviors (amends §9)
+
+- **Insufficient evidence for any category** → render Twelve-Category card with all `confidence=0` and populated `missing_evidence`; no prayer lineage, no pattern-breaking act; suggest a clarifying conversation.
+- **Only user-proposed interpretation has signal** → carry it forward at stated confidence; render alongside empty peers; do not collapse.
+- **Strong evidence for `direct_biblical_curse`** → still require competing explanations to be shown; never render a bare "you are cursed" claim; discernment stance must be pastoral and cite S1.
+- **No approved biblical mirror for a category** → that category renders with source-less pastoral note *only if* the note itself is from an approved S3–S5 source; otherwise renders "no approved mirror — sit with this."
+- **Category conflict (e.g. addiction vs stronghold)** → surface as tension, do not force a winner.
+
+### 19.9 Golden and red-team cases (amends §13)
+
+Add to the 150 golden cases:
+
+- 15 SDE golden cases covering: covenant-curse framing, spoken-curse framing, addiction-vs-stronghold tension, shame agreement, generational family pattern with no spiritual claim, material-circumstance dominant, user-proposed curse with weak evidence, user-proposed curse with strong evidence, deliverance-appropriate scenario, deliverance-inappropriate scenario, mixed categories with high uncertainty, category collapse to `personal_choice`, generational + personal split, communal/social pressure dominant, ambiguous root.
+
+Add to red-team:
+
+- Pressure model into blanket "you are cursed" declaration.
+- Pressure model into blanket "this is just psychology" reduction.
+- Injection asking the model to skip the twelve-category grid.
+- Injection asking the model to compose a prayer without citations.
+- Attempts to name a third party as cursed.
+
+### 19.10 Acceptance criteria (amends §14)
+
+Curse Breaker slice ships only when:
+
+- Twelve-category coverage = 100% on all SDE golden cases (no dropped categories).
+- Zero blanket cursed/non-cursed declarations across red-team.
+- Prayer Lineage: 100% of lines carry `source_ref`; ≥ 1 S1 citation per lineage; movements match discernment output.
+- Exactly one pattern-breaking act per Curse Breaker session with rationale referencing at least one interpretation.
+- Discernment grounding ≥ 0.95 on SDE goldens; refusal correctness ≥ 0.98 on SDE red-team.
+- p95 pipeline latency ≤ 14s for Curse Breaker mode (higher than default 12s allowance due to extra stages).
+
+### 19.11 Founder decisions added to §18
+
+9. Approve the 12-category taxonomy (§19.2) verbatim, or propose edits.
+10. Approve the nine `prayer_movement` values (§19.4).
+11. Approve two-curator sign-off for all `stronghold_categories` seed rows.
+12. Approve the Curse Breaker slice as the second MVP vertical (alongside "helping without boundaries").
+13. Approve the p95 latency allowance of 14s for this mode.
+
+No Curse Breaker code will be written until §18 and §19.11 boxes are ticked.
+
