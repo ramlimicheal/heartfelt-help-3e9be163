@@ -148,13 +148,13 @@
   --blue: oklch(0.42 0.14 240);
 
   --tier-canonical: oklch(0.42 0.13 128);
-  --tier-synthesis: oklch(0.55 0.14 92);
-  --tier-context: oklch(0.5 0.13 240);
-  --tier-tradition: oklch(0.52 0.12 128);
-  --tier-extracanonical: oklch(0.5 0.14 300);
-  --tier-founder: oklch(0.55 0.13 40);
-  --tier-analogy: oklch(0.5 0.02 260);
-  --tier-hypothesis: oklch(0.45 0.03 260);
+  --tier-synthesis: oklch(0.42 0.13 92);
+  --tier-context: oklch(0.42 0.14 240);
+  --tier-tradition: oklch(0.42 0.12 128);
+  --tier-extracanonical: oklch(0.42 0.14 300);
+  --tier-founder: oklch(0.42 0.13 40);
+  --tier-analogy: oklch(0.38 0.02 260);
+  --tier-hypothesis: oklch(0.38 0.03 260);
 }
 
 * { border-color: var(--border); }
