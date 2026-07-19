@@ -1,67 +1,157 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import {
+  ArrowRight,
+  ArrowUp,
+  BookOpen,
+  Compass,
+  HandHelping,
+  Hand,
+  Sparkles,
+} from "lucide-react";
 import { SESSIONS } from "@/lib/wisdom/mock/seed";
 
-export const Route = createFileRoute("/wisdom/")({
-  head: () => ({ meta: [{ title: "Wisdom — Sessions" }] }),
-  component: WisdomList,
+export const Route = createFileRoute("/wisdom")({
+  head: () => ({ meta: [{ title: "Wisdom — begin a session" }] }),
+  component: WisdomHome,
 });
 
-function WisdomList() {
-  return (
-    <div className="space-y-8">
-      <header className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-gold">
-          Wisdom
-        </p>
-        <h1 className="font-serif text-3xl leading-tight md:text-4xl">
-          Tell Wisdom what is happening.
-        </h1>
-        <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground">
-          Write in your own words. You will see structured cards, not a message stream — what
-          Wisdom hears, the pattern beneath it, the biblical mirror, a prayer with lineage,
-          and one next act.
-        </p>
-      </header>
+const SUGGESTIONS = [
+  {
+    Icon: Compass,
+    label: "Name a pattern I keep returning to",
+    prompt: "Something keeps happening that I don't fully understand — ",
+  },
+  {
+    Icon: HandHelping,
+    label: "Help me pray about something honestly",
+    prompt: "I want to pray about this, but I'm not sure what I'm really asking for — ",
+  },
+  {
+    Icon: BookOpen,
+    label: "Test a spiritual interpretation",
+    prompt: "I've been wondering whether this is spiritual or just — ",
+  },
+  {
+    Icon: Hand,
+    label: "Reflect on a repeated setback",
+    prompt: "I said I wouldn't again, and I did. Here's what happened — ",
+  },
+];
 
-      <section className="rounded-2xl border border-panel-border bg-panel p-5">
-        <label htmlFor="story" className="block text-xs font-medium text-muted-foreground">
-          Start a new session
-        </label>
-        <textarea
-          id="story"
-          placeholder="What is on your mind? What has been repeating?"
-          className="mt-3 h-32 w-full resize-none rounded-lg border border-surface-border bg-background px-4 py-3 text-[15px] leading-relaxed placeholder:text-muted-foreground/70 focus:border-gold focus:outline-none"
-        />
-        <div className="mt-3 flex items-center justify-between">
-          <div className="flex gap-2 text-xs">
-            {["Companion", "Pattern", "Deep"].map((mode, i) => (
-              <button
-                key={mode}
-                className={[
-                  "rounded-full border px-3 py-1 transition",
-                  i === 1
-                    ? "border-gold bg-gold-soft text-gold"
-                    : "border-surface-border text-muted-foreground hover:text-foreground",
-                ].join(" ")}
-              >
-                {mode}
-              </button>
-            ))}
-          </div>
-          <Link
-            to="/wisdom/$sessionId"
-            params={{ sessionId: SESSIONS[0].id }}
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
-          >
-            <Sparkles className="size-3.5" strokeWidth={2} />
-            Open seeded example
-          </Link>
+const MODES = [
+  { id: "companion", label: "Companion", hint: "gentle listening" },
+  { id: "pattern", label: "Pattern", hint: "1–3 hypotheses" },
+  { id: "deep", label: "Deep", hint: "full pipeline" },
+] as const;
+
+function WisdomHome() {
+  const navigate = useNavigate();
+  const [text, setText] = useState("");
+  const [mode, setMode] = useState<(typeof MODES)[number]["id"]>("pattern");
+
+  const openSeed = () =>
+    navigate({ to: "/wisdom/$sessionId", params: { sessionId: SESSIONS[0].id } });
+
+  return (
+    <div className="flex min-h-[calc(100vh-6rem)] flex-col">
+      {/* Hero */}
+      <section className="glow-lime rounded-3xl border border-panel-border px-6 py-10 md:px-10 md:py-14">
+        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-primary">
+          Peace to you
+        </p>
+        <h1 className="mt-3 text-3xl leading-tight md:text-[42px] md:leading-[1.1]">
+          What is happening beneath the surface,
+          <br />
+          <span className="text-muted-foreground">that you'd like to see clearly?</span>
+        </h1>
+        <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+          Write in your own words. Wisdom will respond in structured cards — what it hears,
+          the pattern beneath, a biblical mirror, a prayer with lineage, and one next act.
+          Not a chatbot; not a verse-finder.
+        </p>
+
+        <div className="mt-8 grid gap-2 sm:grid-cols-2">
+          {SUGGESTIONS.map(({ Icon, label, prompt }) => (
+            <button
+              key={label}
+              onClick={() => setText(prompt)}
+              className="group flex items-center gap-3 rounded-2xl border border-panel-border bg-surface/60 px-4 py-3 text-left text-sm transition hover:border-primary/40 hover:bg-surface"
+            >
+              <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary transition group-hover:bg-primary/25">
+                <Icon className="size-4" strokeWidth={1.75} />
+              </span>
+              <span className="text-foreground/90">{label}</span>
+              <ArrowRight
+                className="ml-auto size-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground"
+                strokeWidth={1.75}
+              />
+            </button>
+          ))}
         </div>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+      {/* Composer */}
+      <section className="mt-6 rounded-3xl border border-panel-border bg-surface/60 p-3 md:p-4">
+        <label htmlFor="story" className="sr-only">
+          Your story
+        </label>
+        <textarea
+          id="story"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Tell Wisdom what's been repeating…"
+          className="h-28 w-full resize-none rounded-2xl bg-transparent px-4 py-3 text-[15px] leading-relaxed placeholder:text-muted-foreground/60 focus:outline-none"
+        />
+        <div className="flex flex-wrap items-center gap-2 border-t border-panel-border/70 pt-3">
+          <div className="flex items-center gap-1 rounded-full border border-panel-border bg-background/60 p-0.5">
+            {MODES.map((m) => {
+              const active = mode === m.id;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => setMode(m.id)}
+                  className={[
+                    "rounded-full px-3 py-1.5 text-xs transition",
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  ].join(" ")}
+                  title={m.hint}
+                >
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="hidden text-[11px] text-muted-foreground md:block">
+            {mode === "companion" && "Gentle listening — no pattern yet."}
+            {mode === "pattern" && "1–3 competing hypotheses with evidence."}
+            {mode === "deep" && "Full pipeline: signals, event chain, mirrors, lineage, act."}
+          </p>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={openSeed}
+              className="inline-flex items-center gap-1.5 rounded-full border border-panel-border bg-background/60 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <Sparkles className="size-3.5" strokeWidth={2} />
+              Seeded example
+            </button>
+            <button
+              onClick={openSeed}
+              disabled={text.trim().length === 0}
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Begin session
+              <ArrowUp className="size-3.5" strokeWidth={2} />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Recent */}
+      <section className="mt-10 space-y-3">
+        <h2 className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
           Recent sessions
         </h2>
         {SESSIONS.map((s) => (
@@ -69,11 +159,14 @@ function WisdomList() {
             key={s.id}
             to="/wisdom/$sessionId"
             params={{ sessionId: s.id }}
-            className="group flex items-start gap-4 rounded-xl border border-panel-border bg-panel px-4 py-4 transition hover:bg-surface"
+            className="group flex items-start gap-4 rounded-2xl border border-panel-border bg-surface/60 px-4 py-4 transition hover:bg-surface"
           >
+            <span className="mt-1 grid size-8 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
+              <Sparkles className="size-4" strokeWidth={1.75} />
+            </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate font-serif text-lg leading-snug">{s.title}</p>
-              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+              <p className="truncate text-[15px] font-medium leading-snug">{s.title}</p>
+              <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
                 {s.messages[0].text}
               </p>
               <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">
@@ -81,7 +174,7 @@ function WisdomList() {
               </p>
             </div>
             <ArrowRight
-              className="mt-1 size-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground"
+              className="mt-2 size-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground"
               strokeWidth={1.75}
             />
           </Link>
