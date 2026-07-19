@@ -6,6 +6,7 @@ import {
   Moon,
   Plus,
   Settings,
+  ShieldAlert,
   Sparkles,
   Sun,
   User,
@@ -18,6 +19,7 @@ type NavItem = { to: string; label: string; Icon: typeof Compass };
 
 const NAV: NavItem[] = [
   { to: "/wisdom", label: "Wisdom", Icon: Sparkles },
+  { to: "/wisdom/curse-breaker", label: "Curse Breaker", Icon: ShieldAlert },
   { to: "/patterns", label: "Patterns", Icon: Compass },
   { to: "/prayers", label: "Prayer", Icon: Hand },
   { to: "/journey", label: "Journey", Icon: BookOpen },
@@ -48,9 +50,12 @@ function useTheme() {
 }
 
 function isActive(pathname: string, to: string) {
-  if (to === "/wisdom") return pathname === "/" || pathname.startsWith("/wisdom");
+  if (to === "/wisdom") {
+    return pathname === "/" || (pathname.startsWith("/wisdom") && !pathname.startsWith("/wisdom/curse-breaker"));
+  }
   return pathname.startsWith(to);
 }
+
 
 export function AppShell({ children }: { children?: ReactNode }) {
   const { theme, toggle } = useTheme();
@@ -69,7 +74,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen w-full max-w-[1500px]">
-        {/* Desktop left rail — Nova style */}
+        {/* Desktop left rail */}
         <aside className="hidden shrink-0 border-r border-panel-border/60 md:flex md:w-64 md:flex-col">
           <div className="flex items-center gap-2.5 px-5 pt-6 pb-4">
             <span className="grid size-8 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[0_0_24px_0] shadow-primary-glow">
@@ -205,7 +210,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-panel-border bg-background/95 backdrop-blur md:hidden">
-        <ul className="mx-auto grid max-w-md grid-cols-5">
+        <ul className="mx-auto grid max-w-md grid-cols-6">
           {NAV.map(({ to, label, Icon }) => {
             const active = isActive(pathname, to);
             return (

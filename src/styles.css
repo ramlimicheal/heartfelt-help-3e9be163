@@ -5,11 +5,12 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Wisdom — Nova-styled surface.
+ * Wisdom design surface.
  * Dark deep-ink canvas by default, lime accent, translucent glass surfaces,
  * calm rounded cards. Light mode is a mirrored parchment-white surface
  * that keeps the same accent language.
  */
+
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -62,7 +63,7 @@
   --color-tier-hypothesis: var(--tier-hypothesis);
 }
 
-/* Dark — Nova default */
+/* Dark — default */
 :root {
   --radius: 0.85rem;
 
@@ -168,7 +169,7 @@ body {
 }
 .font-serif { font-family: var(--font-serif); font-optical-sizing: auto; }
 
-/* Nova ambient glow used on hero panels */
+/* Ambient glow used on hero panels */
 .glow-lime {
   background:
     radial-gradient(60% 80% at 50% 0%, var(--primary-glow), transparent 70%),

@@ -521,7 +521,7 @@ Audited files: `src/routes/wisdom.index.tsx`, `src/routes/wisdom.$sessionId.tsx`
 - Wisdom home with hero, suggestions grid, and composer (`src/routes/wisdom.index.tsx`).
 - Three-mode selector: `companion | pattern | deep` with per-mode hint copy.
 - Session view route and seeded example.
-- App shell with sidebar/nav and design tokens (parchment/gold on Nova dark canvas).
+- App shell with sidebar/nav and design tokens (parchment/gold on dark canvas).
 - Typed schemas in `src/lib/wisdom/schemas.ts` (patterns, prayers, prayer lines, biblical mirrors).
 
 **Missing (to add during audit pass, typed mocks only)**
@@ -546,3 +546,32 @@ Audited files: `src/routes/wisdom.index.tsx`, `src/routes/wisdom.$sessionId.tsx`
 
 **Not-in-scope for the audit pass** (per §21.11): any backend, any AI call, any real streaming — only typed mocks + static cards. Backend migrations are deferred pending the final review of the 32-table schema and RLS matrix (§20).
 
+
+---
+
+## 21.12 Frozen Amendments (v3.2) — clarifications applied during audit pass
+
+1. **Guest migration idempotency.** `migration_id` is a stable random UUID minted on the guest device, persisted in IndexedDB under `wisdom.guest.migrationId`, and reused verbatim for every retry of the guest → account migration server function. Deriving the key from `created_at` or any timestamp is prohibited. Server-side upsert key: `unique (user_id, migration_id)`.
+
+2. **Two-curator source approval is normalized.** New governance table `source_approvals` (added to §3 identity/governance count; final physical count moves from 32 → 33):
+   - `id uuid pk`, `source_document_id fk`, `source_version int not null`, `reviewer_id uuid references auth.users(id) not null`, `role app_role not null`, `decision text check in ('approve','reject','request_changes')`, `notes text`, `created_at timestamptz not null`.
+   - Unique `(source_document_id, source_version, reviewer_id)` — a reviewer approves a specific version once.
+   - Publication rule: `source_documents.status = 'approved'` requires **≥ 2 `approve` rows from distinct reviewer_ids** for the current `version`. Enforced by a `before update` trigger on `source_documents` and by a nightly `source_governance_audit` job.
+   - `source_documents.approved_by` is removed; that single-owner field cannot express two independent approvals.
+
+3. **Placeholder corpus owners removed before private beta.** "Curator A", "Curator B", and any other unnamed placeholder in §19 / §21.9 are permitted only in mock-UI seeds. Before private beta corpus approval, every `stronghold_categories` row, every `biblical_archetypes` row, and every `source_documents` row must reference accountable `reviewer_id` values (real user IDs) via `source_approvals`, and every governance owner must be a named role (`founder`, `theological_editor`, `pastoral_reviewer`) — never an anonymous placeholder.
+
+4. **Evaluation compares the same golden cases across versions.**
+   - Primary comparison: **paired case-level** on the 150 golden cases (same case, version A vs version B), with the delta reported per case.
+   - Aggregate significance: **paired bootstrap over the 150 case deltas with ≥ 3 model runs per case per version** to absorb sampling variance. Report the 95% CI of the mean delta.
+   - Independent Welch's t on five aggregate runs is **not** an acceptable substitute and is removed from the acceptance criteria in §14.
+   - Hard invariants (privacy leak, missing citation on any prayer line, structural schema violation, refusal-correctness on red-team cases) remain **zero-tolerance** regardless of the paired-bootstrap outcome. Qualitative dimensions retain the 2pp regression ceiling from §21.7.
+
+5. **Nova branding audit result.** No Nova strings remain in `src/`, `.lovable/`, or `public/`. `index.html` does not exist in this template (TanStack Start owns the shell via `src/routes/__root.tsx`). Head metadata (`WISDOM_TITLE`, `WISDOM_DESC`) already reads "Wisdom — Scripture-first pattern and prayer intelligence"; the template default "Lovable Generated Project" was replaced in Stage A. Curse Breaker leaf route sets its own `title` and `robots: noindex`.
+
+**Effect on counts and matrices**
+- §3 Table Inventory: identity/governance 4 → **5** (added `source_approvals`); physical total 32 → **33**.
+- §4.3: append `source_approvals` row per the columns above.
+- §5 RLS: `source_approvals` — `anon: none`, `authenticated: none`, `curator: RW own reviewer rows + R all`, `admin: R`, `support: none`, `service_role: ALL`. Grants: `GRANT SELECT,INSERT,UPDATE ON source_approvals TO authenticated` restricted by policy to rows where `reviewer_id = auth.uid()`. Reject or supersede via new `source_approvals` row, never `UPDATE`/`DELETE` of a decided row (append-only decisions; a superseding row references the prior via `supersedes_approval_id`).
+- §14 acceptance criteria: replace Welch t-test line with paired bootstrap over 150 cases × ≥ 3 runs, 95% CI.
+- §20 founder decisions: add "reviewer_id assignments for founder / theological_editor / pastoral_reviewer roles" as a Prompt 1 blocker.
