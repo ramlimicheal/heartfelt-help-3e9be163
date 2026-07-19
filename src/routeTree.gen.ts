@@ -9,38 +9,213 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as YouRouteImport } from './routes/you'
+import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as JourneyRouteImport } from './routes/journey'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WisdomIndexRouteImport } from './routes/wisdom.index'
+import { Route as PrayersIndexRouteImport } from './routes/prayers.index'
+import { Route as PatternsIndexRouteImport } from './routes/patterns.index'
+import { Route as WisdomSessionIdRouteImport } from './routes/wisdom.$sessionId'
+import { Route as SettingsPrivacyRouteImport } from './routes/settings.privacy'
+import { Route as PrayersPrayerIdRouteImport } from './routes/prayers.$prayerId'
+import { Route as PatternsPatternIdRouteImport } from './routes/patterns.$patternId'
 
+const YouRoute = YouRouteImport.update({
+  id: '/you',
+  path: '/you',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JourneyRoute = JourneyRouteImport.update({
+  id: '/journey',
+  path: '/journey',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WisdomIndexRoute = WisdomIndexRouteImport.update({
+  id: '/wisdom/',
+  path: '/wisdom/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrayersIndexRoute = PrayersIndexRouteImport.update({
+  id: '/prayers/',
+  path: '/prayers/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatternsIndexRoute = PatternsIndexRouteImport.update({
+  id: '/patterns/',
+  path: '/patterns/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WisdomSessionIdRoute = WisdomSessionIdRouteImport.update({
+  id: '/wisdom/$sessionId',
+  path: '/wisdom/$sessionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsPrivacyRoute = SettingsPrivacyRouteImport.update({
+  id: '/settings/privacy',
+  path: '/settings/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrayersPrayerIdRoute = PrayersPrayerIdRouteImport.update({
+  id: '/prayers/$prayerId',
+  path: '/prayers/$prayerId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatternsPatternIdRoute = PatternsPatternIdRouteImport.update({
+  id: '/patterns/$patternId',
+  path: '/patterns/$patternId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/journey': typeof JourneyRoute
+  '/onboarding': typeof OnboardingRoute
+  '/welcome': typeof WelcomeRoute
+  '/you': typeof YouRoute
+  '/patterns/$patternId': typeof PatternsPatternIdRoute
+  '/prayers/$prayerId': typeof PrayersPrayerIdRoute
+  '/settings/privacy': typeof SettingsPrivacyRoute
+  '/wisdom/$sessionId': typeof WisdomSessionIdRoute
+  '/patterns/': typeof PatternsIndexRoute
+  '/prayers/': typeof PrayersIndexRoute
+  '/wisdom/': typeof WisdomIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/journey': typeof JourneyRoute
+  '/onboarding': typeof OnboardingRoute
+  '/welcome': typeof WelcomeRoute
+  '/you': typeof YouRoute
+  '/patterns/$patternId': typeof PatternsPatternIdRoute
+  '/prayers/$prayerId': typeof PrayersPrayerIdRoute
+  '/settings/privacy': typeof SettingsPrivacyRoute
+  '/wisdom/$sessionId': typeof WisdomSessionIdRoute
+  '/patterns': typeof PatternsIndexRoute
+  '/prayers': typeof PrayersIndexRoute
+  '/wisdom': typeof WisdomIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/journey': typeof JourneyRoute
+  '/onboarding': typeof OnboardingRoute
+  '/welcome': typeof WelcomeRoute
+  '/you': typeof YouRoute
+  '/patterns/$patternId': typeof PatternsPatternIdRoute
+  '/prayers/$prayerId': typeof PrayersPrayerIdRoute
+  '/settings/privacy': typeof SettingsPrivacyRoute
+  '/wisdom/$sessionId': typeof WisdomSessionIdRoute
+  '/patterns/': typeof PatternsIndexRoute
+  '/prayers/': typeof PrayersIndexRoute
+  '/wisdom/': typeof WisdomIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/journey'
+    | '/onboarding'
+    | '/welcome'
+    | '/you'
+    | '/patterns/$patternId'
+    | '/prayers/$prayerId'
+    | '/settings/privacy'
+    | '/wisdom/$sessionId'
+    | '/patterns/'
+    | '/prayers/'
+    | '/wisdom/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/journey'
+    | '/onboarding'
+    | '/welcome'
+    | '/you'
+    | '/patterns/$patternId'
+    | '/prayers/$prayerId'
+    | '/settings/privacy'
+    | '/wisdom/$sessionId'
+    | '/patterns'
+    | '/prayers'
+    | '/wisdom'
+  id:
+    | '__root__'
+    | '/'
+    | '/journey'
+    | '/onboarding'
+    | '/welcome'
+    | '/you'
+    | '/patterns/$patternId'
+    | '/prayers/$prayerId'
+    | '/settings/privacy'
+    | '/wisdom/$sessionId'
+    | '/patterns/'
+    | '/prayers/'
+    | '/wisdom/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  JourneyRoute: typeof JourneyRoute
+  OnboardingRoute: typeof OnboardingRoute
+  WelcomeRoute: typeof WelcomeRoute
+  YouRoute: typeof YouRoute
+  PatternsPatternIdRoute: typeof PatternsPatternIdRoute
+  PrayersPrayerIdRoute: typeof PrayersPrayerIdRoute
+  SettingsPrivacyRoute: typeof SettingsPrivacyRoute
+  WisdomSessionIdRoute: typeof WisdomSessionIdRoute
+  PatternsIndexRoute: typeof PatternsIndexRoute
+  PrayersIndexRoute: typeof PrayersIndexRoute
+  WisdomIndexRoute: typeof WisdomIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/you': {
+      id: '/you'
+      path: '/you'
+      fullPath: '/you'
+      preLoaderRoute: typeof YouRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journey': {
+      id: '/journey'
+      path: '/journey'
+      fullPath: '/journey'
+      preLoaderRoute: typeof JourneyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +223,71 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wisdom/': {
+      id: '/wisdom/'
+      path: '/wisdom'
+      fullPath: '/wisdom/'
+      preLoaderRoute: typeof WisdomIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prayers/': {
+      id: '/prayers/'
+      path: '/prayers'
+      fullPath: '/prayers/'
+      preLoaderRoute: typeof PrayersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patterns/': {
+      id: '/patterns/'
+      path: '/patterns'
+      fullPath: '/patterns/'
+      preLoaderRoute: typeof PatternsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wisdom/$sessionId': {
+      id: '/wisdom/$sessionId'
+      path: '/wisdom/$sessionId'
+      fullPath: '/wisdom/$sessionId'
+      preLoaderRoute: typeof WisdomSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/privacy': {
+      id: '/settings/privacy'
+      path: '/settings/privacy'
+      fullPath: '/settings/privacy'
+      preLoaderRoute: typeof SettingsPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prayers/$prayerId': {
+      id: '/prayers/$prayerId'
+      path: '/prayers/$prayerId'
+      fullPath: '/prayers/$prayerId'
+      preLoaderRoute: typeof PrayersPrayerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patterns/$patternId': {
+      id: '/patterns/$patternId'
+      path: '/patterns/$patternId'
+      fullPath: '/patterns/$patternId'
+      preLoaderRoute: typeof PatternsPatternIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  JourneyRoute: JourneyRoute,
+  OnboardingRoute: OnboardingRoute,
+  WelcomeRoute: WelcomeRoute,
+  YouRoute: YouRoute,
+  PatternsPatternIdRoute: PatternsPatternIdRoute,
+  PrayersPrayerIdRoute: PrayersPrayerIdRoute,
+  SettingsPrivacyRoute: SettingsPrivacyRoute,
+  WisdomSessionIdRoute: WisdomSessionIdRoute,
+  PatternsIndexRoute: PatternsIndexRoute,
+  PrayersIndexRoute: PrayersIndexRoute,
+  WisdomIndexRoute: WisdomIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
