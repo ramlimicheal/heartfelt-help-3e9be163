@@ -31,10 +31,10 @@ function PrayerDetail() {
         <Link to="/prayers" className="text-xs text-muted-foreground hover:text-foreground">
           ← All prayers
         </Link>
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-gold">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary">
           Prayer · {prayer.mode}
         </p>
-        <h1 className="font-serif text-3xl leading-tight">{prayer.title}</h1>
+        <h1 className="text-3xl leading-tight">{prayer.title}</h1>
       </header>
 
       <Card eyebrow="The prayer" title="Tap any line for its Prayer Roots.">
@@ -56,10 +56,10 @@ function LineBlock({ line }: { line: (typeof PRAYERS)[string]["lines"][number] }
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-surface"
       >
-        <span className="mt-0.5 rounded bg-gold-soft px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-gold">
+        <span className="mt-0.5 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-primary">
           {line.movement}
         </span>
-        <p className="flex-1 font-serif text-[17px] leading-snug">{line.text}</p>
+        <p className="flex-1 text-[17px] leading-snug">{line.text}</p>
         {open ? (
           <ChevronDown className="mt-1 size-4 text-muted-foreground" />
         ) : (

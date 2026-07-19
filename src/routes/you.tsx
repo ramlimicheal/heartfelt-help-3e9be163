@@ -27,8 +27,8 @@ function You() {
   return (
     <div className="space-y-8">
       <header className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-gold">You</p>
-        <h1 className="font-serif text-3xl leading-tight">Your persona graph.</h1>
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary">You</p>
+        <h1 className="text-3xl leading-tight">Your persona graph.</h1>
         <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground">
           Nothing becomes durable memory without your consent. Sensitive or identity-level
           proposals require explicit confirmation. Rejected memory never silently returns.

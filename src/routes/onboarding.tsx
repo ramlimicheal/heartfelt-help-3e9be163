@@ -41,7 +41,7 @@ function Onboarding() {
                 key={idx}
                 className={[
                   "h-1 w-6 rounded-full transition",
-                  idx <= i ? "bg-gold" : "bg-surface",
+                  idx <= i ? "bg-primary" : "bg-surface",
                 ].join(" ")}
               />
             ))}
@@ -49,10 +49,10 @@ function Onboarding() {
         </div>
 
         <main className="space-y-5">
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-gold">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary">
             {step.eyebrow}
           </p>
-          <h1 className="font-serif text-3xl leading-tight text-foreground">{step.title}</h1>
+          <h1 className="text-3xl leading-tight text-foreground">{step.title}</h1>
           <p className="text-[15px] leading-relaxed text-muted-foreground">{step.body}</p>
         </main>
 

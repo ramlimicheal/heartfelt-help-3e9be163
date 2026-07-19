@@ -56,10 +56,10 @@ function SessionView() {
         <Link to="/wisdom" className="text-xs text-muted-foreground hover:text-foreground">
           ← All sessions
         </Link>
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-gold">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary">
           Session · {session.depth} mode
         </p>
-        <h1 className="font-serif text-3xl leading-tight">{session.title}</h1>
+        <h1 className="text-3xl leading-tight">{session.title}</h1>
       </header>
 
       {/* Original story */}
@@ -67,7 +67,7 @@ function SessionView() {
         {session.messages.map((m: import("@/lib/wisdom/schemas").Message) => (
           <blockquote
             key={m.id}
-            className="rounded-xl border-l-2 border-gold/40 bg-surface/50 px-4 py-3 text-[15px] leading-relaxed text-foreground/85"
+            className="rounded-xl border-l-2 border-primary/40 bg-surface/50 px-4 py-3 text-[15px] leading-relaxed text-foreground/85"
           >
             {m.text}
           </blockquote>
@@ -140,11 +140,11 @@ function SessionView() {
               ))}
             </ul>
           </MicroBlock>
-          <div className="rounded-lg border border-gold/30 bg-gold-soft px-4 py-3">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-gold">
+          <div className="rounded-lg border border-primary/30 bg-primary/15 px-4 py-3">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-primary">
               One distinguishing question
             </p>
-            <p className="mt-1 font-serif text-lg leading-snug">
+            <p className="mt-1 text-lg leading-snug">
               {response.discernment.distinguishingQuestion}
             </p>
           </div>
@@ -203,7 +203,7 @@ function SessionView() {
                 className={[
                   "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition",
                   active
-                    ? "border-gold bg-gold-soft text-gold"
+                    ? "border-primary bg-primary/15 text-primary"
                     : "border-surface-border text-muted-foreground hover:text-foreground",
                 ].join(" ")}
               >
@@ -260,7 +260,7 @@ function SessionView() {
               {response.eventChain.map((l: import("@/lib/wisdom/schemas").EventChainLink) => (
                 <li key={l.id} className="rounded-lg border border-surface-border bg-surface/40 px-3 py-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-medium uppercase tracking-wide text-gold">
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-primary">
                       {l.kind.replace("_", " ")}
                     </span>
                     <span
@@ -282,7 +282,7 @@ function SessionView() {
             eyebrow="Hidden agreement (candidate)"
             title="Not a verdict — a testable candidate."
           >
-            <blockquote className="border-l-2 border-gold pl-4 font-serif text-lg italic text-foreground/90">
+            <blockquote className="border-l-2 border-primary pl-4 text-lg italic text-foreground/90">
               “{primary.hiddenAgreementCandidate}”
             </blockquote>
           </Card>
@@ -331,7 +331,7 @@ function BiblicalMirrorBlock({
     <div className="rounded-xl border border-surface-border bg-surface/40 p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-serif text-xl">{arch.person}</p>
+          <p className="text-xl">{arch.person}</p>
           <p className="text-sm text-muted-foreground">{arch.headline}</p>
         </div>
         <ConfidenceBar value={link.fitScore} />
@@ -350,13 +350,13 @@ function BiblicalMirrorBlock({
       </div>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="mt-3 inline-flex items-center gap-1 text-xs text-gold hover:underline"
+        className="mt-3 inline-flex items-center gap-1 text-xs text-primary hover:underline"
       >
         {open ? "Hide" : "Why this connection?"}
         {open ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
       </button>
       {open && (
-        <div className="mt-2 rounded-lg border border-gold/25 bg-gold-soft px-3 py-2 text-sm">
+        <div className="mt-2 rounded-lg border border-primary/25 bg-primary/15 px-3 py-2 text-sm">
           {link.whyThisConnection}
         </div>
       )}
@@ -397,10 +397,10 @@ function PrayerLineRow({ line }: { line: PrayerLine }) {
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-surface"
       >
-        <span className="mt-0.5 rounded bg-gold-soft px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-gold">
+        <span className="mt-0.5 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-primary">
           {line.movement}
         </span>
-        <p className="flex-1 font-serif text-[17px] leading-snug text-foreground/95">{line.text}</p>
+        <p className="flex-1 text-[17px] leading-snug text-foreground/95">{line.text}</p>
         {open ? (
           <ChevronDown className="mt-1 size-4 text-muted-foreground" />
         ) : (

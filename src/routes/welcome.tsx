@@ -20,17 +20,17 @@ function Welcome() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex min-h-screen max-w-2xl flex-col justify-between px-6 py-12">
         <header className="flex items-center gap-2">
-          <span className="grid size-8 place-items-center rounded-lg bg-gold-soft text-gold">
+          <span className="grid size-8 place-items-center rounded-lg bg-primary/15 text-primary">
             <Sparkles className="size-4" strokeWidth={1.75} />
           </span>
-          <span className="font-serif text-xl">Wisdom</span>
+          <span className="text-xl">Wisdom</span>
         </header>
 
         <main className="space-y-6">
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-gold">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary">
             Scripture-first
           </p>
-          <h1 className="font-serif text-4xl leading-[1.1] text-foreground md:text-5xl">
+          <h1 className="text-4xl leading-[1.1] text-foreground md:text-5xl">
             Tell Wisdom what is happening. It will help you see the pattern.
           </h1>
           <p className="max-w-lg text-[15px] leading-relaxed text-muted-foreground">
@@ -50,7 +50,7 @@ function Welcome() {
                 key={s.k}
                 className="rounded-xl border border-panel-border bg-panel px-4 py-4"
               >
-                <p className="font-serif text-lg text-gold">{s.k}</p>
+                <p className="text-lg text-primary">{s.k}</p>
                 <p className="mt-2 text-sm font-medium">{s.t}</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{s.d}</p>
               </div>

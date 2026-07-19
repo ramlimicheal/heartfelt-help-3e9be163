@@ -26,8 +26,8 @@ function Journey() {
   return (
     <div className="space-y-8">
       <header className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-gold">Journey</p>
-        <h1 className="font-serif text-3xl leading-tight">Your formation, over time.</h1>
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary">Journey</p>
+        <h1 className="text-3xl leading-tight">Your formation, over time.</h1>
         <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground">
           No streaks, no rankings, no faith score. Setbacks are recorded as data, never as
           identity. You can review, edit, or remove any event.
@@ -37,9 +37,9 @@ function Journey() {
       <ol className="relative space-y-4 border-l border-panel-border pl-6">
         {seededTimeline.map((e) => (
           <li key={e.id} className="relative">
-            <span className="absolute -left-[29px] top-2 grid size-3 place-items-center rounded-full bg-gold ring-4 ring-background" />
+            <span className="absolute -left-[29px] top-2 grid size-3 place-items-center rounded-full bg-primary ring-4 ring-background" />
             <div className="rounded-xl border border-panel-border bg-panel px-4 py-3">
-              <p className="text-[11px] uppercase tracking-wide text-gold">
+              <p className="text-[11px] uppercase tracking-wide text-primary">
                 {TYPE_LABEL[e.type] ?? e.type}
               </p>
               <p className="mt-1 text-sm">{e.note}</p>

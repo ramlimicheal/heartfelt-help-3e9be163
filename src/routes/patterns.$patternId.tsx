@@ -32,10 +32,10 @@ function PatternDetail() {
         <Link to="/patterns" className="text-xs text-muted-foreground hover:text-foreground">
           ← All patterns
         </Link>
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-gold">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary">
           Pattern · {pattern.status}
         </p>
-        <h1 className="font-serif text-3xl leading-tight">{pattern.name}</h1>
+        <h1 className="text-3xl leading-tight">{pattern.name}</h1>
         <p className="text-[15px] leading-relaxed text-muted-foreground">{pattern.description}</p>
         <div className="pt-2">
           <ConfidenceBar value={pattern.confidence} />
@@ -46,7 +46,7 @@ function PatternDetail() {
         <ol className="space-y-2">
           {eventChain.map((l) => (
             <li key={l.id} className="flex gap-3 rounded-lg border border-surface-border bg-surface/40 px-3 py-2">
-              <span className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-gold">
+              <span className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
                 {l.kind.replace("_", " ")}
               </span>
               <p className="text-sm">{l.text}</p>
@@ -59,7 +59,7 @@ function PatternDetail() {
         eyebrow="Hidden agreement (candidate)"
         title="A candidate to test, not a verdict."
       >
-        <blockquote className="border-l-2 border-gold pl-4 font-serif text-lg italic">
+        <blockquote className="border-l-2 border-primary pl-4 text-lg italic">
           “{pattern.hiddenAgreementCandidate}”
         </blockquote>
       </Card>
@@ -82,7 +82,7 @@ function PatternDetail() {
               <div key={link.archetypeId} className="rounded-lg border border-surface-border bg-surface/40 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-serif text-lg">{arch.person}</p>
+                    <p className="text-lg">{arch.person}</p>
                     <p className="text-sm text-muted-foreground">{arch.headline}</p>
                   </div>
                   <ConfidenceBar value={link.fitScore} />
@@ -113,14 +113,14 @@ function PatternDetail() {
               className={[
                 "rounded-lg border px-4 py-3",
                 p.isPrimary
-                  ? "border-gold/40 bg-gold-soft"
+                  ? "border-primary/40 bg-primary/15"
                   : "border-surface-border bg-surface/40",
               ].join(" ")}
             >
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium">{p.title}</p>
                 {p.isPrimary && (
-                  <span className="rounded-full bg-gold px-2 py-0.5 text-[10px] font-medium text-primary-foreground">
+                  <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground">
                     Primary
                   </span>
                 )}
