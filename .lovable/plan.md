@@ -582,7 +582,7 @@ Audited files: `src/routes/wisdom.index.tsx`, `src/routes/wisdom.$sessionId.tsx`
 
 The following supersedes the corresponding text in §§3–5. Physical inventory is derived directly from the table-by-table list, not from group subtotals.
 
-### §3 (superseded v3.4) — Physical table inventory: **39**
+### §3 (superseded v3.5) — Physical table inventory: **40**
 
 Mechanically enumerated, one physical table per row (no collapsing):
 
