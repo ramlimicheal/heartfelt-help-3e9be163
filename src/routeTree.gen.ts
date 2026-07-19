@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as WisdomIndexRouteImport } from './routes/wisdom.index'
 import { Route as PrayersIndexRouteImport } from './routes/prayers.index'
 import { Route as PatternsIndexRouteImport } from './routes/patterns.index'
+import { Route as WisdomCurseBreakerRouteImport } from './routes/wisdom.curse-breaker'
 import { Route as WisdomSessionIdRouteImport } from './routes/wisdom.$sessionId'
 import { Route as SettingsPrivacyRouteImport } from './routes/settings.privacy'
 import { Route as PrayersPrayerIdRouteImport } from './routes/prayers.$prayerId'
@@ -62,6 +63,11 @@ const PatternsIndexRoute = PatternsIndexRouteImport.update({
   path: '/patterns/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WisdomCurseBreakerRoute = WisdomCurseBreakerRouteImport.update({
+  id: '/wisdom/curse-breaker',
+  path: '/wisdom/curse-breaker',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WisdomSessionIdRoute = WisdomSessionIdRouteImport.update({
   id: '/wisdom/$sessionId',
   path: '/wisdom/$sessionId',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/prayers/$prayerId': typeof PrayersPrayerIdRoute
   '/settings/privacy': typeof SettingsPrivacyRoute
   '/wisdom/$sessionId': typeof WisdomSessionIdRoute
+  '/wisdom/curse-breaker': typeof WisdomCurseBreakerRoute
   '/patterns/': typeof PatternsIndexRoute
   '/prayers/': typeof PrayersIndexRoute
   '/wisdom/': typeof WisdomIndexRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/prayers/$prayerId': typeof PrayersPrayerIdRoute
   '/settings/privacy': typeof SettingsPrivacyRoute
   '/wisdom/$sessionId': typeof WisdomSessionIdRoute
+  '/wisdom/curse-breaker': typeof WisdomCurseBreakerRoute
   '/patterns': typeof PatternsIndexRoute
   '/prayers': typeof PrayersIndexRoute
   '/wisdom': typeof WisdomIndexRoute
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/prayers/$prayerId': typeof PrayersPrayerIdRoute
   '/settings/privacy': typeof SettingsPrivacyRoute
   '/wisdom/$sessionId': typeof WisdomSessionIdRoute
+  '/wisdom/curse-breaker': typeof WisdomCurseBreakerRoute
   '/patterns/': typeof PatternsIndexRoute
   '/prayers/': typeof PrayersIndexRoute
   '/wisdom/': typeof WisdomIndexRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/prayers/$prayerId'
     | '/settings/privacy'
     | '/wisdom/$sessionId'
+    | '/wisdom/curse-breaker'
     | '/patterns/'
     | '/prayers/'
     | '/wisdom/'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/prayers/$prayerId'
     | '/settings/privacy'
     | '/wisdom/$sessionId'
+    | '/wisdom/curse-breaker'
     | '/patterns'
     | '/prayers'
     | '/wisdom'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/prayers/$prayerId'
     | '/settings/privacy'
     | '/wisdom/$sessionId'
+    | '/wisdom/curse-breaker'
     | '/patterns/'
     | '/prayers/'
     | '/wisdom/'
@@ -181,6 +193,7 @@ export interface RootRouteChildren {
   PrayersPrayerIdRoute: typeof PrayersPrayerIdRoute
   SettingsPrivacyRoute: typeof SettingsPrivacyRoute
   WisdomSessionIdRoute: typeof WisdomSessionIdRoute
+  WisdomCurseBreakerRoute: typeof WisdomCurseBreakerRoute
   PatternsIndexRoute: typeof PatternsIndexRoute
   PrayersIndexRoute: typeof PrayersIndexRoute
   WisdomIndexRoute: typeof WisdomIndexRoute
@@ -244,6 +257,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatternsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wisdom/curse-breaker': {
+      id: '/wisdom/curse-breaker'
+      path: '/wisdom/curse-breaker'
+      fullPath: '/wisdom/curse-breaker'
+      preLoaderRoute: typeof WisdomCurseBreakerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/wisdom/$sessionId': {
       id: '/wisdom/$sessionId'
       path: '/wisdom/$sessionId'
@@ -285,6 +305,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrayersPrayerIdRoute: PrayersPrayerIdRoute,
   SettingsPrivacyRoute: SettingsPrivacyRoute,
   WisdomSessionIdRoute: WisdomSessionIdRoute,
+  WisdomCurseBreakerRoute: WisdomCurseBreakerRoute,
   PatternsIndexRoute: PatternsIndexRoute,
   PrayersIndexRoute: PrayersIndexRoute,
   WisdomIndexRoute: WisdomIndexRoute,

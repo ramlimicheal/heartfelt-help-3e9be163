@@ -7,9 +7,11 @@ import {
   Compass,
   HandHelping,
   Hand,
+  ShieldAlert,
   Sparkles,
 } from "lucide-react";
 import { SESSIONS } from "@/lib/wisdom/mock/seed";
+import { COPY } from "@/lib/wisdom/copy/v1";
 
 export const Route = createFileRoute("/wisdom/")({
   head: () => ({ meta: [{ title: "Wisdom — begin a session" }] }),
@@ -21,37 +23,56 @@ const SUGGESTIONS = [
     Icon: Compass,
     label: "Name a pattern I keep returning to",
     prompt: "Something keeps happening that I don't fully understand — ",
+    mode: "pattern" as const,
   },
   {
     Icon: HandHelping,
     label: "Help me pray about something honestly",
     prompt: "I want to pray about this, but I'm not sure what I'm really asking for — ",
+    mode: "pattern" as const,
   },
   {
     Icon: BookOpen,
     label: "Test a spiritual interpretation",
     prompt: "I've been wondering whether this is spiritual or just — ",
+    mode: "deep" as const,
   },
   {
     Icon: Hand,
     label: "Reflect on a repeated setback",
     prompt: "I said I wouldn't again, and I did. Here's what happened — ",
+    mode: "pattern" as const,
+  },
+  {
+    Icon: ShieldAlert,
+    label: "A pattern that keeps returning across generations",
+    prompt: COPY.curseBreaker.heroTilePrompt,
+    mode: "curse_breaker" as const,
   },
 ];
 
 const MODES = [
-  { id: "companion", label: "Companion", hint: "gentle listening" },
-  { id: "pattern", label: "Pattern", hint: "1–3 hypotheses" },
-  { id: "deep", label: "Deep", hint: "full pipeline" },
+  { id: "companion", label: COPY.modes.companion.label, hint: COPY.modes.companion.hint },
+  { id: "pattern", label: COPY.modes.pattern.label, hint: COPY.modes.pattern.hint },
+  { id: "deep", label: COPY.modes.deep.label, hint: COPY.modes.deep.hint },
+  { id: "curse_breaker", label: COPY.modes.curse_breaker.label, hint: COPY.modes.curse_breaker.hint },
 ] as const;
+
+type ModeId = (typeof MODES)[number]["id"];
 
 function WisdomHome() {
   const navigate = useNavigate();
   const [text, setText] = useState("");
-  const [mode, setMode] = useState<(typeof MODES)[number]["id"]>("pattern");
+  const [mode, setMode] = useState<ModeId>("pattern");
 
-  const openSeed = () =>
+  const openSeed = () => {
+    if (mode === "curse_breaker") {
+      navigate({ to: "/wisdom/curse-breaker" });
+      return;
+    }
     navigate({ to: "/wisdom/$sessionId", params: { sessionId: SESSIONS[0].id } });
+  };
+
 
   return (
     <div className="flex min-h-[calc(100vh-6rem)] flex-col">
