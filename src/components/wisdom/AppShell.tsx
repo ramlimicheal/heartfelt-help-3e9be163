@@ -50,9 +50,12 @@ function useTheme() {
 }
 
 function isActive(pathname: string, to: string) {
-  if (to === "/wisdom") return pathname === "/" || pathname.startsWith("/wisdom");
+  if (to === "/wisdom") {
+    return pathname === "/" || (pathname.startsWith("/wisdom") && !pathname.startsWith("/wisdom/curse-breaker"));
+  }
   return pathname.startsWith(to);
 }
+
 
 export function AppShell({ children }: { children?: ReactNode }) {
   const { theme, toggle } = useTheme();
