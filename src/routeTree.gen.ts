@@ -13,6 +13,8 @@ import { Route as YouRouteImport } from './routes/you'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as JourneyRouteImport } from './routes/journey'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WisdomIndexRouteImport } from './routes/wisdom.index'
 import { Route as PrayersIndexRouteImport } from './routes/prayers.index'
@@ -22,6 +24,7 @@ import { Route as WisdomSessionIdRouteImport } from './routes/wisdom.$sessionId'
 import { Route as SettingsPrivacyRouteImport } from './routes/settings.privacy'
 import { Route as PrayersPrayerIdRouteImport } from './routes/prayers.$prayerId'
 import { Route as PatternsPatternIdRouteImport } from './routes/patterns.$patternId'
+import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 
 const YouRoute = YouRouteImport.update({
   id: '/you',
@@ -41,6 +44,15 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const JourneyRoute = JourneyRouteImport.update({
   id: '/journey',
   path: '/journey',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -88,13 +100,20 @@ const PatternsPatternIdRoute = PatternsPatternIdRouteImport.update({
   path: '/patterns/$patternId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/journey': typeof JourneyRoute
   '/onboarding': typeof OnboardingRoute
   '/welcome': typeof WelcomeRoute
   '/you': typeof YouRoute
+  '/home': typeof AuthenticatedHomeRoute
   '/patterns/$patternId': typeof PatternsPatternIdRoute
   '/prayers/$prayerId': typeof PrayersPrayerIdRoute
   '/settings/privacy': typeof SettingsPrivacyRoute
@@ -106,10 +125,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/journey': typeof JourneyRoute
   '/onboarding': typeof OnboardingRoute
   '/welcome': typeof WelcomeRoute
   '/you': typeof YouRoute
+  '/home': typeof AuthenticatedHomeRoute
   '/patterns/$patternId': typeof PatternsPatternIdRoute
   '/prayers/$prayerId': typeof PrayersPrayerIdRoute
   '/settings/privacy': typeof SettingsPrivacyRoute
@@ -122,10 +143,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
   '/journey': typeof JourneyRoute
   '/onboarding': typeof OnboardingRoute
   '/welcome': typeof WelcomeRoute
   '/you': typeof YouRoute
+  '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/patterns/$patternId': typeof PatternsPatternIdRoute
   '/prayers/$prayerId': typeof PrayersPrayerIdRoute
   '/settings/privacy': typeof SettingsPrivacyRoute
@@ -139,10 +163,12 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/journey'
     | '/onboarding'
     | '/welcome'
     | '/you'
+    | '/home'
     | '/patterns/$patternId'
     | '/prayers/$prayerId'
     | '/settings/privacy'
@@ -154,10 +180,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/journey'
     | '/onboarding'
     | '/welcome'
     | '/you'
+    | '/home'
     | '/patterns/$patternId'
     | '/prayers/$prayerId'
     | '/settings/privacy'
@@ -169,10 +197,13 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
+    | '/auth'
     | '/journey'
     | '/onboarding'
     | '/welcome'
     | '/you'
+    | '/_authenticated/home'
     | '/patterns/$patternId'
     | '/prayers/$prayerId'
     | '/settings/privacy'
@@ -185,6 +216,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
   JourneyRoute: typeof JourneyRoute
   OnboardingRoute: typeof OnboardingRoute
   WelcomeRoute: typeof WelcomeRoute
@@ -227,6 +260,20 @@ declare module '@tanstack/react-router' {
       path: '/journey'
       fullPath: '/journey'
       preLoaderRoute: typeof JourneyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -292,11 +339,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatternsPatternIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/home': {
+      id: '/_authenticated/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AuthenticatedHomeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedHomeRoute: AuthenticatedHomeRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
   JourneyRoute: JourneyRoute,
   OnboardingRoute: OnboardingRoute,
   WelcomeRoute: WelcomeRoute,
