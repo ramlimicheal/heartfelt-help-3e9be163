@@ -64,7 +64,15 @@ export type PrayerMovement =
   | "gratitude"
   | "lament"
   | "confession"
-  | "intercession";
+  | "intercession"
+  // Curse Breaker movements (plan §4.1)
+  | "repentance"
+  | "renunciation"
+  | "forgiveness"
+  | "deliverance"
+  | "restoration"
+  | "blessing"
+  | "identity_in_christ";
 
 export type DerivationType =
   | "direct_quote"
