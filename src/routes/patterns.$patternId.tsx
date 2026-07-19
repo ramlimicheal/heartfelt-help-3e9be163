@@ -66,7 +66,7 @@ function PatternDetail() {
 
       <Card eyebrow="Counter-evidence & missing evidence" title="What could I be wrong about?">
         <ul className="space-y-1.5">
-          {pattern.counterOrMissingEvidence.map((c, i) => (
+          {pattern.counterOrMissingEvidence.map((c: string, i: number) => (
             <li key={i} className="text-sm text-foreground/85">
               — {c}
             </li>
@@ -76,7 +76,7 @@ function PatternDetail() {
 
       <Card eyebrow="Biblical mirrors" title="Complete narratives, tiered.">
         <div className="space-y-4">
-          {pattern.archetypes.map((link) => {
+          {pattern.archetypes.map((link: import("@/lib/wisdom/schemas").PatternArchetypeLink) => {
             const arch = ARCHETYPE_INDEX[link.archetypeId];
             return (
               <div key={link.archetypeId} className="rounded-lg border border-surface-border bg-surface/40 p-4">

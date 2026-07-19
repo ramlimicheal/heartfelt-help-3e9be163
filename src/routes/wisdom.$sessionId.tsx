@@ -48,7 +48,7 @@ function SessionView() {
   const { session, response } = Route.useLoaderData();
   const [verdict, setVerdict] = useState<UserVerdict | null>(null);
   const [showDeep, setShowDeep] = useState(session.depth === "deep");
-  const primary = response.hypotheses.find((h) => h.id === response.primaryHypothesisId)!;
+  const primary = response.hypotheses.find((h: import("@/lib/wisdom/schemas").PatternHypothesis) => h.id === response.primaryHypothesisId)!;
 
   return (
     <div className="space-y-6">
@@ -64,7 +64,7 @@ function SessionView() {
 
       {/* Original story */}
       <section className="space-y-3">
-        {session.messages.map((m) => (
+        {session.messages.map((m: import("@/lib/wisdom/schemas").Message) => (
           <blockquote
             key={m.id}
             className="rounded-xl border-l-2 border-gold/40 bg-surface/50 px-4 py-3 text-[15px] leading-relaxed text-foreground/85"
@@ -87,7 +87,7 @@ function SessionView() {
       >
         <p className="text-foreground/85">{primary.description}</p>
         <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
-          {primary.domains.map((d) => (
+          {primary.domains.map((d: string) => (
             <span
               key={d}
               className="rounded-full border border-surface-border bg-surface px-2.5 py-0.5 text-muted-foreground"
@@ -111,7 +111,7 @@ function SessionView() {
       {/* 4. Biblical mirror */}
       <Card eyebrow="Biblical mirror" title="A complete narrative, not a proof text.">
         <div className="space-y-4">
-          {primary.archetypes.slice(0, 2).map((link) => {
+          {primary.archetypes.slice(0, 2).map((link: import("@/lib/wisdom/schemas").PatternArchetypeLink) => {
             const arch = ARCHETYPE_INDEX[link.archetypeId];
             return (
               <BiblicalMirrorBlock key={link.archetypeId} link={link} arch={arch} />
@@ -123,7 +123,7 @@ function SessionView() {
       {/* 5. Discernment */}
       <Card eyebrow="Discernment & uncertainty" title="What could I have wrong?">
         <div className="space-y-4">
-          <Alternatives hypotheses={response.hypotheses.filter((h) => h.id !== primary.id)} />
+          <Alternatives hypotheses={response.hypotheses.filter((h: import("@/lib/wisdom/schemas").PatternHypothesis) => h.id !== primary.id)} />
           <div className="grid gap-3 md:grid-cols-2">
             <MicroBlock label="Direct vs inferred">{response.discernment.directVsInferred}</MicroBlock>
             <MicroBlock label="Descriptive vs prescriptive">
@@ -132,7 +132,7 @@ function SessionView() {
           </div>
           <MicroBlock label="Counter-evidence">
             <ul className="space-y-1.5">
-              {response.discernment.counterEvidence.map((c, i) => (
+              {response.discernment.counterEvidence.map((c: string, i: number) => (
                 <li key={i} className="flex gap-2">
                   <CircleDot className="mt-1 size-3 shrink-0 text-muted-foreground" strokeWidth={2} />
                   <span>{c}</span>
@@ -157,7 +157,7 @@ function SessionView() {
           Every line is traceable. Tap any line to see its Prayer Roots.
         </p>
         <div className="space-y-2">
-          {response.prayer.lines.map((line) => (
+          {response.prayer.lines.map((line: import("@/lib/wisdom/schemas").PrayerLine) => (
             <PrayerLineRow key={line.id} line={line} />
           ))}
         </div>
@@ -175,7 +175,7 @@ function SessionView() {
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Optional practices
             </p>
-            {response.optionalPractices.map((p) => (
+            {response.optionalPractices.map((p: import("@/lib/wisdom/schemas").Practice) => (
               <div
                 key={p.id}
                 className="rounded-lg border border-surface-border bg-surface/40 px-4 py-3"
@@ -233,7 +233,7 @@ function SessionView() {
         <div className="space-y-6">
           <Card eyebrow="Persona signals" title="What Wisdom picked up.">
             <ul className="space-y-2 text-sm">
-              {response.signals.map((s) => (
+              {response.signals.map((s: import("@/lib/wisdom/schemas").Signal) => (
                 <li key={s.id} className="flex flex-wrap items-center gap-2">
                   <span className="rounded bg-surface px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
                     {s.kind}
@@ -257,7 +257,7 @@ function SessionView() {
 
           <Card eyebrow="Event chain" title="Context → trigger → interpretation → need → choice → reward → cost → afterthought → re-entry.">
             <ol className="space-y-2">
-              {response.eventChain.map((l) => (
+              {response.eventChain.map((l: import("@/lib/wisdom/schemas").EventChainLink) => (
                 <li key={l.id} className="rounded-lg border border-surface-border bg-surface/40 px-3 py-2">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-medium uppercase tracking-wide text-gold">
@@ -289,7 +289,7 @@ function SessionView() {
 
           <Card eyebrow="Fruit to observe" title="What you might notice, over time.">
             <div className="flex flex-wrap gap-2">
-              {response.fruitToObserve.map((f) => (
+              {response.fruitToObserve.map((f: import("@/lib/wisdom/schemas").FruitTag) => (
                 <span
                   key={f}
                   className="rounded-full border border-olive/30 bg-olive/10 px-3 py-1 text-xs text-olive"

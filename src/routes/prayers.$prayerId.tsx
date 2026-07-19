@@ -39,7 +39,7 @@ function PrayerDetail() {
 
       <Card eyebrow="The prayer" title="Tap any line for its Prayer Roots.">
         <div className="space-y-3">
-          {prayer.lines.map((line) => (
+          {prayer.lines.map((line: import("@/lib/wisdom/schemas").PrayerLine) => (
             <LineBlock key={line.id} line={line} />
           ))}
         </div>
