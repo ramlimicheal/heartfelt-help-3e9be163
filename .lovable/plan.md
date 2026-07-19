@@ -625,6 +625,7 @@ Mechanically enumerated, one physical table per row (no collapsing):
 37. eval_cases
 38. eval_runs
 39. eval_results
+40. guest_migrations
 
 **Diff vs prior stated inventory (v3.3 said "35"):**
 
@@ -633,11 +634,12 @@ Mechanically enumerated, one physical table per row (no collapsing):
 - `eval_cases` — **added to numbered list**. Previously collapsed into a single row 35 alongside the next two.
 - `eval_runs` — **added to numbered list**. Same collapse.
 - `eval_results` — **added to numbered list**. Same collapse.
+- `guest_migrations` — **added** (v3.5). New batch record required by the corrected guest-migration idempotency scheme in §4.6.
 - All other 34 entries — unchanged.
 
 No `removed`, no `renamed from`, no `merged into` entries. Removing the `support` role and its policies removed enum values and RLS rows, not tables. `archetype_mirrors` retains its row — only its `passage_refs jsonb` column is dropped in §4.3; `archetype_passages` is a new normalized sibling, not a rename or merge.
 
-**Final mechanically calculated count: 39 physical tables**, plus the single security-barrier view `pipeline_runs_curator_v` (view, not counted). Guest data stays on-device.
+**Final mechanically calculated count: 40 physical tables**, plus the single security-barrier view `pipeline_runs_curator_v` (view, not counted). Guest data stays on-device until a migration batch is committed.
 
 ### §4.1 (superseded) — Enums
 
