@@ -432,6 +432,7 @@ export type Database = {
         | "accepted"
         | "rejected"
         | "deleted"
+        | "corrected"
       prayer_movement:
         | "adoration"
         | "confession"
@@ -651,6 +652,7 @@ export const Constants = {
         "accepted",
         "rejected",
         "deleted",
+        "corrected",
       ],
       prayer_movement: [
         "adoration",
