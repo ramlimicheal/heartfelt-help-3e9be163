@@ -6,6 +6,7 @@ import {
   Moon,
   Plus,
   Settings,
+  ShieldAlert,
   Sparkles,
   Sun,
   User,
@@ -18,6 +19,7 @@ type NavItem = { to: string; label: string; Icon: typeof Compass };
 
 const NAV: NavItem[] = [
   { to: "/wisdom", label: "Wisdom", Icon: Sparkles },
+  { to: "/wisdom/curse-breaker", label: "Curse Breaker", Icon: ShieldAlert },
   { to: "/patterns", label: "Patterns", Icon: Compass },
   { to: "/prayers", label: "Prayer", Icon: Hand },
   { to: "/journey", label: "Journey", Icon: BookOpen },
