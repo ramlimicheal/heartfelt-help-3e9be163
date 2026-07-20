@@ -30,10 +30,10 @@ export const zExtractionResult = z.object({
 });
 export type ExtractionResult = z.infer<typeof zExtractionResult>;
 
+// Matches DB enum public.prayer_movement (Batch 2).
 export const zPrayerMovement = z.enum([
-  "truth","remembrance","request","surrender","obedience","gratitude","lament",
-  "confession","intercession","repentance","renunciation","forgiveness",
-  "deliverance","restoration","blessing","identity_in_christ",
+  "adoration","confession","renunciation","forgiveness","deliverance",
+  "healing","blessing","commissioning","thanksgiving",
 ]);
 
 export const zComposition = z.object({
