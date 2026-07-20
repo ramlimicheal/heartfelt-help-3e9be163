@@ -442,10 +442,14 @@ function Tile({
   return (
     <section
       aria-label={title}
-      className={`rounded-3xl border border-panel-border bg-surface/60 p-5 flex flex-col ${className}`}
+      className={`group/tile relative rounded-3xl border border-panel-border bg-surface/60 p-5 flex flex-col transition-all duration-300 hover:border-primary/30 hover:bg-surface hover:-translate-y-0.5 ${className}`}
     >
+      <div aria-hidden className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent opacity-0 transition-opacity duration-300 group-hover/tile:opacity-100" />
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-[13px] font-medium">{title}</h2>
+        <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+          <span aria-hidden className="size-1 rounded-full bg-primary/60" />
+          {title}
+        </h2>
         {query.isFetching && !query.isLoading && (
           <RefreshCw className="size-3 animate-spin text-muted-foreground" aria-label="Refreshing" />
         )}
