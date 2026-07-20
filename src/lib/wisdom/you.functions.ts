@@ -97,7 +97,11 @@ export const setPersonaFactStatus = createServerFn({ method: "POST" })
       }
     }
 
-    const patch: Record<string, unknown> = {
+    const patch: {
+      status: "accepted" | "rejected" | "deleted";
+      value?: JsonValue;
+      origin?: string;
+    } = {
       status: data.status === "corrected" ? "accepted" : data.status,
     };
     if (data.status === "corrected" && data.correctedValue !== undefined) {
