@@ -17,6 +17,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
 import { useSession } from "@/hooks/useSession";
+import { LightRays } from "@/components/magicui/light-rays";
 
 export const Route = createFileRoute("/wisdom/")({
   head: () => ({
