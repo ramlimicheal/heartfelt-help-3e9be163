@@ -137,7 +137,7 @@ function WisdomChat() {
                 if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
               }}
               rows={2}
-              placeholder="Bring a real situation. Wisdom will mirror it through scripture, not advice."
+              placeholder="Bring a real situation. Wisdom mirrors it through Scripture—never as a verdict."
               className="w-full resize-none bg-transparent px-2 py-1 text-[14px] leading-relaxed placeholder:text-muted-foreground/60 focus:outline-none"
             />
             <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-panel-border/60 pt-2">
@@ -238,7 +238,7 @@ function EmptyState({ onPick }: { onPick: (prompt: string, mode: Mode) => void }
       </h1>
       <p className="mt-3 max-w-md text-[13px] leading-relaxed text-muted-foreground">
         Bring a real situation. Wisdom listens for the pattern, then mirrors it through
-        scripture — never as advice.
+        Scripture—never as a verdict.
       </p>
       <div className="mt-8 grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
         {SUGGESTIONS.map(({ Icon, label, prompt, mode }) => (
