@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useChat } from "@ai-sdk/react";
+import { useServerFn } from "@tanstack/react-start";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -13,12 +14,9 @@ import {
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
-import {
-  ARCHETYPE_INDEX,
-  HYPOTHESES,
-  PASSAGE_INDEX,
-  PRAYERS,
-} from "@/lib/wisdom/mock/seed";
+import { useQuery } from "@tanstack/react-query";
+import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
+import { useSession } from "@/hooks/useSession";
 
 export const Route = createFileRoute("/wisdom/")({
   head: () => ({
@@ -91,12 +89,16 @@ function WisdomChat() {
     setInput("");
   };
 
-  // Live rail: derives from mock while the model streams. Replace with
-  // pipeline emissions when runWisdomPipeline is wired to stream stages.
-  const primaryHyp = Object.values(HYPOTHESES)[0];
-  const arch = ARCHETYPE_INDEX[primaryHyp.archetypes[0]?.archetypeId ?? "archetype_moses_overload"];
-  const passage = arch ? PASSAGE_INDEX[arch.primaryPassages[0]?.id] : undefined;
-  const prayer = Object.values(PRAYERS)[0];
+  const { user, ready } = useSession();
+  const fetchSlice = useServerFn(getDashboardSlice);
+  const slice = useQuery({
+    queryKey: ["dashboard-slice", user?.id ?? "anon"],
+    queryFn: () => fetchSlice(),
+    enabled: ready && !!user,
+    staleTime: 30_000,
+  });
+  const d = slice.data;
+
 
   return (
     <div className="flex h-[calc(100vh-6rem)] gap-4 md:gap-6">
@@ -135,7 +137,7 @@ function WisdomChat() {
                 if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
               }}
               rows={2}
-              placeholder="Bring a real situation. Wisdom will mirror it through scripture, not advice."
+              placeholder="Bring a real situation. Wisdom mirrors it through Scripture—never as a verdict."
               className="w-full resize-none bg-transparent px-2 py-1 text-[14px] leading-relaxed placeholder:text-muted-foreground/60 focus:outline-none"
             />
             <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-panel-border/60 pt-2">
@@ -183,39 +185,42 @@ function WisdomChat() {
           </div>
         </RailCard>
 
-        <RailCard label="Emerging pattern" head={primaryHyp.name}>
-          <ConfidenceBar value={primaryHyp.confidence} />
-          <p className="mt-2 line-clamp-3 text-[11.5px] text-muted-foreground">
-            Wisdom will confirm this pattern once you've named more of what's happening.
-          </p>
-        </RailCard>
+        {d?.patterns.mostRecent ? (
+          <RailCard label="Emerging pattern" head={d.patterns.mostRecent.title}>
+            <p className="text-[11.5px] text-muted-foreground">
+              {d.patterns.mostRecent.lifecycle} · updated {new Date(d.patterns.mostRecent.updatedAt).toLocaleDateString()}
+            </p>
+            <p className="mt-2 line-clamp-3 text-[11.5px] italic text-muted-foreground">
+              This remains a candidate until you confirm or refine it.
+            </p>
+          </RailCard>
+        ) : (
+          <RailCard label="Emerging pattern" head="Nothing surfaced yet">
+            <p className="text-[11.5px] text-muted-foreground">
+              Patterns appear only after you describe a real situation.
+            </p>
+          </RailCard>
+        )}
 
-        <RailCard label="Candidate mirror" head={arch?.person ?? "—"}>
-          <p className="text-[11.5px] text-muted-foreground">{arch?.headline}</p>
-          <div className="mt-2 rounded-lg border border-panel-border bg-background/40 px-2.5 py-1.5 text-[11px]">
-            <span className="text-muted-foreground">Passage · </span>
-            <span className="font-medium">{passage?.reference}</span>
-            <span className="ml-1 rounded bg-primary/15 px-1 py-0.5 text-[9px] uppercase tracking-wider text-primary">S1</span>
-          </div>
-        </RailCard>
+        {d?.latestPrayer ? (
+          <RailCard label="Latest prayer" head={`${d.latestPrayer.movementCount} movements`}>
+            <p className="line-clamp-2 text-[11.5px] text-muted-foreground">{d.latestPrayer.title}</p>
+            <Link
+              to="/prayers/$prayerId"
+              params={{ prayerId: d.latestPrayer.id }}
+              className="mt-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
+            >
+              Open prayer →
+            </Link>
+          </RailCard>
+        ) : (
+          <RailCard label="Prayer" head="Not formed yet">
+            <p className="text-[11.5px] text-muted-foreground">
+              A prayer will appear after Wisdom understands the situation and verifies its biblical roots.
+            </p>
+          </RailCard>
+        )}
 
-        <RailCard label="Prayer drafting" head={`${prayer.lines.length} movements`}>
-          <div className="flex items-end gap-[3px] h-8">
-            {prayer.lines.map((_, i) => (
-              <span
-                key={i}
-                className="w-[6px] rounded-sm"
-                style={{ height: `${40 + i * 10}%`, background: i < 3 ? "var(--primary)" : "oklch(1 0 0 / 0.15)" }}
-              />
-            ))}
-          </div>
-          <Link
-            to="/dashboard"
-            className="mt-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
-          >
-            Open dashboard →
-          </Link>
-        </RailCard>
       </aside>
     </div>
   );
@@ -233,7 +238,7 @@ function EmptyState({ onPick }: { onPick: (prompt: string, mode: Mode) => void }
       </h1>
       <p className="mt-3 max-w-md text-[13px] leading-relaxed text-muted-foreground">
         Bring a real situation. Wisdom listens for the pattern, then mirrors it through
-        scripture — never as advice.
+        Scripture—never as a verdict.
       </p>
       <div className="mt-8 grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
         {SUGGESTIONS.map(({ Icon, label, prompt, mode }) => (

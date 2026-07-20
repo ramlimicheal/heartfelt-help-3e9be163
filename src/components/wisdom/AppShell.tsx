@@ -7,7 +7,7 @@ import {
   LogIn,
   LogOut,
   Moon,
-  Orbit,
+  // Orbit removed with Constellation nav
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
@@ -16,14 +16,15 @@ import {
   Sparkles,
   Sun,
   User,
-  Users,
+  // Users removed with Mirrors nav
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { SESSIONS } from "@/lib/wisdom/mock/seed";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
 
 
 type NavItem = { to: string; label: string; Icon: typeof Compass };
@@ -44,8 +45,6 @@ const GROUPS: NavGroup[] = [
     items: [
       { to: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
       { to: "/patterns", label: "Patterns", Icon: Compass },
-      { to: "/wisdom/map", label: "Constellation", Icon: Orbit },
-      { to: "/journey", label: "Mirrors", Icon: Users },
     ],
   },
   {
@@ -61,8 +60,9 @@ const GROUPS: NavGroup[] = [
 
 const MOBILE_NAV: NavItem[] = [
   { to: "/wisdom", label: "Wisdom", Icon: Sparkles },
+  { to: "/wisdom", label: "Wisdom", Icon: Sparkles },
   { to: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
-  { to: "/wisdom/map", label: "Map", Icon: Orbit },
+  { to: "/patterns", label: "Patterns", Icon: Compass },
   { to: "/prayers", label: "Prayer", Icon: Hand },
   { to: "/you", label: "You", Icon: User },
 ];
@@ -253,31 +253,8 @@ export function AppShell({ children }: { children?: ReactNode }) {
           </nav>
 
 
-          {!collapsed && (
-            <div className="mt-6 px-3">
-              <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                Recent
-              </p>
-              <ul className="space-y-0.5">
-                {SESSIONS.slice(0, 5).map((s) => (
-                  <li key={s.id}>
-                    <Link
-                      to="/wisdom/$sessionId"
-                      params={{ sessionId: s.id }}
-                      className={[
-                        "block truncate rounded-sm px-2.5 py-1.5 text-xs transition",
-                        pathname.includes(s.id)
-                          ? "bg-surface text-foreground"
-                          : "text-muted-foreground hover:bg-surface/60 hover:text-foreground",
-                      ].join(" ")}
-                    >
-                      {s.title}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {!collapsed && <RecentSessionsSection user={user} pathname={pathname} />}
+
 
           <div className={["mt-auto space-y-0.5 pb-5", collapsed ? "px-2" : "px-3"].join(" ")}>
             {ready && !collapsed && (
@@ -417,6 +394,51 @@ export function AppShell({ children }: { children?: ReactNode }) {
           })}
         </ul>
       </nav>
+    </div>
+  );
+}
+
+function RecentSessionsSection({ user, pathname }: { user: { id: string } | null; pathname: string }) {
+  const fetchSlice = useServerFn(getDashboardSlice);
+  const q = useQuery({
+    queryKey: ["dashboard-slice", user?.id ?? "anon"],
+    queryFn: () => fetchSlice(),
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+  const sessions = q.data?.recentSessions ?? [];
+  return (
+    <div className="mt-6 px-3">
+      <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        Recent
+      </p>
+      {q.isLoading ? (
+        <div className="space-y-1 px-2" aria-busy="true">
+          <div className="h-3 w-3/4 animate-pulse rounded bg-surface/70" />
+          <div className="h-3 w-2/3 animate-pulse rounded bg-surface/70" />
+        </div>
+      ) : sessions.length === 0 ? (
+        <p className="px-2 text-[11px] text-muted-foreground">No sessions yet.</p>
+      ) : (
+        <ul className="space-y-0.5">
+          {sessions.slice(0, 5).map((s) => (
+            <li key={s.id}>
+              <Link
+                to="/wisdom/$sessionId"
+                params={{ sessionId: s.id }}
+                className={[
+                  "block truncate rounded-sm px-2.5 py-1.5 text-xs transition",
+                  pathname.includes(s.id)
+                    ? "bg-surface text-foreground"
+                    : "text-muted-foreground hover:bg-surface/60 hover:text-foreground",
+                ].join(" ")}
+              >
+                {s.title ?? "Untitled session"}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
