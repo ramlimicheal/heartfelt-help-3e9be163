@@ -141,16 +141,17 @@ export const runWisdomPipeline = createServerFn({ method: "POST" })
     {
       const t0 = Date.now();
       try {
-        const { output } = await generateText({
+        const r = await generateText({
           model: gateway(coModel.model),
           output: Output.object({ schema: zComposition }),
           system: coPrompt.body,
           prompt: userPrompt,
         });
-        composition = output;
+        composition = r.output;
         await logRun(db, { userId, sessionId: data.sessionId, mode: "wisdom", stage: "composition",
           status: "ok", latencyMs: Date.now() - t0, promptKey: "wisdom.composition",
-          promptVersion: coPrompt.version, model: coModel.model, idempotencyKey: data.idempotencyKey });
+          promptVersion: coPrompt.version, model: coModel.model, idempotencyKey: data.idempotencyKey,
+          tokensIn: r.usage?.inputTokens, tokensOut: r.usage?.outputTokens });
       } catch (e) {
         await logRun(db, { userId, sessionId: data.sessionId, mode: "wisdom", stage: "composition",
           status: "error", latencyMs: Date.now() - t0, promptKey: "wisdom.composition",
