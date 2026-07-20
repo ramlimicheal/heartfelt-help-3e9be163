@@ -180,6 +180,13 @@ export const Route = createFileRoute("/api/chat")({
                   console.error("[chat] pipeline run failed", e);
                 });
               }
+              // Curse Breaker two-pass (cheap triage + deep analysis of top categories).
+              if (capturedMode === "curse_breaker") {
+                const { runCurseBreakerForSession } = await import("@/lib/wisdom/curseBreaker.functions");
+                runCurseBreakerForSession(capturedUserId, capturedSessionId).catch((e: unknown) => {
+                  console.error("[chat] curse breaker pipeline failed", e);
+                });
+              }
             } catch (e) {
               console.error("[chat] persist assistant message failed", e);
             }

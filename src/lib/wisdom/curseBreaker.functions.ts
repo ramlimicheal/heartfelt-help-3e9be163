@@ -40,9 +40,12 @@ const runInput = z.object({ sessionId: z.string().uuid() });
 export const runCurseBreakerPipeline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: z.infer<typeof runInput>) => runInput.parse(d))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }) => runCurseBreakerForSession(context.userId, data.sessionId));
+
+/** Direct server-side invocation (e.g. from /api/chat onFinish). */
+export async function runCurseBreakerForSession(userId: string, sessionId: string) {
     const db = await admin();
-    const userId = context.userId;
+    const data = { sessionId };
 
     const { data: session } = await db.from("sessions")
       .select("id,user_id").eq("id", data.sessionId).maybeSingle();
@@ -156,7 +159,7 @@ export const runCurseBreakerPipeline = createServerFn({ method: "POST" })
     }
 
     return { ok: true, deepAnalyzedCount: deepResults.filter(Boolean).length };
-  });
+}
 
 export const getCurseBreakerSlice = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -167,3 +170,43 @@ export const getCurseBreakerSlice = createServerFn({ method: "GET" })
       .eq("session_id", data.sessionId).order("cheap_score", { ascending: false });
     return { categories: cats ?? [] };
   });
+
+/** Latest Curse Breaker session for the current user, with its category slice. */
+export const getLatestCurseBreakerReading = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const s = context.supabase;
+    const { data: sess } = await s
+      .from("sessions")
+      .select("id, title, created_at")
+      .eq("user_id", context.userId)
+      .eq("mode", "curse_breaker")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!sess) return { session: null, categories: [] as CbCategoryRow[] };
+    const { data: cats } = await s
+      .from("stronghold_categories")
+      .select("id, category, cheap_score, confidence, deep_analyzed, pastoral_note, supporting_evidence, counter_evidence, alternative_explanations, citations, updated_at")
+      .eq("session_id", sess.id)
+      .order("cheap_score", { ascending: false });
+    return { session: sess, categories: (cats ?? []) as unknown as CbCategoryRow[] };
+  });
+
+export type JsonValue =
+  | string | number | boolean | null
+  | { [k: string]: JsonValue } | JsonValue[];
+
+export type CbCategoryRow = {
+  id: string;
+  category: string;
+  cheap_score: number;
+  confidence: number | null;
+  deep_analyzed: boolean;
+  pastoral_note: string | null;
+  supporting_evidence: JsonValue;
+  counter_evidence: JsonValue;
+  alternative_explanations: JsonValue;
+  citations: JsonValue;
+  updated_at: string;
+};
