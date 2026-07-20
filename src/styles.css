@@ -63,98 +63,99 @@
   --color-tier-hypothesis: var(--tier-hypothesis);
 }
 
-/* Dark — default */
+/* Dark — default. Paper & Ink: near-black canvas, ivory ink, no accent hue. */
 :root {
   --radius: 0.4rem;
 
-  --background: oklch(0.16 0.01 260);
-  --foreground: oklch(0.98 0.005 260);
+  --background: oklch(0.14 0 0);
+  --foreground: oklch(0.96 0.003 90);
 
-  --panel: oklch(0.16 0.01 260);
-  --panel-border: oklch(1 0 0 / 8%);
-  --surface: oklch(1 0 0 / 3.5%);
-  --surface-hover: oklch(1 0 0 / 7%);
-  --surface-border: oklch(1 0 0 / 10%);
+  --panel: oklch(0.16 0 0);
+  --panel-border: oklch(1 0 0 / 9%);
+  --surface: oklch(1 0 0 / 4%);
+  --surface-hover: oklch(1 0 0 / 8%);
+  --surface-border: oklch(1 0 0 / 11%);
 
-  --card: oklch(1 0 0 / 3.5%);
-  --card-foreground: oklch(0.98 0.005 260);
-  --popover: oklch(0.2 0.01 260);
-  --popover-foreground: oklch(0.98 0.005 260);
+  --card: oklch(1 0 0 / 4%);
+  --card-foreground: oklch(0.96 0.003 90);
+  --popover: oklch(0.18 0 0);
+  --popover-foreground: oklch(0.96 0.003 90);
 
-  --primary: oklch(0.92 0.17 128);                /* lime accent */
-  --primary-foreground: oklch(0.2 0.02 260);
-  --primary-glow: oklch(0.92 0.17 128 / 35%);
+  --primary: oklch(0.96 0.003 90);                 /* ivory ink as accent */
+  --primary-foreground: oklch(0.14 0 0);
+  --primary-glow: oklch(0.96 0.003 90 / 18%);
 
-  --secondary: oklch(1 0 0 / 5%);
-  --secondary-foreground: oklch(0.98 0.005 260);
+  --secondary: oklch(1 0 0 / 6%);
+  --secondary-foreground: oklch(0.96 0.003 90);
   --muted: oklch(1 0 0 / 4%);
-  --muted-foreground: oklch(0.66 0.01 260);
-  --accent: oklch(1 0 0 / 6%);
-  --accent-foreground: oklch(0.98 0.005 260);
+  --muted-foreground: oklch(0.7 0.005 90);
+  --accent: oklch(1 0 0 / 7%);
+  --accent-foreground: oklch(0.96 0.003 90);
 
-  --destructive: oklch(0.68 0.2 25);
-  --destructive-foreground: oklch(0.98 0.005 260);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.92 0.17 128 / 55%);
+  --destructive: oklch(0.66 0.19 25);
+  --destructive-foreground: oklch(0.98 0.005 90);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 11%);
+  --ring: oklch(0.96 0.003 90 / 40%);
 
-  --olive: oklch(0.75 0.11 128);
-  --blue: oklch(0.72 0.11 240);
+  --olive: oklch(0.75 0.02 90);
+  --blue: oklch(0.72 0.02 240);
 
-  --tier-canonical: oklch(0.92 0.17 128);         /* S1 — lime, the primary anchor */
-  --tier-synthesis: oklch(0.85 0.14 92);          /* S2 — warm amber */
-  --tier-context: oklch(0.72 0.11 240);           /* S3 — blue */
-  --tier-tradition: oklch(0.75 0.11 128);         /* S4 — olive */
-  --tier-extracanonical: oklch(0.72 0.13 300);    /* S5 — violet */
-  --tier-founder: oklch(0.78 0.11 40);            /* S6 — clay */
-  --tier-analogy: oklch(0.7 0.02 260);            /* S7 — stone */
-  --tier-hypothesis: oklch(0.68 0.03 260);        /* S8 — slate */
+  /* Source tiers — monochrome stepped from ivory to slate. */
+  --tier-canonical: oklch(0.98 0.003 90);
+  --tier-synthesis: oklch(0.88 0.003 90);
+  --tier-context: oklch(0.78 0.005 90);
+  --tier-tradition: oklch(0.68 0.005 90);
+  --tier-extracanonical: oklch(0.60 0.005 90);
+  --tier-founder: oklch(0.52 0.005 90);
+  --tier-analogy: oklch(0.44 0.005 90);
+  --tier-hypothesis: oklch(0.36 0.005 90);
 }
 
-/* Light — mirrored surface */
+/* Light — flat parchment. No gradients, no glow. */
 .light {
-  --background: oklch(0.985 0.006 260);
-  --foreground: oklch(0.18 0.015 260);
+  --background: oklch(0.965 0.006 90);
+  --foreground: oklch(0.16 0 0);
 
-  --panel: oklch(1 0 0);
-  --panel-border: oklch(0.18 0.015 260 / 10%);
-  --surface: oklch(0.18 0.015 260 / 3%);
-  --surface-hover: oklch(0.18 0.015 260 / 6%);
-  --surface-border: oklch(0.18 0.015 260 / 10%);
+  --panel: oklch(0.99 0.004 90);
+  --panel-border: oklch(0.16 0 0 / 12%);
+  --surface: oklch(0.16 0 0 / 4%);
+  --surface-hover: oklch(0.16 0 0 / 7%);
+  --surface-border: oklch(0.16 0 0 / 12%);
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.015 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.015 260);
+  --card: oklch(0.99 0.004 90);
+  --card-foreground: oklch(0.16 0 0);
+  --popover: oklch(0.99 0.004 90);
+  --popover-foreground: oklch(0.16 0 0);
 
-  --primary: oklch(0.42 0.13 128);
-  --primary-foreground: oklch(0.99 0 0);
-  --primary-glow: oklch(0.42 0.13 128 / 22%);
+  --primary: oklch(0.16 0 0);
+  --primary-foreground: oklch(0.99 0.004 90);
+  --primary-glow: oklch(0.16 0 0 / 0%);            /* flat — no glow */
 
-  --secondary: oklch(0.18 0.015 260 / 5%);
-  --secondary-foreground: oklch(0.18 0.015 260);
-  --muted: oklch(0.18 0.015 260 / 4%);
-  --muted-foreground: oklch(0.38 0.02 260);
-  --accent: oklch(0.18 0.015 260 / 6%);
-  --accent-foreground: oklch(0.18 0.015 260);
+  --secondary: oklch(0.16 0 0 / 5%);
+  --secondary-foreground: oklch(0.16 0 0);
+  --muted: oklch(0.16 0 0 / 4%);
+  --muted-foreground: oklch(0.32 0.005 90);
+  --accent: oklch(0.16 0 0 / 6%);
+  --accent-foreground: oklch(0.16 0 0);
 
-  --destructive: oklch(0.58 0.22 25);
-  --destructive-foreground: oklch(0.98 0.005 260);
-  --border: oklch(0.18 0.015 260 / 10%);
-  --input: oklch(0.18 0.015 260 / 12%);
-  --ring: oklch(0.68 0.19 128 / 55%);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.99 0.004 90);
+  --border: oklch(0.16 0 0 / 12%);
+  --input: oklch(0.16 0 0 / 14%);
+  --ring: oklch(0.16 0 0 / 40%);
 
-  --olive: oklch(0.42 0.12 128);
-  --blue: oklch(0.42 0.14 240);
+  --olive: oklch(0.32 0.005 90);
+  --blue: oklch(0.32 0.02 240);
 
-  --tier-canonical: oklch(0.42 0.13 128);
-  --tier-synthesis: oklch(0.42 0.13 92);
-  --tier-context: oklch(0.42 0.14 240);
-  --tier-tradition: oklch(0.42 0.12 128);
-  --tier-extracanonical: oklch(0.42 0.14 300);
-  --tier-founder: oklch(0.42 0.13 40);
-  --tier-analogy: oklch(0.38 0.02 260);
-  --tier-hypothesis: oklch(0.38 0.03 260);
+  --tier-canonical: oklch(0.16 0 0);
+  --tier-synthesis: oklch(0.28 0.003 90);
+  --tier-context: oklch(0.38 0.005 90);
+  --tier-tradition: oklch(0.48 0.005 90);
+  --tier-extracanonical: oklch(0.56 0.005 90);
+  --tier-founder: oklch(0.62 0.005 90);
+  --tier-analogy: oklch(0.68 0.005 90);
+  --tier-hypothesis: oklch(0.74 0.005 90);
 }
 
 * { border-color: var(--border); }
@@ -169,11 +170,14 @@ body {
 }
 .font-serif { font-family: var(--font-serif); font-optical-sizing: auto; }
 
-/* Ambient glow used on hero panels */
+/* Ambient glow used on hero panels — dark only; flat in light. */
 .glow-lime {
   background:
     radial-gradient(60% 80% at 50% 0%, var(--primary-glow), transparent 70%),
     var(--panel);
+}
+.light .glow-lime {
+  background: var(--panel);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -182,3 +186,4 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+

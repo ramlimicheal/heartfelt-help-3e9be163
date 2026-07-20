@@ -8,6 +8,8 @@ import {
   LogOut,
   Moon,
   Orbit,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   Settings,
   ShieldAlert,
@@ -104,6 +106,15 @@ export function AppShell({ children }: { children?: ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, ready } = useSession();
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("wisdom-nav-collapsed") === "1";
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("wisdom-nav-collapsed", collapsed ? "1" : "0");
+    }
+  }, [collapsed]);
   const isFullBleed =
     pathname === "/welcome" || pathname === "/onboarding" || pathname === "/auth";
 
@@ -127,43 +138,88 @@ export function AppShell({ children }: { children?: ReactNode }) {
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen w-full max-w-[1500px]">
         {/* Desktop left rail */}
-        <aside className="hidden shrink-0 border-r border-panel-border/60 md:flex md:w-64 md:flex-col">
-          <div className="flex items-center gap-2.5 px-5 pt-6 pb-4">
-            <span className="grid size-8 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[0_0_24px_0] shadow-primary-glow">
+        <aside
+          className={[
+            "hidden shrink-0 border-r border-panel-border/60 md:flex md:flex-col transition-[width] duration-200",
+            collapsed ? "md:w-16" : "md:w-64",
+          ].join(" ")}
+        >
+          <div className={["flex items-center pt-6 pb-4", collapsed ? "justify-center px-2" : "gap-2.5 px-5"].join(" ")}>
+            <span className="grid size-8 place-items-center rounded-md bg-primary text-primary-foreground">
               <Sparkles className="size-4" strokeWidth={2} />
             </span>
-            <div className="leading-tight">
-              <p className="text-sm font-semibold">Wisdom</p>
-              <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                Scripture-first
-              </p>
-            </div>
+            {!collapsed && (
+              <div className="leading-tight">
+                <p className="text-sm font-semibold">Wisdom</p>
+                <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                  Scripture-first
+                </p>
+              </div>
+            )}
+            {!collapsed && (
+              <button
+                onClick={() => setCollapsed(true)}
+                aria-label="Collapse sidebar"
+                className="ml-auto grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-surface hover:text-foreground"
+              >
+                <PanelLeftClose className="size-4" strokeWidth={1.75} />
+              </button>
+            )}
           </div>
 
-          <div className="px-3">
+          {collapsed && (
+            <div className="px-2 pb-2">
+              <button
+                onClick={() => setCollapsed(false)}
+                aria-label="Expand sidebar"
+                className="grid size-12 w-full place-items-center rounded-md text-muted-foreground hover:bg-surface hover:text-foreground"
+              >
+                <PanelLeftOpen className="size-4" strokeWidth={1.75} />
+              </button>
+            </div>
+          )}
+
+          <div className={collapsed ? "px-2" : "px-3"}>
             <Link
               to="/wisdom"
-              className="flex w-full items-center justify-between rounded-xl bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+              title="New session"
+              className={[
+                "flex items-center rounded-md bg-primary text-sm font-medium text-primary-foreground transition hover:opacity-90",
+                collapsed ? "size-12 justify-center" : "w-full justify-between px-3 py-2",
+              ].join(" ")}
             >
-              <span className="inline-flex items-center gap-2">
+              {collapsed ? (
                 <Plus className="size-4" strokeWidth={2} />
-                New session
-              </span>
-              <span className="rounded-md bg-primary-foreground/10 px-1.5 py-0.5 text-[10px]">
-                ⌘K
-              </span>
+              ) : (
+                <>
+                  <span className="inline-flex items-center gap-2">
+                    <Plus className="size-4" strokeWidth={2} />
+                    New session
+                  </span>
+                  <span className="rounded-sm bg-primary-foreground/10 px-1.5 py-0.5 text-[10px]">
+                    ⌘K
+                  </span>
+                </>
+              )}
             </Link>
           </div>
 
-          <nav className="mt-6 flex flex-col gap-4 px-3">
+          <nav className={["mt-6 flex flex-col gap-4", collapsed ? "px-2" : "px-3"].join(" ")}>
             {GROUPS.map((group) => (
               <div key={group.label}>
-                <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                  {group.label}
-                </p>
-                <p className="mb-1.5 px-2 text-[10.5px] leading-snug text-muted-foreground/70">
-                  {group.caption}
-                </p>
+                {!collapsed && (
+                  <>
+                    <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                      {group.label}
+                    </p>
+                    <p className="mb-1.5 px-2 text-[10.5px] leading-snug text-muted-foreground/70">
+                      {group.caption}
+                    </p>
+                  </>
+                )}
+                {collapsed && (
+                  <div className="mx-auto mb-1 h-px w-6 bg-panel-border" aria-hidden />
+                )}
                 <div className="flex flex-col gap-0.5">
                   {group.items.map(({ to, label, Icon }) => {
                     const active = isActive(pathname, to);
@@ -171,8 +227,10 @@ export function AppShell({ children }: { children?: ReactNode }) {
                       <Link
                         key={to + label}
                         to={to}
+                        title={collapsed ? label : undefined}
                         className={[
-                          "group flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition",
+                          "group flex items-center rounded-md text-sm transition",
+                          collapsed ? "size-12 justify-center" : "gap-3 px-2.5 py-2",
                           active
                             ? "bg-surface text-foreground"
                             : "text-muted-foreground hover:bg-surface/60 hover:text-foreground",
@@ -182,8 +240,8 @@ export function AppShell({ children }: { children?: ReactNode }) {
                           className={["size-4", active ? "text-primary" : ""].join(" ")}
                           strokeWidth={1.75}
                         />
-                        <span>{label}</span>
-                        {active && (
+                        {!collapsed && <span>{label}</span>}
+                        {!collapsed && active && (
                           <span className="ml-auto size-1.5 rounded-full bg-primary" aria-hidden />
                         )}
                       </Link>
@@ -195,34 +253,36 @@ export function AppShell({ children }: { children?: ReactNode }) {
           </nav>
 
 
-          <div className="mt-6 px-3">
-            <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              Recent
-            </p>
-            <ul className="space-y-0.5">
-              {SESSIONS.slice(0, 5).map((s) => (
-                <li key={s.id}>
-                  <Link
-                    to="/wisdom/$sessionId"
-                    params={{ sessionId: s.id }}
-                    className={[
-                      "block truncate rounded-md px-2.5 py-1.5 text-xs transition",
-                      pathname.includes(s.id)
-                        ? "bg-surface text-foreground"
-                        : "text-muted-foreground hover:bg-surface/60 hover:text-foreground",
-                    ].join(" ")}
-                  >
-                    {s.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {!collapsed && (
+            <div className="mt-6 px-3">
+              <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                Recent
+              </p>
+              <ul className="space-y-0.5">
+                {SESSIONS.slice(0, 5).map((s) => (
+                  <li key={s.id}>
+                    <Link
+                      to="/wisdom/$sessionId"
+                      params={{ sessionId: s.id }}
+                      className={[
+                        "block truncate rounded-sm px-2.5 py-1.5 text-xs transition",
+                        pathname.includes(s.id)
+                          ? "bg-surface text-foreground"
+                          : "text-muted-foreground hover:bg-surface/60 hover:text-foreground",
+                      ].join(" ")}
+                    >
+                      {s.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-          <div className="mt-auto space-y-0.5 px-3 pb-5">
-            {ready && (
+          <div className={["mt-auto space-y-0.5 pb-5", collapsed ? "px-2" : "px-3"].join(" ")}>
+            {ready && !collapsed && (
               user ? (
-                <div className="mb-2 rounded-lg border border-panel-border/60 bg-surface/40 px-2.5 py-2">
+                <div className="mb-2 rounded-md border border-panel-border/60 bg-surface/40 px-2.5 py-2">
                   <div className="flex items-center gap-2">
                     <span className="grid size-6 place-items-center rounded-full bg-primary/20 text-[10px] font-semibold text-primary">
                       {(user.email ?? "?").slice(0, 1).toUpperCase()}
@@ -233,7 +293,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
                     <button
                       onClick={signOut}
                       title="Sign out"
-                      className="grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-surface hover:text-foreground"
+                      className="grid size-6 place-items-center rounded-sm text-muted-foreground hover:bg-surface hover:text-foreground"
                     >
                       <LogOut className="size-3.5" strokeWidth={1.75} />
                     </button>
@@ -243,7 +303,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
                 <Link
                   to="/auth"
                   search={{ redirect: pathname }}
-                  className="mb-2 flex items-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-2.5 py-2 text-xs font-medium text-primary hover:bg-primary/15"
+                  className="mb-2 flex items-center gap-2 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-2 text-xs font-medium text-primary hover:bg-primary/15"
                 >
                   <LogIn className="size-3.5" strokeWidth={2} />
                   Sign in to save sessions
@@ -252,25 +312,34 @@ export function AppShell({ children }: { children?: ReactNode }) {
             )}
             <Link
               to="/settings/privacy"
-              className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs text-muted-foreground hover:bg-surface/60 hover:text-foreground"
+              title={collapsed ? "Privacy & memory" : undefined}
+              className={[
+                "flex items-center rounded-md text-xs text-muted-foreground hover:bg-surface/60 hover:text-foreground",
+                collapsed ? "size-12 justify-center" : "gap-2 px-2.5 py-2",
+              ].join(" ")}
             >
               <Settings className="size-3.5" strokeWidth={1.75} />
-              Privacy &amp; memory
+              {!collapsed && "Privacy & memory"}
             </Link>
             <button
               onClick={toggle}
-              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-muted-foreground hover:bg-surface/60 hover:text-foreground"
+              title={collapsed ? (theme === "dark" ? "Light theme" : "Dark theme") : undefined}
+              className={[
+                "flex items-center rounded-md text-xs text-muted-foreground hover:bg-surface/60 hover:text-foreground",
+                collapsed ? "size-12 w-full justify-center" : "w-full gap-2 px-2.5 py-2 text-left",
+              ].join(" ")}
             >
               {theme === "dark" ? (
                 <Sun className="size-3.5" strokeWidth={1.75} />
               ) : (
                 <Moon className="size-3.5" strokeWidth={1.75} />
               )}
-              {theme === "dark" ? "Light" : "Dark"} theme
+              {!collapsed && (theme === "dark" ? "Light theme" : "Dark theme")}
             </button>
           </div>
 
         </aside>
+
 
         {/* Main */}
         <main className="min-w-0 flex-1 pb-24 md:pb-8">
