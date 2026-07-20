@@ -3,6 +3,7 @@ import {
   BookOpen,
   Compass,
   Hand,
+  LayoutDashboard,
   LogIn,
   LogOut,
   Moon,
@@ -13,6 +14,7 @@ import {
   Sparkles,
   Sun,
   User,
+  Users,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -23,14 +25,43 @@ import { useQueryClient } from "@tanstack/react-query";
 
 
 type NavItem = { to: string; label: string; Icon: typeof Compass };
+type NavGroup = { label: string; caption: string; items: NavItem[] };
 
-const NAV: NavItem[] = [
+const GROUPS: NavGroup[] = [
+  {
+    label: "Begin",
+    caption: "Talk to Wisdom. It listens for the pattern beneath.",
+    items: [
+      { to: "/wisdom", label: "Wisdom", Icon: Sparkles },
+      { to: "/wisdom/curse-breaker", label: "Curse Breaker", Icon: ShieldAlert },
+    ],
+  },
+  {
+    label: "Discern",
+    caption: "What Wisdom has surfaced about you.",
+    items: [
+      { to: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
+      { to: "/patterns", label: "Patterns", Icon: Compass },
+      { to: "/wisdom/map", label: "Constellation", Icon: Orbit },
+      { to: "/journey", label: "Mirrors", Icon: Users },
+    ],
+  },
+  {
+    label: "Hold",
+    caption: "What you carry forward.",
+    items: [
+      { to: "/prayers", label: "Prayer", Icon: Hand },
+      { to: "/journey", label: "Journey", Icon: BookOpen },
+      { to: "/you", label: "You", Icon: User },
+    ],
+  },
+];
+
+const MOBILE_NAV: NavItem[] = [
   { to: "/wisdom", label: "Wisdom", Icon: Sparkles },
-  { to: "/wisdom/curse-breaker", label: "Curse Breaker", Icon: ShieldAlert },
-  { to: "/wisdom/map", label: "Constellation", Icon: Orbit },
-  { to: "/patterns", label: "Patterns", Icon: Compass },
+  { to: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
+  { to: "/wisdom/map", label: "Map", Icon: Orbit },
   { to: "/prayers", label: "Prayer", Icon: Hand },
-  { to: "/journey", label: "Journey", Icon: BookOpen },
   { to: "/you", label: "You", Icon: User },
 ];
 
@@ -59,10 +90,12 @@ function useTheme() {
 
 function isActive(pathname: string, to: string) {
   if (to === "/wisdom") {
-    return pathname === "/" || (pathname.startsWith("/wisdom") && !pathname.startsWith("/wisdom/curse-breaker"));
+    return pathname === "/wisdom" || pathname === "/";
   }
+  if (to === "/dashboard") return pathname === "/dashboard";
   return pathname.startsWith(to);
 }
+
 
 
 export function AppShell({ children }: { children?: ReactNode }) {
@@ -122,35 +155,45 @@ export function AppShell({ children }: { children?: ReactNode }) {
             </Link>
           </div>
 
-          <nav className="mt-6 flex flex-col gap-0.5 px-3">
-            <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              Space
-            </p>
-            {NAV.map(({ to, label, Icon }) => {
-              const active = isActive(pathname, to);
-              return (
-                <Link
-                  key={to}
-                  to={to}
-                  className={[
-                    "group flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition",
-                    active
-                      ? "bg-surface text-foreground"
-                      : "text-muted-foreground hover:bg-surface/60 hover:text-foreground",
-                  ].join(" ")}
-                >
-                  <Icon
-                    className={["size-4", active ? "text-primary" : ""].join(" ")}
-                    strokeWidth={1.75}
-                  />
-                  <span>{label}</span>
-                  {active && (
-                    <span className="ml-auto size-1.5 rounded-full bg-primary" aria-hidden />
-                  )}
-                </Link>
-              );
-            })}
+          <nav className="mt-6 flex flex-col gap-4 px-3">
+            {GROUPS.map((group) => (
+              <div key={group.label}>
+                <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                  {group.label}
+                </p>
+                <p className="mb-1.5 px-2 text-[10.5px] leading-snug text-muted-foreground/70">
+                  {group.caption}
+                </p>
+                <div className="flex flex-col gap-0.5">
+                  {group.items.map(({ to, label, Icon }) => {
+                    const active = isActive(pathname, to);
+                    return (
+                      <Link
+                        key={to + label}
+                        to={to}
+                        className={[
+                          "group flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition",
+                          active
+                            ? "bg-surface text-foreground"
+                            : "text-muted-foreground hover:bg-surface/60 hover:text-foreground",
+                        ].join(" ")}
+                      >
+                        <Icon
+                          className={["size-4", active ? "text-primary" : ""].join(" ")}
+                          strokeWidth={1.75}
+                        />
+                        <span>{label}</span>
+                        {active && (
+                          <span className="ml-auto size-1.5 rounded-full bg-primary" aria-hidden />
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
+
 
           <div className="mt-6 px-3">
             <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
@@ -282,8 +325,8 @@ export function AppShell({ children }: { children?: ReactNode }) {
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-panel-border bg-background/95 backdrop-blur md:hidden">
-        <ul className="mx-auto grid max-w-md grid-cols-6">
-          {NAV.map(({ to, label, Icon }) => {
+        <ul className="mx-auto grid max-w-md grid-cols-5">
+          {MOBILE_NAV.map(({ to, label, Icon }) => {
             const active = isActive(pathname, to);
             return (
               <li key={to}>

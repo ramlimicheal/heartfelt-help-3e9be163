@@ -13,6 +13,7 @@ import { Route as YouRouteImport } from './routes/you'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as JourneyRouteImport } from './routes/journey'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -25,6 +26,7 @@ import { Route as WisdomSessionIdRouteImport } from './routes/wisdom.$sessionId'
 import { Route as SettingsPrivacyRouteImport } from './routes/settings.privacy'
 import { Route as PrayersPrayerIdRouteImport } from './routes/prayers.$prayerId'
 import { Route as PatternsPatternIdRouteImport } from './routes/patterns.$patternId'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as WisdomLiveSessionIdRouteImport } from './routes/wisdom.live.$sessionId'
 
@@ -46,6 +48,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const JourneyRoute = JourneyRouteImport.update({
   id: '/journey',
   path: '/journey',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -107,6 +114,11 @@ const PatternsPatternIdRoute = PatternsPatternIdRouteImport.update({
   path: '/patterns/$patternId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
   id: '/home',
   path: '/home',
@@ -121,11 +133,13 @@ const WisdomLiveSessionIdRoute = WisdomLiveSessionIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
   '/journey': typeof JourneyRoute
   '/onboarding': typeof OnboardingRoute
   '/welcome': typeof WelcomeRoute
   '/you': typeof YouRoute
   '/home': typeof AuthenticatedHomeRoute
+  '/api/chat': typeof ApiChatRoute
   '/patterns/$patternId': typeof PatternsPatternIdRoute
   '/prayers/$prayerId': typeof PrayersPrayerIdRoute
   '/settings/privacy': typeof SettingsPrivacyRoute
@@ -140,11 +154,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
   '/journey': typeof JourneyRoute
   '/onboarding': typeof OnboardingRoute
   '/welcome': typeof WelcomeRoute
   '/you': typeof YouRoute
   '/home': typeof AuthenticatedHomeRoute
+  '/api/chat': typeof ApiChatRoute
   '/patterns/$patternId': typeof PatternsPatternIdRoute
   '/prayers/$prayerId': typeof PrayersPrayerIdRoute
   '/settings/privacy': typeof SettingsPrivacyRoute
@@ -161,11 +177,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
   '/journey': typeof JourneyRoute
   '/onboarding': typeof OnboardingRoute
   '/welcome': typeof WelcomeRoute
   '/you': typeof YouRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
+  '/api/chat': typeof ApiChatRoute
   '/patterns/$patternId': typeof PatternsPatternIdRoute
   '/prayers/$prayerId': typeof PrayersPrayerIdRoute
   '/settings/privacy': typeof SettingsPrivacyRoute
@@ -182,11 +200,13 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/dashboard'
     | '/journey'
     | '/onboarding'
     | '/welcome'
     | '/you'
     | '/home'
+    | '/api/chat'
     | '/patterns/$patternId'
     | '/prayers/$prayerId'
     | '/settings/privacy'
@@ -201,11 +221,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/dashboard'
     | '/journey'
     | '/onboarding'
     | '/welcome'
     | '/you'
     | '/home'
+    | '/api/chat'
     | '/patterns/$patternId'
     | '/prayers/$prayerId'
     | '/settings/privacy'
@@ -221,11 +243,13 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/dashboard'
     | '/journey'
     | '/onboarding'
     | '/welcome'
     | '/you'
     | '/_authenticated/home'
+    | '/api/chat'
     | '/patterns/$patternId'
     | '/prayers/$prayerId'
     | '/settings/privacy'
@@ -242,10 +266,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  DashboardRoute: typeof DashboardRoute
   JourneyRoute: typeof JourneyRoute
   OnboardingRoute: typeof OnboardingRoute
   WelcomeRoute: typeof WelcomeRoute
   YouRoute: typeof YouRoute
+  ApiChatRoute: typeof ApiChatRoute
   PatternsPatternIdRoute: typeof PatternsPatternIdRoute
   PrayersPrayerIdRoute: typeof PrayersPrayerIdRoute
   SettingsPrivacyRoute: typeof SettingsPrivacyRoute
@@ -286,6 +312,13 @@ declare module '@tanstack/react-router' {
       path: '/journey'
       fullPath: '/journey'
       preLoaderRoute: typeof JourneyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -372,6 +405,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatternsPatternIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/home': {
       id: '/_authenticated/home'
       path: '/home'
@@ -404,10 +444,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  DashboardRoute: DashboardRoute,
   JourneyRoute: JourneyRoute,
   OnboardingRoute: OnboardingRoute,
   WelcomeRoute: WelcomeRoute,
   YouRoute: YouRoute,
+  ApiChatRoute: ApiChatRoute,
   PatternsPatternIdRoute: PatternsPatternIdRoute,
   PrayersPrayerIdRoute: PrayersPrayerIdRoute,
   SettingsPrivacyRoute: SettingsPrivacyRoute,
