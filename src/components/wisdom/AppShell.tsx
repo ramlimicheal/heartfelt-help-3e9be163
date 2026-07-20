@@ -7,7 +7,7 @@ import {
   LogIn,
   LogOut,
   Moon,
-  Orbit,
+  // Orbit removed with Constellation nav
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
@@ -16,7 +16,7 @@ import {
   Sparkles,
   Sun,
   User,
-  Users,
+  // Users removed with Mirrors nav
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
