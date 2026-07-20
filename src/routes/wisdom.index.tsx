@@ -70,8 +70,9 @@ const SUGGESTIONS = [
 ];
 
 function WisdomChat() {
-  const [mode, setMode] = useState<Mode>("pattern");
-  const [input, setInput] = useState("");
+  const search = Route.useSearch();
+  const [mode, setMode] = useState<Mode>(search.mode ?? "pattern");
+  const [input, setInput] = useState(search.prompt ?? "");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [dontRemember, setDontRemember] = useState(false);
   const modeRef = useRef(mode);
