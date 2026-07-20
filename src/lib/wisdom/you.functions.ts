@@ -1,6 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+export type PersonaFactStatus =
+  | "proposed"
+  | "accepted"
+  | "corrected"
+  | "rejected"
+  | "session_only"
+  | "deleted";
+
 export type JsonValue =
   | string
   | number
