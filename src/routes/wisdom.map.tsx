@@ -63,16 +63,16 @@ function useGraph() {
   return useMemo(() => {
     const hyps = Object.values(HYPOTHESES);
     const archetypes = Object.values(ARCHETYPE_INDEX);
-    const facts = PERSONA_FACTS.filter((f) => f.remember).slice(0, 12);
+    const facts = PERSONA_FACTS.filter((f) => f.status !== "proposed_dnr").slice(0, 12);
     const prayers = Object.values(PRAYERS);
 
     const patterns: LeafNode[] = hyps.map((h) => ({
       id: `pat_${h.id}`,
-      label: h.title,
+      label: h.name,
       gaps: Math.round((1 - h.confidence) * 20),
       health: healthFor(h.confidence),
       kind: "archetype",
-      refId: h.archetypeRefs[0] ?? "archetype_moses_overload",
+      refId: h.archetypes[0]?.archetypeId ?? "archetype_moses_overload",
     }));
 
     const archetypeNodes: LeafNode[] = archetypes.map((a) => ({
@@ -86,7 +86,7 @@ function useGraph() {
 
     const factNodes: LeafNode[] = facts.map((f) => ({
       id: `fact_${f.id}`,
-      label: f.summary,
+      label: f.value,
       gaps: Math.round((1 - f.confidence) * 18),
       health: healthFor(f.confidence),
       kind: "fact",
@@ -95,7 +95,7 @@ function useGraph() {
 
     const prayerNodes: LeafNode[] = prayers.map((p) => ({
       id: `pr_${p.id}`,
-      label: p.movements[0]?.text.slice(0, 40) ?? "Prayer",
+      label: p.title ?? p.lines[0]?.text.slice(0, 40) ?? "Prayer",
       gaps: 6,
       health: healthFor(0.65),
       kind: "prayer",
