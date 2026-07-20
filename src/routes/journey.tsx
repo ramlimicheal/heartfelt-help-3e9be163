@@ -9,19 +9,13 @@ export const Route = createFileRoute("/journey")({
 });
 
 const TYPE_LABEL: Record<string, string> = {
-  story_shared: "Story shared",
-  pattern_proposed: "Pattern proposed",
-  pattern_accepted: "Pattern accepted",
-  pattern_edited: "Pattern edited",
-  pattern_rejected: "Pattern rejected",
-  prayer_created: "Prayer created",
-  prayer_edited: "Prayer edited",
-  practice_selected: "Practice selected",
-  checkin_completed: "Check-in completed",
-  setback_recorded: "Setback recorded",
-  fruit_observed: "Fruit observed",
-  pattern_confidence_changed: "Confidence changed",
-  pattern_archived: "Pattern archived",
+  signal: "Signal recorded",
+  pattern_update: "Pattern updated",
+  interpretation: "Interpretation composed",
+  prayer: "Prayer composed",
+  practice_assigned: "Practice assigned",
+  check_in: "Check-in recorded",
+  memory_change: "Memory updated",
 };
 
 function Journey() {
