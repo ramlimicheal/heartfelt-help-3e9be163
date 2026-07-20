@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMemo, useRef, useState } from "react";
 import {
   Activity,
   Building2,
@@ -17,6 +17,8 @@ import {
   Share2,
   Image as ImageIcon,
   Menu,
+  X,
+  Check,
 } from "lucide-react";
 import {
   ARCHETYPE_INDEX,
@@ -31,6 +33,7 @@ export const Route = createFileRoute("/wisdom/map")({
   head: () => ({ meta: [{ title: "Constellation — Wisdom" }] }),
   component: MapPage,
 });
+
 
 /* ── Palette (restrained, monochrome + teal + gold) ─────────────── */
 const TEAL = "rgba(120, 220, 210, 1)";
