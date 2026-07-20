@@ -1,8 +1,10 @@
-import { Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   BookOpen,
   Compass,
   Hand,
+  LogIn,
+  LogOut,
   Moon,
   Plus,
   Settings,
@@ -14,6 +16,10 @@ import {
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { SESSIONS } from "@/lib/wisdom/mock/seed";
+import { useSession } from "@/hooks/useSession";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+
 
 type NavItem = { to: string; label: string; Icon: typeof Compass };
 
@@ -60,8 +66,18 @@ function isActive(pathname: string, to: string) {
 export function AppShell({ children }: { children?: ReactNode }) {
   const { theme, toggle } = useTheme();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user, ready } = useSession();
   const isFullBleed =
     pathname === "/welcome" || pathname === "/onboarding" || pathname === "/auth";
+
+  async function signOut() {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  }
 
   if (isFullBleed) {
     return (
@@ -70,6 +86,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -158,6 +175,36 @@ export function AppShell({ children }: { children?: ReactNode }) {
           </div>
 
           <div className="mt-auto space-y-0.5 px-3 pb-5">
+            {ready && (
+              user ? (
+                <div className="mb-2 rounded-lg border border-panel-border/60 bg-surface/40 px-2.5 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="grid size-6 place-items-center rounded-full bg-primary/20 text-[10px] font-semibold text-primary">
+                      {(user.email ?? "?").slice(0, 1).toUpperCase()}
+                    </span>
+                    <p className="min-w-0 flex-1 truncate text-[11px] text-foreground/90">
+                      {user.email}
+                    </p>
+                    <button
+                      onClick={signOut}
+                      title="Sign out"
+                      className="grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-surface hover:text-foreground"
+                    >
+                      <LogOut className="size-3.5" strokeWidth={1.75} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <Link
+                  to="/auth"
+                  search={{ redirect: pathname }}
+                  className="mb-2 flex items-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-2.5 py-2 text-xs font-medium text-primary hover:bg-primary/15"
+                >
+                  <LogIn className="size-3.5" strokeWidth={2} />
+                  Sign in to save sessions
+                </Link>
+              )
+            )}
             <Link
               to="/settings/privacy"
               className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs text-muted-foreground hover:bg-surface/60 hover:text-foreground"
@@ -177,6 +224,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
               {theme === "dark" ? "Light" : "Dark"} theme
             </button>
           </div>
+
         </aside>
 
         {/* Main */}
@@ -189,18 +237,40 @@ export function AppShell({ children }: { children?: ReactNode }) {
               </span>
               <span className="text-sm font-semibold">Wisdom</span>
             </Link>
-            <button
-              onClick={toggle}
-              aria-label="Toggle theme"
-              className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-surface/60 hover:text-foreground"
-            >
-              {theme === "dark" ? (
-                <Sun className="size-4" strokeWidth={1.75} />
-              ) : (
-                <Moon className="size-4" strokeWidth={1.75} />
+            <div className="flex items-center gap-1">
+              {ready && !user && (
+                <Link
+                  to="/auth"
+                  search={{ redirect: pathname }}
+                  className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary"
+                >
+                  <LogIn className="size-3" strokeWidth={2} />
+                  Sign in
+                </Link>
               )}
-            </button>
+              {ready && user && (
+                <button
+                  onClick={signOut}
+                  aria-label="Sign out"
+                  className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-surface/60 hover:text-foreground"
+                >
+                  <LogOut className="size-4" strokeWidth={1.75} />
+                </button>
+              )}
+              <button
+                onClick={toggle}
+                aria-label="Toggle theme"
+                className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-surface/60 hover:text-foreground"
+              >
+                {theme === "dark" ? (
+                  <Sun className="size-4" strokeWidth={1.75} />
+                ) : (
+                  <Moon className="size-4" strokeWidth={1.75} />
+                )}
+              </button>
+            </div>
           </header>
+
 
           <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-10 md:py-10">
             {children ?? <Outlet />}

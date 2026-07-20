@@ -9,6 +9,7 @@ import {
   HandHelping,
   Hand,
   Loader2,
+  LogIn,
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
@@ -16,6 +17,8 @@ import { SESSIONS } from "@/lib/wisdom/mock/seed";
 import { COPY } from "@/lib/wisdom/copy/v1";
 import { startWisdomSession, runWisdomPipeline } from "@/lib/wisdom/pipeline.functions";
 import { runCurseBreakerPipeline } from "@/lib/wisdom/curseBreaker.functions";
+import { useSession } from "@/hooks/useSession";
+
 
 export const Route = createFileRoute("/wisdom/")({
   head: () => ({ meta: [{ title: "Wisdom — begin a session" }] }),
@@ -77,6 +80,7 @@ function WisdomHome() {
   const [mode, setMode] = useState<ModeId>("pattern");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user, ready } = useSession();
 
   const startFn = useServerFn(startWisdomSession);
   const runWisdom = useServerFn(runWisdomPipeline);
@@ -86,8 +90,13 @@ function WisdomHome() {
     navigate({ to: "/wisdom/$sessionId", params: { sessionId: SESSIONS[0].id } });
   };
 
+
   const begin = async () => {
     if (!text.trim() || busy) return;
+    if (ready && !user) {
+      navigate({ to: "/auth", search: { redirect: "/wisdom" } });
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -106,6 +115,7 @@ function WisdomHome() {
       setBusy(false);
     }
   };
+
 
 
 
@@ -206,6 +216,11 @@ function WisdomHome() {
                   <Loader2 className="size-3.5 animate-spin" strokeWidth={2} />
                   Composing…
                 </>
+              ) : ready && !user ? (
+                <>
+                  <LogIn className="size-3.5" strokeWidth={2} />
+                  Sign in to begin
+                </>
               ) : (
                 <>
                   Begin session
@@ -213,6 +228,7 @@ function WisdomHome() {
                 </>
               )}
             </button>
+
           </div>
         </div>
         {error && (
