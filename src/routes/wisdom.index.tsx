@@ -80,10 +80,16 @@ function WisdomHome() {
   const [mode, setMode] = useState<ModeId>("pattern");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user, ready } = useSession();
 
   const startFn = useServerFn(startWisdomSession);
   const runWisdom = useServerFn(runWisdomPipeline);
   const runCb = useServerFn(runCurseBreakerPipeline);
+
+  const openSeed = () => {
+    navigate({ to: "/wisdom/$sessionId", params: { sessionId: SESSIONS[0].id } });
+  };
+
 
   const openSeed = () => {
     navigate({ to: "/wisdom/$sessionId", params: { sessionId: SESSIONS[0].id } });
