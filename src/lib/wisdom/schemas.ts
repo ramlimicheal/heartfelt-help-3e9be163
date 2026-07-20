@@ -1,7 +1,8 @@
 /**
  * Wisdom typed schemas — mirror the PRD data model.
- * Shared UI types and source-tier labels; real pipeline output
- * conforms to these shapes.
+ * Nothing here talks to a backend yet; these types shape the mock data
+ * and every UI component so Stage D can drop real AI output into the
+ * same shapes without touching the UI.
  */
 
 export type SourceTier =

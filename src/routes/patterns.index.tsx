@@ -1,32 +1,29 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { listPatterns } from "@/lib/wisdom/patterns.functions";
+import { HYPOTHESES } from "@/lib/wisdom/mock/seed";
+import { ConfidenceBar } from "@/components/wisdom/primitives";
+import type { PatternStatus } from "@/lib/wisdom/schemas";
 
 export const Route = createFileRoute("/patterns/")({
   head: () => ({ meta: [{ title: "Patterns — Wisdom" }] }),
   component: PatternsList,
 });
 
-const LIFECYCLE_ORDER = ["proposed", "accepted", "refined", "reconsidered", "rejected"] as const;
-const LIFECYCLE_LABEL: Record<string, string> = {
-  proposed: "proposed",
-  accepted: "accepted",
-  refined: "improving",
-  reconsidered: "reconsidered",
-  rejected: "rejected",
-};
+const STATUS_ORDER: PatternStatus[] = [
+  "proposed",
+  "exploring",
+  "accepted",
+  "improving",
+  "recurring",
+  "resolved",
+  "rejected",
+  "archived",
+];
 
 function PatternsList() {
-  const fn = useServerFn(listPatterns);
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["patterns"],
-    queryFn: () => fn(),
-  });
-
-  const groups = LIFECYCLE_ORDER.map((lc) => ({
-    lifecycle: lc,
-    items: (data ?? []).filter((p) => p.lifecycle === lc && p.status !== "archived"),
+  const list = Object.values(HYPOTHESES);
+  const groups = STATUS_ORDER.map((status) => ({
+    status,
+    items: list.filter((h) => h.status === status),
   })).filter((g) => g.items.length > 0);
 
   return (
@@ -40,20 +37,10 @@ function PatternsList() {
         </p>
       </header>
 
-      {isLoading && <p className="text-sm text-muted-foreground">Loading patterns…</p>}
-      {error && (
-        <p className="text-sm text-destructive">Your patterns could not be loaded.</p>
-      )}
-      {!isLoading && !error && (data?.length ?? 0) === 0 && (
-        <p className="rounded-xl border border-panel-border bg-panel px-5 py-4 text-sm text-muted-foreground">
-          No patterns yet. Patterns appear here after Wisdom proposes them.
-        </p>
-      )}
-
       {groups.map((g) => (
-        <section key={g.lifecycle} className="space-y-3">
+        <section key={g.status} className="space-y-3">
           <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            {LIFECYCLE_LABEL[g.lifecycle] ?? g.lifecycle}
+            {g.status}
           </h2>
           {g.items.map((h) => (
             <Link
@@ -62,13 +49,23 @@ function PatternsList() {
               params={{ patternId: h.id }}
               className="block rounded-xl border border-panel-border bg-panel px-5 py-4 transition hover:bg-surface"
             >
-              <p className="text-lg leading-snug">{h.title}</p>
-              {h.description && (
-                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{h.description}</p>
-              )}
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                Updated {new Date(h.updatedAt).toLocaleDateString()}
-              </p>
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-lg leading-snug">{h.name}</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{h.description}</p>
+                </div>
+                <ConfidenceBar value={h.confidence} />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {h.domains.map((d) => (
+                  <span
+                    key={d}
+                    className="rounded-full border border-surface-border bg-background px-2 py-0.5 text-[10px] text-muted-foreground"
+                  >
+                    {d}
+                  </span>
+                ))}
+              </div>
             </Link>
           ))}
         </section>

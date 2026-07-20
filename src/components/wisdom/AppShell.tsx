@@ -16,7 +16,7 @@ import {
   Sparkles,
   Sun,
   User,
-  Users,
+  // Users removed with Mirrors nav
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -52,7 +52,6 @@ const GROUPS: NavGroup[] = [
     caption: "What you carry forward.",
     items: [
       { to: "/prayers", label: "Prayer", Icon: Hand },
-      { to: "/mirrors", label: "Mirrors", Icon: Users },
       { to: "/journey", label: "Journey", Icon: BookOpen },
       { to: "/you", label: "You", Icon: User },
     ],
@@ -117,7 +116,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
     }
   }, [collapsed]);
   const isFullBleed =
-    pathname === "/welcome" || pathname === "/onboarding" || pathname === "/auth";
+    pathname === "/" || pathname === "/welcome" || pathname === "/onboarding" || pathname === "/auth";
 
   async function signOut() {
     await queryClient.cancelQueries();

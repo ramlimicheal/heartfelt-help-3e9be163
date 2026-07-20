@@ -58,10 +58,12 @@ const runInput = z.object({
   idempotencyKey: z.string().min(6).max(120).optional(),
 });
 
-/** Internal helper — invokable from server routes (e.g. /api/chat) without an RPC hop. */
-export async function runPipelineForSession(userId: string, sessionId: string, idempotencyKey?: string) {
+export const runWisdomPipeline = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: z.infer<typeof runInput>) => runInput.parse(d))
+  .handler(async ({ data, context }) => {
     const db = await admin();
-    const data = { sessionId, idempotencyKey };
+    const userId = context.userId;
 
     // Ownership + load messages
     const { data: session, error: sErr } = await db
@@ -114,35 +116,17 @@ export async function runPipelineForSession(userId: string, sessionId: string, i
       if (rows.length) await db.from("signals").insert(rows);
     }
 
-    // ── Stage 2: retrieval (approved passages only, keyword-scored) ──
-    // Pull the whole approved corpus, then rank by term overlap with the
-    // user's story + extracted signal paraphrases. Top ~40 go to the
-    // composer so it can actually choose across the breadth of Scripture
-    // rather than a fixed 24-passage window.
+    // ── Stage 2: retrieval (approved passages only, tier-ordered) ────
     const { data: passages } = await db
       .from("source_passages")
       .select("id,reference,canonical_ref,text,source_id,source_documents!inner(tier,status)")
       .eq("source_documents.status", "approved")
-      .limit(400);
-    const allPassages = (passages ?? []).map((p) => ({
+      .limit(24);
+    const retrieval = (passages ?? []).map((p) => ({
       id: p.id, reference: p.reference,
       tier: (p as { source_documents: { tier: string } }).source_documents.tier, text: p.text,
     }));
-    if (allPassages.length === 0) throw new Error("retrieval empty — no approved passages seeded");
-    const STOP = new Set("the a an of and or to in for with on at by is are was were be been being it its this that these those i me my we our you your he she they them his her their as but if not so do does did have has had will would could should may might can not no yes from into over under about".split(" "));
-    const queryTerms = new Set(
-      (userTurns + " " + extraction.signals.map((s) => s.paraphrase).join(" "))
-        .toLowerCase().split(/[^a-z]+/)
-        .filter((w) => w.length >= 4 && !STOP.has(w)),
-    );
-    const tierBonus: Record<string, number> = { S1: 0.5, S2: 0.3, S3: 0.2, S4: 0.1 };
-    const scored = allPassages.map((p) => {
-      const words = p.text.toLowerCase().split(/[^a-z]+/);
-      let score = 0;
-      for (const w of words) if (w.length >= 4 && queryTerms.has(w)) score += 1;
-      return { p, score: score + (tierBonus[p.tier] ?? 0) };
-    }).sort((a, b) => b.score - a.score);
-    const retrieval = scored.slice(0, 40).map((s) => s.p);
+    if (retrieval.length === 0) throw new Error("retrieval empty — no approved passages seeded");
     const retrievalIds = new Set(retrieval.map((r) => r.id));
 
     // ── Stage 3: composition ─────────────────────────────────────────
@@ -231,7 +215,6 @@ export async function runPipelineForSession(userId: string, sessionId: string, i
       headline: composition.hypothesis.name,
       body: composition.hypothesis.description,
       confidence: composition.hypothesis.confidence,
-      event_chain: extraction.event_chain as unknown as never,
     }).select("id").single();
     if (iErr) throw new Error(iErr.message);
 
@@ -270,78 +253,20 @@ export async function runPipelineForSession(userId: string, sessionId: string, i
     // Finalize (trigger enforces ≥1 source per line)
     await db.from("prayers").update({ finalized_at: new Date().toISOString() }).eq("id", prayer.id);
 
-    // Prayer lineage: link this prayer to the user's active patterns (accepted or
-    // pending, updated within the last 90 days) so /prayers/:id can walk back
-    // to the pattern and originating session.
-    const since90 = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: activePatterns } = await db.from("patterns")
-      .select("id").eq("user_id", userId)
-      .in("lifecycle", ["accepted", "pending"])
-      .gte("updated_at", since90)
-      .limit(6);
-    if (activePatterns && activePatterns.length) {
-      const linkRows = activePatterns.map((p) => ({
-        user_id: userId, prayer_id: prayer.id,
-        pattern_id: p.id, session_id: data.sessionId,
-      }));
-      await db.from("prayer_pattern_links").upsert(linkRows, { onConflict: "prayer_id,pattern_id" });
-    }
-
-
-    const { data: practice, error: prErr } = await db.from("practices").insert({
+    await db.from("practices").insert({
       user_id: userId, session_id: data.sessionId,
       kind: composition.primaryPractice.kind,
       title: composition.primaryPractice.title,
       rationale: composition.primaryPractice.rationale,
       is_primary: true,
-    }).select("id").single();
-    if (prErr) throw new Error(prErr.message);
-
-    // ── Stage 5: formation_events (append-only journey trail) ────────
-    // Every discernment materializes as a journey event so the timeline
-    // lights up in lockstep with the pipeline artifacts.
-    const nowIso = new Date().toISOString();
-    await db.from("formation_events").insert([
-      { user_id: userId, event_type: "interpretation" as const,
-        note: composition.hypothesis.name, fruit: [], at: nowIso },
-      { user_id: userId, event_type: "prayer" as const,
-        prayer_id: prayer.id, note: composition.prayer.title, fruit: [], at: nowIso },
-      { user_id: userId, event_type: "practice_assigned" as const,
-        practice_id: practice.id, note: composition.primaryPractice.title,
-        fruit: [], at: nowIso },
-    ]);
-
-    // ── Stage 6: pattern candidate detection (non-blocking) ──────────
-    try {
-      const { runPatternDetectionForUser } = await import("./patternDetection.functions");
-      await runPatternDetectionForUser(userId, data.sessionId);
-    } catch (e) {
-      console.error("pattern detection failed", e);
-    }
-
-    // ── Stage 7: persona fact extraction (non-blocking) ──────────────
-    // Proposes durable facts to /you as `proposed`. User must accept.
-    try {
-      const { runPersonaExtractionForSession } = await import("./personaExtraction.functions");
-      await runPersonaExtractionForSession(userId, data.sessionId);
-    } catch (e) {
-      console.error("persona extraction failed", e);
-    }
+    });
 
     return {
       ok: true,
       interpretationId: interp.id,
       prayerId: prayer.id,
-      practiceId: practice.id,
     };
-}
-
-
-export const runWisdomPipeline = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof runInput>) => runInput.parse(d))
-  .handler(async ({ data, context }) => runPipelineForSession(context.userId, data.sessionId, data.idempotencyKey));
-
+  });
 
 /** Owner-scoped read of the composed slice for UI. */
 export const getSessionSlice = createServerFn({ method: "GET" })
@@ -350,7 +275,7 @@ export const getSessionSlice = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const s = context.supabase;
     const [inter, disc, prayers, practices] = await Promise.all([
-      s.from("interpretations").select("*, event_chain").eq("session_id", data.sessionId).order("created_at", { ascending: false }).limit(1),
+      s.from("interpretations").select("*").eq("session_id", data.sessionId).order("created_at", { ascending: false }).limit(1),
       s.from("discernments").select("*").eq("session_id", data.sessionId).order("created_at"),
       s.from("prayers").select("id,title,mode,finalized_at,prayer_lines(id,ordering,movement,text,prayer_line_sources(passage_id,derivation,explanation,tier))").eq("session_id", data.sessionId).order("created_at", { ascending: false }).limit(1),
       s.from("practices").select("*").eq("session_id", data.sessionId).order("is_primary", { ascending: false }),

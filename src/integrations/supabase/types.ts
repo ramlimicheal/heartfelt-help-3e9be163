@@ -157,24 +157,6 @@ export type Database = {
         }
         Relationships: []
       }
-      chat_rate_limits: {
-        Row: {
-          count: number
-          user_id: string
-          window_start: string
-        }
-        Insert: {
-          count?: number
-          user_id: string
-          window_start: string
-        }
-        Update: {
-          count?: number
-          user_id?: string
-          window_start?: string
-        }
-        Relationships: []
-      }
       check_ins: {
         Row: {
           at: string
@@ -332,7 +314,6 @@ export type Database = {
           body: string
           confidence: number
           created_at: string
-          event_chain: Json
           headline: string
           id: string
           min_source_tier: Database["public"]["Enums"]["source_tier"] | null
@@ -345,7 +326,6 @@ export type Database = {
           body: string
           confidence: number
           created_at?: string
-          event_chain?: Json
           headline: string
           id?: string
           min_source_tier?: Database["public"]["Enums"]["source_tier"] | null
@@ -358,7 +338,6 @@ export type Database = {
           body?: string
           confidence?: number
           created_at?: string
-          event_chain?: Json
           headline?: string
           id?: string
           min_source_tier?: Database["public"]["Enums"]["source_tier"] | null
@@ -738,7 +717,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "pfc_fact_fk"
+            foreignKeyName: "persona_fact_confirmations_persona_fact_id_fkey"
             columns: ["persona_fact_id"]
             isOneToOne: false
             referencedRelation: "persona_facts"
@@ -1085,55 +1064,6 @@ export type Database = {
             columns: ["prayer_id"]
             isOneToOne: false
             referencedRelation: "prayers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      prayer_pattern_links: {
-        Row: {
-          created_at: string
-          id: string
-          pattern_id: string
-          prayer_id: string
-          session_id: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          pattern_id: string
-          prayer_id: string
-          session_id?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          pattern_id?: string
-          prayer_id?: string
-          session_id?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "prayer_pattern_links_pattern_id_fkey"
-            columns: ["pattern_id"]
-            isOneToOne: false
-            referencedRelation: "patterns"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "prayer_pattern_links_prayer_id_fkey"
-            columns: ["prayer_id"]
-            isOneToOne: false
-            referencedRelation: "prayers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "prayer_pattern_links_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "sessions"
             referencedColumns: ["id"]
           },
         ]
