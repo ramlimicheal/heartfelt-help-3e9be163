@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-r
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { FlickeringGrid } from "@/registry/magicui/flickering-grid";
 
 import { z } from "zod";
 
@@ -56,10 +57,18 @@ function AuthPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
+    <main className="relative min-h-screen flex items-center justify-center bg-background text-foreground p-6 overflow-hidden">
+      <FlickeringGrid
+        className="absolute inset-0 z-0 [mask-image:radial-gradient(ellipse_at_center,white,transparent_75%)]"
+        squareSize={4}
+        gridGap={6}
+        color="hsl(var(--accent))"
+        maxOpacity={0.4}
+        flickerChance={0.1}
+      />
       <form
         onSubmit={submit}
-        className="w-full max-w-sm bg-card border border-border rounded-2xl p-8 space-y-4 shadow-lg"
+        className="relative z-10 w-full max-w-sm bg-card/80 backdrop-blur-xl border border-border rounded-2xl p-8 space-y-4 shadow-2xl"
       >
         <div>
           <h1 className="text-2xl font-semibold">Wisdom</h1>
