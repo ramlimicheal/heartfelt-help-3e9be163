@@ -125,7 +125,7 @@ function CurseBreakerReading() {
           <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
             Deep analysis ({deep.length})
           </h2>
-          {deep.map((c) => <CategoryCard key={c.id} row={c} defaultOpen />)}
+          {deep.map((c) => <CategoryCard key={c.id} row={c} verdict={data?.verdicts?.[c.id]} defaultOpen />)}
         </section>
       )}
 
