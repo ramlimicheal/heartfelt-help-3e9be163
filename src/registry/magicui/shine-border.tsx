@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useEffect, useId, useRef } from "react";
+import { useId } from "react";
 
 interface ShineBorderProps {
   borderWidth?: number;
@@ -23,26 +23,7 @@ export function ShineBorder({
   style,
 }: ShineBorderProps) {
   const id = useId().replace(/:/g, "");
-  const beamRef = useRef<SVGRectElement>(null);
   const colors = Array.isArray(shineColor) ? shineColor : [shineColor, "#ffffff", shineColor];
-
-  useEffect(() => {
-    const beam = beamRef.current;
-    if (!beam) return;
-
-    let frame = 0;
-    const startedAt = performance.now();
-    const durationMs = Math.max(duration, 0.5) * 1000;
-
-    const tick = (now: number) => {
-      const progress = ((now - startedAt) % durationMs) / durationMs;
-      beam.setAttribute("stroke-dashoffset", String(-progress * 100));
-      frame = requestAnimationFrame(tick);
-    };
-
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [duration]);
 
   return (
     <div
@@ -67,7 +48,6 @@ export function ShineBorder({
           </linearGradient>
         </defs>
         <rect
-          ref={beamRef}
           className="shine-laser-beam"
           x="1"
           y="1"
@@ -79,8 +59,16 @@ export function ShineBorder({
           pathLength="100"
           stroke={`url(#shine-${id})`}
           strokeWidth="var(--border-width)"
+          strokeDasharray="18 82"
           vectorEffect="non-scaling-stroke"
-        />
+        >
+          <animate
+            attributeName="stroke-dashoffset"
+            values="0;-100"
+            dur={`${Math.max(duration, 0.5)}s`}
+            repeatCount="indefinite"
+          />
+        </rect>
       </svg>
     </div>
   );
