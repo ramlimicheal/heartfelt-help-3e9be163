@@ -336,19 +336,87 @@ function MessageBubble({ message }: { message: UIMessage }) {
       </div>
     );
   }
+
+  const sections = splitSections(text);
+
   return (
-    <div className="flex max-w-[92%] gap-3">
-      <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
+    <div className="flex gap-3">
+      <span className="mt-1 grid size-7 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
         <Sparkles className="size-3.5" strokeWidth={1.75} />
       </span>
-      <div className="prose prose-sm prose-invert max-w-none flex-1 text-[14px] leading-relaxed text-foreground/90 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_blockquote]:border-l-2 [&_blockquote]:border-primary/60 [&_blockquote]:pl-3 [&_blockquote]:text-foreground/85 [&_blockquote]:italic">
-        <ReactMarkdown>{text}</ReactMarkdown>
+      <div className="min-w-0 flex-1 space-y-3">
+        {sections.length === 0 ? (
+          <ProseBlock text={text} />
+        ) : (
+          sections.map((s, i) => (
+            <section
+              key={i}
+              className="group rounded-2xl border border-panel-border/60 bg-surface/40 px-4 py-3 shadow-[0_10px_30px_-24px_rgba(0,0,0,0.6)] transition hover:border-panel-border"
+            >
+              {s.heading && (
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="h-px flex-1 bg-gradient-to-r from-primary/40 to-transparent" />
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-primary/90">
+                    {s.heading}
+                  </span>
+                  <span className="h-px flex-[3] bg-gradient-to-l from-panel-border to-transparent" />
+                </div>
+              )}
+              <ProseBlock text={s.body} />
+            </section>
+          ))
+        )}
       </div>
     </div>
   );
 }
 
+function ProseBlock({ text }: { text: string }) {
+  return (
+    <div className="prose prose-sm prose-invert max-w-none text-[14px] leading-relaxed text-foreground/90 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-primary/60 [&_blockquote]:pl-3 [&_blockquote]:text-foreground/85 [&_blockquote]:italic [&_ul]:my-2 [&_ol]:my-2 [&_p]:my-2">
+      <ReactMarkdown>{text}</ReactMarkdown>
+    </div>
+  );
+}
+
+/** Split a Wisdom reply into labeled sections by top-level **Bold** headings. */
+function splitSections(text: string): { heading: string | null; body: string }[] {
+  const lines = text.split(/\r?\n/);
+  // Heading line: entirely a bold token, optionally followed by an em-dash tail we drop.
+  const HEADING = /^\s*\*\*(.+?)\*\*\s*(?:—|-|:)?\s*$/;
+  const sections: { heading: string | null; body: string }[] = [];
+  let current: { heading: string | null; buf: string[] } = { heading: null, buf: [] };
+
+  for (const line of lines) {
+    const m = HEADING.exec(line);
+    if (m) {
+      if (current.heading || current.buf.some((l) => l.trim())) {
+        sections.push({ heading: current.heading, body: current.buf.join("\n").trim() });
+      }
+      current = { heading: m[1].trim(), buf: [] };
+    } else {
+      current.buf.push(line);
+    }
+  }
+  if (current.heading || current.buf.some((l) => l.trim())) {
+    sections.push({ heading: current.heading, body: current.buf.join("\n").trim() });
+  }
+
+  // If there's only one section and it has no heading, treat as unsectioned.
+  if (sections.length === 1 && !sections[0].heading) return [];
+  return sections.filter((s) => s.heading || s.body);
+}
+
 function RailCard({ label, head, children }: { label: string; head: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-panel-border bg-surface/50 p-4">
+      <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
+      <div className="mt-1 text-[13px] font-medium">{head}</div>
+      <div className="mt-2">{children}</div>
+    </div>
+  );
+}
+
   return (
     <div className="rounded-2xl border border-panel-border bg-surface/50 p-4">
       <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
