@@ -19,6 +19,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as WisdomIndexRouteImport } from './routes/wisdom.index'
 import { Route as PrayersIndexRouteImport } from './routes/prayers.index'
 import { Route as PatternsIndexRouteImport } from './routes/patterns.index'
+import { Route as WisdomMapRouteImport } from './routes/wisdom.map'
 import { Route as WisdomCurseBreakerRouteImport } from './routes/wisdom.curse-breaker'
 import { Route as WisdomSessionIdRouteImport } from './routes/wisdom.$sessionId'
 import { Route as SettingsPrivacyRouteImport } from './routes/settings.privacy'
@@ -76,6 +77,11 @@ const PatternsIndexRoute = PatternsIndexRouteImport.update({
   path: '/patterns/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WisdomMapRoute = WisdomMapRouteImport.update({
+  id: '/wisdom/map',
+  path: '/wisdom/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WisdomCurseBreakerRoute = WisdomCurseBreakerRouteImport.update({
   id: '/wisdom/curse-breaker',
   path: '/wisdom/curse-breaker',
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/settings/privacy': typeof SettingsPrivacyRoute
   '/wisdom/$sessionId': typeof WisdomSessionIdRoute
   '/wisdom/curse-breaker': typeof WisdomCurseBreakerRoute
+  '/wisdom/map': typeof WisdomMapRoute
   '/patterns/': typeof PatternsIndexRoute
   '/prayers/': typeof PrayersIndexRoute
   '/wisdom/': typeof WisdomIndexRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/settings/privacy': typeof SettingsPrivacyRoute
   '/wisdom/$sessionId': typeof WisdomSessionIdRoute
   '/wisdom/curse-breaker': typeof WisdomCurseBreakerRoute
+  '/wisdom/map': typeof WisdomMapRoute
   '/patterns': typeof PatternsIndexRoute
   '/prayers': typeof PrayersIndexRoute
   '/wisdom': typeof WisdomIndexRoute
@@ -163,6 +171,7 @@ export interface FileRoutesById {
   '/settings/privacy': typeof SettingsPrivacyRoute
   '/wisdom/$sessionId': typeof WisdomSessionIdRoute
   '/wisdom/curse-breaker': typeof WisdomCurseBreakerRoute
+  '/wisdom/map': typeof WisdomMapRoute
   '/patterns/': typeof PatternsIndexRoute
   '/prayers/': typeof PrayersIndexRoute
   '/wisdom/': typeof WisdomIndexRoute
@@ -183,6 +192,7 @@ export interface FileRouteTypes {
     | '/settings/privacy'
     | '/wisdom/$sessionId'
     | '/wisdom/curse-breaker'
+    | '/wisdom/map'
     | '/patterns/'
     | '/prayers/'
     | '/wisdom/'
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/settings/privacy'
     | '/wisdom/$sessionId'
     | '/wisdom/curse-breaker'
+    | '/wisdom/map'
     | '/patterns'
     | '/prayers'
     | '/wisdom'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '/settings/privacy'
     | '/wisdom/$sessionId'
     | '/wisdom/curse-breaker'
+    | '/wisdom/map'
     | '/patterns/'
     | '/prayers/'
     | '/wisdom/'
@@ -239,6 +251,7 @@ export interface RootRouteChildren {
   SettingsPrivacyRoute: typeof SettingsPrivacyRoute
   WisdomSessionIdRoute: typeof WisdomSessionIdRoute
   WisdomCurseBreakerRoute: typeof WisdomCurseBreakerRoute
+  WisdomMapRoute: typeof WisdomMapRoute
   PatternsIndexRoute: typeof PatternsIndexRoute
   PrayersIndexRoute: typeof PrayersIndexRoute
   WisdomIndexRoute: typeof WisdomIndexRoute
@@ -317,6 +330,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatternsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wisdom/map': {
+      id: '/wisdom/map'
+      path: '/wisdom/map'
+      fullPath: '/wisdom/map'
+      preLoaderRoute: typeof WisdomMapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/wisdom/curse-breaker': {
       id: '/wisdom/curse-breaker'
       path: '/wisdom/curse-breaker'
@@ -393,6 +413,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsPrivacyRoute: SettingsPrivacyRoute,
   WisdomSessionIdRoute: WisdomSessionIdRoute,
   WisdomCurseBreakerRoute: WisdomCurseBreakerRoute,
+  WisdomMapRoute: WisdomMapRoute,
   PatternsIndexRoute: PatternsIndexRoute,
   PrayersIndexRoute: PrayersIndexRoute,
   WisdomIndexRoute: WisdomIndexRoute,
