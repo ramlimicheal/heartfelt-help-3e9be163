@@ -188,3 +188,5 @@ describe("DNR fan-out — protected turn creates no new durable rows anywhere", 
       kind: "belief", origin: "inferred", confidence: 0.9, payload: { paraphrase: "direct-leak" },
     });
     expect(leak2).not.toBeNull();
+  });
+});
