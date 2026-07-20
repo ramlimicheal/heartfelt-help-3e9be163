@@ -350,7 +350,7 @@ const startInput = z.object({
 
 export const startWisdomSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof startInput>) => startInput.parse(d))
+  .inputValidator((d: z.input<typeof startInput>) => startInput.parse(d))
   .handler(async ({ data, context }) => {
     const s = context.supabase;
     const { data: sess, error: sErr } = await s.from("sessions")
@@ -375,7 +375,7 @@ const sendInput = z.object({
 
 export const sendUserMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof sendInput>) => sendInput.parse(d))
+  .inputValidator((d: z.input<typeof sendInput>) => sendInput.parse(d))
   .handler(async ({ data, context }) => {
     const s = context.supabase;
     const { data: sess, error: sErr } = await s
@@ -417,7 +417,7 @@ const linkedInput = z.object({
 
 export const startLinkedSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof linkedInput>) => linkedInput.parse(d))
+  .inputValidator((d: z.input<typeof linkedInput>) => linkedInput.parse(d))
   .handler(async ({ data, context }) => {
     const s = context.supabase;
     // Owner check on parent (RLS also enforces).
