@@ -88,12 +88,16 @@ function WisdomChat() {
     setInput("");
   };
 
-  // Live rail: derives from mock while the model streams. Replace with
-  // pipeline emissions when runWisdomPipeline is wired to stream stages.
-  const primaryHyp = Object.values(HYPOTHESES)[0];
-  const arch = ARCHETYPE_INDEX[primaryHyp.archetypes[0]?.archetypeId ?? "archetype_moses_overload"];
-  const passage = arch ? PASSAGE_INDEX[arch.primaryPassages[0]?.id] : undefined;
-  const prayer = Object.values(PRAYERS)[0];
+  const { user, ready } = useSession();
+  const fetchSlice = useServerFn(getDashboardSlice);
+  const slice = useQuery({
+    queryKey: ["dashboard-slice", user?.id ?? "anon"],
+    queryFn: () => fetchSlice(),
+    enabled: ready && !!user,
+    staleTime: 30_000,
+  });
+  const d = slice.data;
+
 
   return (
     <div className="flex h-[calc(100vh-6rem)] gap-4 md:gap-6">
