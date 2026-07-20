@@ -107,9 +107,10 @@ function WisdomHome() {
 
   return (
     <div className="min-h-[calc(100vh-6rem)] pb-8">
-      <div className="grid grid-cols-12 gap-3 md:gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-4">
         {/* HERO — composer */}
-        <section className="col-span-12 lg:col-span-5 lg:row-span-2 rounded-3xl border border-panel-border bg-surface/60 p-6 md:p-8 flex flex-col">
+        <section className="lg:col-span-5 rounded-3xl border border-panel-border bg-surface/60 p-6 md:p-8 flex flex-col">
+
           <div className="flex items-start justify-between">
             <div>
               <div className="text-5xl md:text-6xl font-light tracking-tight leading-none">{timeStr}</div>
