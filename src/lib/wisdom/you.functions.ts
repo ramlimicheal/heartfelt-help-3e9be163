@@ -100,13 +100,13 @@ export const setPersonaFactStatus = createServerFn({ method: "POST" })
     const patch: {
       status: "accepted" | "rejected" | "deleted";
       value?: JsonValue;
-      origin?: string;
+      origin?: "explicit" | "inferred";
     } = {
       status: data.status === "corrected" ? "accepted" : data.status,
     };
     if (data.status === "corrected" && data.correctedValue !== undefined) {
       patch.value = data.correctedValue;
-      patch.origin = "user_correction";
+      patch.origin = "explicit";
     }
 
     const { error: updErr } = await supabase
