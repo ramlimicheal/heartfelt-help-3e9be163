@@ -220,8 +220,71 @@ function WisdomChat() {
                 <div className="truncate text-[12px] text-foreground/80">{MODES.find((m) => m.id === mode)?.hint}</div>
               </div>
             </div>
-            <div className="shrink-0 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-              {isEmpty ? "New session" : `${messages.length} exchange${messages.length === 1 ? "" : "s"}`}
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                {isEmpty ? "New session" : `${messages.length} exchange${messages.length === 1 ? "" : "s"}`}
+              </span>
+              <button
+                onClick={newSession}
+                title="Start a new session"
+                className="inline-flex items-center gap-1 rounded-full border border-panel-border bg-background/50 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground transition hover:text-foreground"
+              >
+                <Plus className="size-3" /> New
+              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setHistoryOpen((v) => !v)}
+                  title="Resume a past session"
+                  className="inline-flex items-center gap-1 rounded-full border border-panel-border bg-background/50 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground transition hover:text-foreground"
+                >
+                  <History className="size-3" /> History
+                </button>
+                {historyOpen && (
+                  <div className="absolute right-0 top-full z-40 mt-1 w-[320px] max-h-[440px] overflow-y-auto rounded-xl border border-panel-border bg-surface/95 p-2 shadow-2xl backdrop-blur">
+                    <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                      Recent sessions
+                    </div>
+                    {recent.isLoading && (
+                      <div className="flex items-center gap-2 px-2 py-3 text-[11px] text-muted-foreground">
+                        <Loader2 className="size-3 animate-spin" /> Loading…
+                      </div>
+                    )}
+                    {recent.data && recent.data.length === 0 && (
+                      <div className="px-2 py-3 text-[11px] text-muted-foreground">
+                        No prior sessions yet.
+                      </div>
+                    )}
+                    <ul className="flex flex-col">
+                      {recent.data?.map((s) => (
+                        <li key={s.id}>
+                          <button
+                            onClick={() => resumeSession(s.id, s.mode)}
+                            className={[
+                              "flex w-full flex-col gap-0.5 rounded-lg px-2 py-2 text-left transition hover:bg-background/60",
+                              s.id === sessionId ? "bg-primary/10" : "",
+                            ].join(" ")}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="line-clamp-1 text-[12px] text-foreground/90">
+                                {s.title || "Untitled thread"}
+                              </span>
+                              <span className="shrink-0 text-[9.5px] uppercase tracking-[0.14em] text-muted-foreground">
+                                {s.mode.replace(/_/g, " ")}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                              <span>{new Date(s.updatedAt).toLocaleDateString()}</span>
+                              <span>·</span>
+                              <span>{s.messageCount} msg</span>
+                              {s.hasPrayer && <span className="text-primary/80">· prayer</span>}
+                            </div>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
