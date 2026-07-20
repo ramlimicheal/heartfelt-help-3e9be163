@@ -60,8 +60,8 @@ export const Route = createFileRoute("/api/chat")({
           return provider("gemini-2.0-flash");
         };
 
-        // Prefer direct Gemini when the user has provided a key (gateway may be out of credits).
-        const model = geminiKey ? await buildDirectGeminiModel() : await buildGatewayModel();
+        // Prefer the Lovable AI Gateway; only fall back to a direct Gemini key if the gateway isn't configured.
+        const model = lovableKey ? await buildGatewayModel() : await buildDirectGeminiModel();
         const result = streamText({ model, system, messages: modelMessages });
         return result.toUIMessageStreamResponse({ originalMessages: messages });
       },
