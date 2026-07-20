@@ -56,14 +56,32 @@ const SUGGESTIONS = [
 function WisdomChat() {
   const [mode, setMode] = useState<Mode>("pattern");
   const [input, setInput] = useState("");
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const modeRef = useRef(mode);
+  const sessionIdRef = useRef<string | null>(null);
   useEffect(() => { modeRef.current = mode; }, [mode]);
+  useEffect(() => { sessionIdRef.current = sessionId; }, [sessionId]);
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
-        body: () => ({ mode: modeRef.current }),
+        body: () => ({ mode: modeRef.current, sessionId: sessionIdRef.current }),
+        headers: async (): Promise<Record<string, string>> => {
+          const { supabase } = await import("@/integrations/supabase/client");
+          const { data } = await supabase.auth.getSession();
+          const token = data.session?.access_token;
+          return token ? { Authorization: `Bearer ${token}` } : {};
+        },
+        fetch: async (input, init) => {
+          const res = await fetch(input, init);
+          const sid = res.headers.get("x-wisdom-session-id");
+          if (sid && sid !== sessionIdRef.current) {
+            sessionIdRef.current = sid;
+            setSessionId(sid);
+          }
+          return res;
+        },
       }),
     [],
   );
@@ -72,6 +90,7 @@ function WisdomChat() {
     transport,
     onError: (e) => console.error("chat error", e),
   });
+
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {

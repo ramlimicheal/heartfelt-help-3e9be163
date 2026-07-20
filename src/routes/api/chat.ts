@@ -48,89 +48,148 @@ const DEEP_SHAPE = `Mode: Deep Wisdom. The person is testing a spiritual interpr
 **One proportionate primary practice** — name one practice from the practice set with a one-sentence rationale. Small, not a program.
 **One distinguishing question** — a single question that would help tell the readings apart before next time.`;
 
-const CURSE_BREAKER_SHAPE = `Mode: Curse Breaker (Stronghold Discernment). The person is asking whether a stronghold, generational line, or biblical curse is in view. Take the question seriously without answering it prematurely. Refuse both automatic verdicts — "you are cursed" and "this is only psychology." Hold the fourteen independent interpretive categories in view.
+const CURSE_BREAKER_SHAPE = `Mode: Curse Breaker (Stronghold Discernment). Take the question seriously without answering it prematurely. Refuse both automatic verdicts — "you are cursed" and "this is only psychology." Hold the fourteen independent interpretive categories in view.
 
-**What I hear** — reflect the pattern including its across-time / generational shape, and honor the seriousness of the question (3–4 sentences).
-
-**Generational timeline** — a short list of points across generations (*You*, *Parent*, *Grandparent*, *Great-grandparent*, etc.), one line each. Mark each point as *reported* (from the person) or *inferred*. Include only what the conversation actually supports.
-
-**Discernment across the fourteen categories** — a two-pass structure.
-
-*First pass (all fourteen, one short line each with a rough score in words — none / low / moderate / high):*
+**What I hear** — reflect the pattern including its across-time / generational shape (3–4 sentences).
+**Generational timeline** — short list across generations (*You*, *Parent*, *Grandparent*, etc.), each marked *reported* or *inferred*. Include only what the conversation supports.
+**Discernment across the fourteen categories** — two-pass structure.
+*First pass* — all fourteen, one short line each with a rough score in words (none / low / moderate / high):
 Chosen behavior · Habit · Appetite · Belief · Shame · Hidden agreement · Relationship pressure · Social normalization · Family learning · Generational repetition · Material conditions · Absence of spiritual practice · Reported spiritual conflict · Direct biblical curse / stronghold.
+*Second pass* — deep analysis of the 3–5 categories that scored moderate or high. For each: bold name, confidence in words, supporting evidence (2–4 bullets), counter-evidence (1–3 bullets), missing evidence, alternative explanations, scripture (book chapter:verse + short blockquoted phrase + one sentence marked *direct* or *inferred* and *descriptive* or *prescriptive*), pastoral note.
+**Tensions between categories** — 2–3 named tensions, each with a one-sentence resolution question.
+**Prayer lineage** — 4–6 short prayer lines, each labeled with its movement in italics.
+**One pattern-breaking act** — one small, proportionate next act. Name its scale (*small* / *moderate* / *significant*).
+**Formation check-in** — a light two-week check-in: 2–3 things to observe, and one sentence on how to hold a setback.
+**Dignity frame** — three short sentences: refusal of automatic verdicts, everything here is revisable, pointer to a trusted pastor / elder / counselor.
+**One honest question** — a single question that would surface evidence one way or the other.`;
 
-*Second pass — deep analysis of the 3–5 categories that scored moderate or high.* For each: a **bold** category name, then:
-  - *Confidence* — in words.
-  - *Supporting evidence* — 2–4 bullets drawn from what they said.
-  - *Counter-evidence* — 1–3 bullets of what would pull against it.
-  - *Missing evidence* — what we would need to know to move this either way.
-  - *Alternative explanations* — 1–3 bullets naming other categories that could also fit this same evidence.
-  - *Scripture* — 1 reference (book chapter:verse) + short blockquoted phrase + one sentence, marked as *direct* or *inferred / pattern-matched* and *descriptive* or *prescriptive*.
-  - *Pastoral note* — one sentence.
+type Mode = "companion" | "pattern" | "deep" | "curse_breaker";
 
-**Tensions between categories** — 2–3 named tensions (e.g. *family_learning vs direct_biblical_curse_or_stronghold*, *habit vs shame*, *chosen_behavior vs generational_repetition*). For each: one sentence naming the tension and one resolution question.
+const MODE_TO_DB: Record<Mode, "companion" | "pattern" | "deep_wisdom" | "curse_breaker"> = {
+  companion: "companion",
+  pattern: "pattern",
+  deep: "deep_wisdom",
+  curse_breaker: "curse_breaker",
+};
 
-**Prayer lineage** — 4–6 short prayer lines, each labeled with its primary movement in italics (*Adoration —*, *Confession —*, *Renunciation —*, *Forgiveness —*, *Deliverance —*, *Healing —*, *Blessing —*, *Commissioning —*, *Thanksgiving —*). Grounded specifically in their situation.
+function shapeFor(mode: Mode): string {
+  switch (mode) {
+    case "curse_breaker": return CURSE_BREAKER_SHAPE;
+    case "deep": return DEEP_SHAPE;
+    case "pattern": return PATTERN_SHAPE;
+    default: return COMPANION_SHAPE;
+  }
+}
 
-**One pattern-breaking act** — a single small, proportionate next act. Name its scale (*small* / *moderate* / *significant*) and one sentence on why it is not larger and why it is not smaller.
-
-**Formation check-in** — a light two-week check-in: 2–3 things to observe, and one sentence on how to hold a setback ("not a verdict on you").
-
-**Dignity frame** — three short sentences: the refusal of automatic verdicts, the promise that everything here is revisable, and a pointer to a trusted pastor / elder / counselor belonging in this with them.
-
-**One honest question** — a single question that would surface evidence one way or the other before the next conversation.`;
-
-
+async function resolveUser(token: string | null) {
+  if (!token) return null;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !data.user) return null;
+  return data.user;
+}
 
 export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { messages, mode } = (await request.json()) as {
+        const body = (await request.json()) as {
           messages: UIMessage[];
-          mode?: "companion" | "pattern" | "deep" | "curse_breaker";
+          mode?: Mode;
+          sessionId?: string | null;
         };
-        if (!Array.isArray(messages)) {
-          return new Response("Messages required", { status: 400 });
-        }
-        const lovableKey = process.env.LOVABLE_API_KEY;
-        const geminiKey = process.env.GEMINI_API_KEY;
-        if (!lovableKey && !geminiKey) {
-          return new Response("Missing LOVABLE_API_KEY and GEMINI_API_KEY", { status: 500 });
-        }
+        const { messages, mode = "companion", sessionId: incomingSessionId } = body;
+        if (!Array.isArray(messages)) return new Response("Messages required", { status: 400 });
 
-        const modeShape =
-          mode === "curse_breaker"
-            ? CURSE_BREAKER_SHAPE
-            : mode === "deep"
-              ? DEEP_SHAPE
-              : mode === "pattern"
-                ? PATTERN_SHAPE
-                : COMPANION_SHAPE;
+        const lovableKey = process.env.LOVABLE_API_KEY;
+        if (!lovableKey) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
+
+        // Auth: read the bearer token forwarded by the client transport.
+        const authHeader = request.headers.get("authorization");
+        const token = authHeader?.toLowerCase().startsWith("bearer ")
+          ? authHeader.slice(7)
+          : null;
+        const user = await resolveUser(token);
+
+        // Extract latest user turn text for persistence.
+        const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+        const lastUserText = lastUserMsg?.parts
+          ?.map((p) => (p.type === "text" ? p.text : ""))
+          .join("")
+          .trim() ?? "";
+
+        // Persist (best-effort): create session on first turn, insert user message.
+        let sessionId: string | null = incomingSessionId ?? null;
+        if (user && lastUserText) {
+          try {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            if (!sessionId) {
+              const { data: sess, error: sErr } = await supabaseAdmin.from("sessions")
+                .insert({
+                  user_id: user.id,
+                  mode: MODE_TO_DB[mode],
+                  title: lastUserText.slice(0, 80),
+                })
+                .select("id").single();
+              if (!sErr && sess) sessionId = sess.id;
+            }
+            if (sessionId) {
+              await supabaseAdmin.from("messages").insert({
+                user_id: user.id,
+                session_id: sessionId,
+                role: "user",
+                content: lastUserText,
+                memory_directive: "normal",
+              });
+            }
+          } catch (e) {
+            console.error("[chat] persist user message failed", e);
+          }
+        }
 
         const modelMessages = await convertToModelMessages(messages);
-        const system = `${SYSTEM}\n\n${modeShape}`;
+        const system = `${SYSTEM}\n\n${shapeFor(mode)}`;
 
-        const buildGatewayModel = async () => {
-          const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
-          return createLovableAiGatewayProvider(lovableKey!)("google/gemini-3-flash-preview");
-        };
-        const buildDirectGeminiModel = async () => {
-          const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
-          const provider = createOpenAICompatible({
-            name: "gemini-direct",
-            baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
-            headers: { Authorization: `Bearer ${geminiKey}` },
-          });
-          return provider("gemini-2.0-flash");
-        };
+        const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
+        const model = createLovableAiGatewayProvider(lovableKey)("google/gemini-2.5-flash");
 
-        // Prefer direct Gemini when the user has provided a key (gateway may be out of credits).
-        const model = geminiKey ? await buildDirectGeminiModel() : await buildGatewayModel();
-        const result = streamText({ model, system, messages: modelMessages });
-        return result.toUIMessageStreamResponse({ originalMessages: messages });
+        const capturedSessionId = sessionId;
+        const capturedUserId = user?.id ?? null;
+        const capturedMode = mode;
+
+        const result = streamText({
+          model,
+          system,
+          messages: modelMessages,
+          onFinish: async ({ text }) => {
+            if (!capturedUserId || !capturedSessionId || !text) return;
+            try {
+              const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+              await supabaseAdmin.from("messages").insert({
+                user_id: capturedUserId,
+                session_id: capturedSessionId,
+                role: "assistant",
+                content: text,
+                memory_directive: "normal",
+              });
+              // Fire the deep pipeline in the background for pattern/deep/curse_breaker modes.
+              // Companion stays lightweight — no pipeline pass.
+              if (capturedMode !== "companion") {
+                const { runPipelineForSession } = await import("@/lib/wisdom/pipeline.functions");
+                runPipelineForSession(capturedUserId, capturedSessionId).catch((e) => {
+                  console.error("[chat] pipeline run failed", e);
+                });
+              }
+            } catch (e) {
+              console.error("[chat] persist assistant message failed", e);
+            }
+          },
+        });
+
+        const response = result.toUIMessageStreamResponse({ originalMessages: messages });
+        if (sessionId) response.headers.set("x-wisdom-session-id", sessionId);
+        return response;
       },
     },
   },
 });
-

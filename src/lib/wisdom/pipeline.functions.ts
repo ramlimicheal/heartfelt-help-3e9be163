@@ -58,12 +58,10 @@ const runInput = z.object({
   idempotencyKey: z.string().min(6).max(120).optional(),
 });
 
-export const runWisdomPipeline = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof runInput>) => runInput.parse(d))
-  .handler(async ({ data, context }) => {
+/** Internal helper — invokable from server routes (e.g. /api/chat) without an RPC hop. */
+export async function runPipelineForSession(userId: string, sessionId: string, idempotencyKey?: string) {
     const db = await admin();
-    const userId = context.userId;
+    const data = { sessionId, idempotencyKey };
 
     // Ownership + load messages
     const { data: session, error: sErr } = await db
@@ -266,7 +264,13 @@ export const runWisdomPipeline = createServerFn({ method: "POST" })
       interpretationId: interp.id,
       prayerId: prayer.id,
     };
-  });
+}
+
+export const runWisdomPipeline = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: z.infer<typeof runInput>) => runInput.parse(d))
+  .handler(async ({ data, context }) => runPipelineForSession(context.userId, data.sessionId, data.idempotencyKey));
+
 
 /** Owner-scoped read of the composed slice for UI. */
 export const getSessionSlice = createServerFn({ method: "GET" })
