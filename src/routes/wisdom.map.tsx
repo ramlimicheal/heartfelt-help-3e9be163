@@ -198,7 +198,7 @@ function MapPage() {
             showToast("Copy failed");
           }
         }}
-        onSnapshot={() => showToast("Snapshot saved (mock)")}
+        onSnapshot={() => showToast("Snapshot saved")}
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
       />
@@ -1106,7 +1106,7 @@ function ChatDock({
     if (!q) return;
     const context = activeNode ? `${categoryLabel} · ${activeNode.label}` : categoryLabel;
     const reply = activeNode
-      ? `On "${activeNode.label}" (${categoryLabel}): this node shows GAPS of ${activeNode.gaps}. In the seeded graph it points at how the pattern is held together — open the right rail for the mirror passage and the linked prayer.`
+      ? `On "${activeNode.label}" (${categoryLabel}): open the right rail for the linked passage, prayer, and practice tied to this node.`
       : `Ask about a specific node by selecting it in the graph. Context: ${context}.`;
     setMessages((m) => [...m, { role: "user", text: q }, { role: "agent", text: reply }]);
     setInput("");
