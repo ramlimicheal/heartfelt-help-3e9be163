@@ -54,3 +54,62 @@ export const listPersonaFacts = createServerFn({ method: "GET" })
       updatedAt: r.updated_at,
     }));
   });
+
+// Accept / reject / correct a persona fact proposal.
+// - `accepted` on a sensitive fact first inserts a confirmation row (required by trigger).
+// - `corrected` writes a new value AND flips status to accepted (correction is durable).
+export const setPersonaFactStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (input: {
+      factId: string;
+      status: "accepted" | "rejected" | "corrected" | "deleted";
+      correctedValue?: JsonValue;
+    }) => input,
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    // Verify ownership + fetch sensitivity via RLS
+    const { data: fact, error: readErr } = await supabase
+      .from("persona_facts")
+      .select("id, user_id, sensitivity, status")
+      .eq("id", data.factId)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!fact || fact.user_id !== userId) throw new Error("Fact not found");
+
+    // For sensitive facts moving to accepted/corrected, insert confirmation first.
+    if (
+      (data.status === "accepted" || data.status === "corrected") &&
+      fact.sensitivity === "sensitive"
+    ) {
+      const { error: confErr } = await supabase
+        .from("persona_fact_confirmations")
+        .insert({
+          persona_fact_id: data.factId,
+          confirmed_by: userId,
+          method: "explicit",
+        });
+      // Ignore duplicate confirmation errors (unique constraint / already confirmed)
+      if (confErr && !/duplicate|unique/i.test(confErr.message)) {
+        throw new Error(confErr.message);
+      }
+    }
+
+    const patch: Record<string, unknown> = {
+      status: data.status === "corrected" ? "accepted" : data.status,
+    };
+    if (data.status === "corrected" && data.correctedValue !== undefined) {
+      patch.value = data.correctedValue;
+      patch.origin = "user_correction";
+    }
+
+    const { error: updErr } = await supabase
+      .from("persona_facts")
+      .update(patch)
+      .eq("id", data.factId);
+    if (updErr) throw new Error(updErr.message);
+
+    return { ok: true as const };
+  });
