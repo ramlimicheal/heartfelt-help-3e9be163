@@ -16,6 +16,29 @@ export const Route = createFileRoute("/wisdom/live/$sessionId")({
       { name: "robots", content: "noindex" },
     ],
   }),
+  pendingComponent: () => (
+    <div className="space-y-4">
+      <div className="h-8 w-2/3 animate-pulse rounded bg-surface/60" />
+      <div className="h-24 animate-pulse rounded-xl bg-surface/40" />
+      <div className="h-40 animate-pulse rounded-xl bg-surface/40" />
+      <p className="text-xs text-muted-foreground">Composing your session…</p>
+    </div>
+  ),
+  errorComponent: ({ error, reset }) => (
+    <div className="space-y-3 rounded-2xl border border-destructive/40 bg-destructive/5 p-5">
+      <p className="text-sm font-medium text-destructive">Something interrupted this session.</p>
+      <p className="text-xs text-muted-foreground break-words">{String(error?.message ?? error)}</p>
+      <button
+        onClick={() => reset()}
+        className="rounded-full border border-panel-border bg-surface px-4 py-1.5 text-xs hover:bg-background"
+      >
+        Try again
+      </button>
+      <Link to="/wisdom" className="ml-2 text-xs text-muted-foreground hover:text-foreground">
+        Back to sessions
+      </Link>
+    </div>
+  ),
   component: LiveSessionView,
 });
 
