@@ -106,12 +106,18 @@ describe("signals write contract — server-write-only + immutable", () => {
     }).select("id").single();
     expect(c1Err).toBeNull();
     expect(c1?.id).toBeTruthy();
-    // A cannot mutate that correction.
-    const { error: uErr } = await ctx.userA.client.from("signal_corrections")
-      .update({ note: "revised" }).eq("id", c1!.id);
-    expect(uErr).not.toBeNull();
-    const { error: dErr } = await ctx.userA.client.from("signal_corrections").delete().eq("id", c1!.id);
-    expect(dErr).not.toBeNull();
+    // A cannot mutate that correction — no UPDATE/DELETE policy exists, so
+    // PostgREST returns 0 rows silently. Confirm the row is unchanged either
+    // way (belt & braces).
+    const { data: uRows } = await ctx.userA.client.from("signal_corrections")
+      .update({ note: "revised" }).eq("id", c1!.id).select("id");
+    expect((uRows ?? []).length).toBe(0);
+    const { data: dRows } = await ctx.userA.client.from("signal_corrections")
+      .delete().eq("id", c1!.id).select("id");
+    expect((dRows ?? []).length).toBe(0);
+    const { data: still } = await ctx.admin.from("signal_corrections")
+      .select("note").eq("id", c1!.id).single();
+    expect(still?.note).toBe("That's not what I meant.");
     // B cannot append a correction to A's signal.
     const { error: bErr } = await ctx.userB.client.from("signal_corrections").insert({
       signal_id: s!.id, user_id: ctx.userB.id, correction_kind: "disagree", note: "hostile",
