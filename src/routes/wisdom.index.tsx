@@ -364,9 +364,12 @@ function WisdomChat() {
         {/* Primary practice */}
         {artifacts?.practices?.length ? (
           (() => {
-            const primary =
-              (artifacts.practices as { is_primary?: boolean; kind: string; rationale?: string | null; scale?: string | null }[])
-                .find((p) => p.is_primary) ?? artifacts.practices[0];
+            const list = artifacts.practices as {
+              is_primary?: boolean;
+              kind: string;
+              rationale?: string | null;
+            }[];
+            const primary = list.find((p) => p.is_primary) ?? list[0];
             return (
               <RailCard label="Primary practice" head={primary.kind.replace(/_/g, " ")}>
                 {primary.rationale && (
@@ -374,14 +377,10 @@ function WisdomChat() {
                     {primary.rationale}
                   </p>
                 )}
-                {primary.scale && (
-                  <div className="mt-2 text-[9.5px] uppercase tracking-[0.14em] text-muted-foreground">
-                    Scale · {primary.scale}
-                  </div>
-                )}
               </RailCard>
             );
           })()
+
         ) : d?.patterns.mostRecent ? (
           <RailCard label="Emerging pattern" head={d.patterns.mostRecent.title}>
             <p className="text-[11.5px] text-muted-foreground">
