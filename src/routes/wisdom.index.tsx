@@ -30,7 +30,15 @@ import { ShineBorder } from "@/registry/magicui/shine-border";
 
 
 
+type WisdomSearch = { prompt?: string; mode?: Mode };
 export const Route = createFileRoute("/wisdom/")({
+  validateSearch: (s: Record<string, unknown>): WisdomSearch => ({
+    prompt: typeof s.prompt === "string" ? s.prompt : undefined,
+    mode:
+      s.mode === "companion" || s.mode === "pattern" || s.mode === "deep" || s.mode === "curse_breaker"
+        ? s.mode
+        : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Wisdom — talk to Wisdom" },
