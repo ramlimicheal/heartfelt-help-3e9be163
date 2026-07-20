@@ -11,13 +11,16 @@ import {
   Compass,
   Hand,
   HandHelping,
+  History,
   Loader2,
+  Plus,
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
 import { getSessionSlice } from "@/lib/wisdom/pipeline.functions";
+import { listRecentSessions, getSessionDetail } from "@/lib/wisdom/session.functions";
 import { useSession } from "@/hooks/useSession";
 import { FlickeringGrid } from "@/registry/magicui/flickering-grid";
 import { ShineBorder } from "@/registry/magicui/shine-border";
