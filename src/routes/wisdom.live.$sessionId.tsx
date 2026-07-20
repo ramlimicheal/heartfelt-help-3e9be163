@@ -6,8 +6,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { Card, DerivationLegend, DERIVATION_EXPLANATIONS } from "@/components/wisdom/primitives";
+import {
+  Card,
+  DerivationLegend,
+  DERIVATION_EXPLANATIONS,
+  MovementBadge,
+} from "@/components/wisdom/primitives";
 import { getSessionSlice, getSessionTelemetry } from "@/lib/wisdom/pipeline.functions";
+
 
 export const Route = createFileRoute("/wisdom/live/$sessionId")({
   head: () => ({
