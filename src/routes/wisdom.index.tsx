@@ -104,7 +104,16 @@ function WisdomChat() {
 
   const { messages, sendMessage, setMessages, status, error } = useChat({
     transport,
-    onError: (e) => console.error("chat error", e),
+    onError: (e) => {
+      console.error("chat error", e);
+      // Try to parse structured rate-limit payload from the server route.
+      let msg = e.message || "Wisdom couldn't reach the model. Try again in a moment.";
+      try {
+        const parsed = JSON.parse(msg) as { error?: string; message?: string };
+        if (parsed?.message) msg = parsed.message;
+      } catch { /* not JSON */ }
+      toast.error(msg);
+    },
   });
 
   const [historyOpen, setHistoryOpen] = useState(false);
