@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ShieldAlert, ChevronDown, ChevronRight } from "lucide-react";
+import { ShieldAlert, ChevronDown, ChevronRight, Check, X, HelpCircle, Clock, MessageCircle } from "lucide-react";
+import { toast } from "sonner";
 import { COPY } from "@/lib/wisdom/copy/v1";
 import {
   getLatestCurseBreakerReading,
+  recordCategoryVerdict,
   type CbCategoryRow,
+  type CbVerdict,
 } from "@/lib/wisdom/curseBreaker.functions";
 
 export const Route = createFileRoute("/wisdom/curse-breaker")({
@@ -122,7 +125,7 @@ function CurseBreakerReading() {
           <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
             Deep analysis ({deep.length})
           </h2>
-          {deep.map((c) => <CategoryCard key={c.id} row={c} defaultOpen />)}
+          {deep.map((c) => <CategoryCard key={c.id} row={c} verdict={data?.verdicts?.[c.id]} defaultOpen />)}
         </section>
       )}
 
@@ -150,12 +153,49 @@ function CurseBreakerReading() {
   );
 }
 
-function CategoryCard({ row, defaultOpen = false }: { row: CbCategoryRow; defaultOpen?: boolean }) {
+const VERDICT_META: Record<CbVerdict["verdict"], { label: string; Icon: typeof Check; tone: string }> = {
+  accepted: { label: "Owned", Icon: Check, tone: "text-emerald-500 border-emerald-500/40 bg-emerald-500/10" },
+  rejected: { label: "Not mine", Icon: X, tone: "text-rose-400 border-rose-400/40 bg-rose-400/10" },
+  unsure: { label: "Unsure", Icon: HelpCircle, tone: "text-amber-400 border-amber-400/40 bg-amber-400/10" },
+  deferred: { label: "Later", Icon: Clock, tone: "text-muted-foreground border-panel-border bg-panel/60" },
+};
+
+function CategoryCard({
+  row,
+  verdict,
+  defaultOpen = false,
+}: {
+  row: CbCategoryRow;
+  verdict?: CbVerdict;
+  defaultOpen?: boolean;
+}) {
   const [open, setOpen] = useState(defaultOpen);
+  const [note, setNote] = useState("");
+  const qc = useQueryClient();
+  const recordFn = useServerFn(recordCategoryVerdict);
+  const mutation = useMutation({
+    mutationFn: (v: CbVerdict["verdict"]) =>
+      recordFn({ data: { categoryId: row.id, verdict: v, note: note.trim() || undefined } }),
+    onSuccess: (_d, v) => {
+      toast.success(`Marked as ${VERDICT_META[v].label.toLowerCase()}.`);
+      setNote("");
+      qc.invalidateQueries({ queryKey: ["curse-breaker", "latest"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not record verdict."),
+  });
+
   const supporting = asStringArray(row.supporting_evidence);
   const counter = asStringArray(row.counter_evidence);
   const alternatives = asStringArray(row.alternative_explanations);
   const citations = asCitationArray(row.citations);
+  const label = row.category.replace(/_/g, " ");
+  const takeToWisdom = {
+    to: "/wisdom" as const,
+    search: {
+      mode: "companion" as const,
+      prompt: `I want to sit with the "${label}" reading from Curse Breaker. Help me pray honestly about it and name one small practice — `,
+    },
+  };
 
   return (
     <div className="rounded-xl border border-panel-border bg-panel">
@@ -168,7 +208,18 @@ function CategoryCard({ row, defaultOpen = false }: { row: CbCategoryRow; defaul
         ) : (
           <ChevronRight className="size-4 text-muted-foreground" />
         )}
-        <span className="text-[15px] capitalize">{row.category.replace(/_/g, " ")}</span>
+        <span className="text-[15px] capitalize">{label}</span>
+        {verdict && (
+          <span
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${VERDICT_META[verdict.verdict].tone}`}
+          >
+            {(() => {
+              const I = VERDICT_META[verdict.verdict].Icon;
+              return <I className="size-3" strokeWidth={2.5} />;
+            })()}
+            {VERDICT_META[verdict.verdict].label}
+          </span>
+        )}
         <span className="ml-auto flex items-center gap-3 text-[11px] uppercase tracking-wide text-muted-foreground">
           <span>triage {(row.cheap_score * 100).toFixed(0)}%</span>
           {row.confidence != null && (
@@ -181,9 +232,7 @@ function CategoryCard({ row, defaultOpen = false }: { row: CbCategoryRow; defaul
           {row.pastoral_note && (
             <p className="text-[14px] leading-relaxed text-foreground/90">{row.pastoral_note}</p>
           )}
-          {supporting.length > 0 && (
-            <Block label="Supporting evidence" items={supporting} />
-          )}
+          {supporting.length > 0 && <Block label="Supporting evidence" items={supporting} />}
           {counter.length > 0 && <Block label="Counter-evidence" items={counter} />}
           {alternatives.length > 0 && (
             <Block label="Alternative explanations" items={alternatives} />
@@ -206,6 +255,51 @@ function CategoryCard({ row, defaultOpen = false }: { row: CbCategoryRow; defaul
               </ul>
             </div>
           )}
+
+          {/* Action surface — turn diagnosis into next step */}
+          <div className="space-y-3 rounded-lg border border-panel-border bg-surface/40 px-3 py-3">
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              Your response
+            </p>
+            {verdict?.note && (
+              <p className="rounded-md bg-panel/60 px-3 py-2 text-[12px] italic text-foreground/80">
+                "{verdict.note}"
+              </p>
+            )}
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Optional — a line about how this landed."
+              rows={2}
+              maxLength={500}
+              className="w-full resize-none rounded-md border border-panel-border bg-panel/60 px-3 py-2 text-[13px] outline-none focus:border-primary/50"
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              {(Object.keys(VERDICT_META) as CbVerdict["verdict"][]).map((v) => {
+                const meta = VERDICT_META[v];
+                const I = meta.Icon;
+                return (
+                  <button
+                    key={v}
+                    onClick={() => mutation.mutate(v)}
+                    disabled={mutation.isPending}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] transition hover:brightness-110 disabled:opacity-50 ${meta.tone}`}
+                  >
+                    <I className="size-3.5" strokeWidth={2.5} />
+                    {meta.label}
+                  </button>
+                );
+              })}
+              <Link
+                to={takeToWisdom.to}
+                search={takeToWisdom.search}
+                className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[12px] font-medium text-primary-foreground transition hover:opacity-90"
+              >
+                <MessageCircle className="size-3.5" strokeWidth={2.5} />
+                Take to Wisdom
+              </Link>
+            </div>
+          </div>
         </div>
       )}
     </div>

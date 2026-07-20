@@ -30,7 +30,16 @@ import { ShineBorder } from "@/registry/magicui/shine-border";
 
 
 
+type Mode = "companion" | "pattern" | "deep" | "curse_breaker";
+type WisdomSearch = { prompt?: string; mode?: Mode };
 export const Route = createFileRoute("/wisdom/")({
+  validateSearch: (s: Record<string, unknown>): WisdomSearch => ({
+    prompt: typeof s.prompt === "string" ? s.prompt : undefined,
+    mode:
+      s.mode === "companion" || s.mode === "pattern" || s.mode === "deep" || s.mode === "curse_breaker"
+        ? (s.mode as Mode)
+        : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Wisdom — talk to Wisdom" },
@@ -44,7 +53,6 @@ export const Route = createFileRoute("/wisdom/")({
   component: WisdomChat,
 });
 
-type Mode = "companion" | "pattern" | "deep" | "curse_breaker";
 
 const MODES: { id: Mode; label: string; hint: string }[] = [
   { id: "companion", label: "Companion", hint: "Presence first, discernment second." },
@@ -62,8 +70,9 @@ const SUGGESTIONS = [
 ];
 
 function WisdomChat() {
-  const [mode, setMode] = useState<Mode>("pattern");
-  const [input, setInput] = useState("");
+  const search = Route.useSearch();
+  const [mode, setMode] = useState<Mode>(search.mode ?? "pattern");
+  const [input, setInput] = useState(search.prompt ?? "");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [dontRemember, setDontRemember] = useState(false);
   const modeRef = useRef(mode);
