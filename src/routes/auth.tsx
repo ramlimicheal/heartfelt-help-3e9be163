@@ -59,12 +59,12 @@ function AuthPage() {
   return (
     <main className="relative min-h-screen flex items-center justify-center bg-background text-foreground p-6 overflow-hidden">
       <FlickeringGrid
-        className="absolute inset-0 z-0 [mask-image:radial-gradient(ellipse_at_center,white,transparent_75%)]"
+        className="absolute inset-0 z-0 size-full"
         squareSize={4}
         gridGap={6}
-        color="hsl(var(--accent))"
-        maxOpacity={0.4}
-        flickerChance={0.1}
+        color="#A3E635"
+        maxOpacity={0.5}
+        flickerChance={0.15}
       />
       <form
         onSubmit={submit}
