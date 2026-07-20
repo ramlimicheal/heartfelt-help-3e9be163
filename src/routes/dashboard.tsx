@@ -258,7 +258,7 @@ function WisdomHome() {
             </div>
           )}
           isEmpty={(d) => d.emptyFlags.noPatterns}
-          className="col-span-12 md:col-span-6 lg:col-span-4 min-h-[220px]"
+          className="h-full min-h-[220px]"
         />
 
         {/* PERSONA GRAPH */}
@@ -289,7 +289,7 @@ function WisdomHome() {
             </div>
           )}
           isEmpty={(d) => d.emptyFlags.noPersona}
-          className="col-span-12 md:col-span-6 lg:col-span-4 min-h-[220px]"
+          className="h-full min-h-[220px]"
         />
 
         {/* PRAYER SCAFFOLD */}
@@ -326,7 +326,7 @@ function WisdomHome() {
             ) : null
           }
           isEmpty={(d) => d.emptyFlags.noPrayer}
-          className="col-span-12 md:col-span-6 lg:col-span-7 min-h-[220px]"
+          className="h-full min-h-[220px]"
         />
 
         {/* RECENT SESSIONS */}
@@ -367,7 +367,7 @@ function WisdomHome() {
             </div>
           )}
           isEmpty={(d) => d.emptyFlags.noSessions}
-          className="col-span-12 min-h-[220px]"
+          className="h-full min-h-[220px]"
         />
 
         {/* FRUIT */}
@@ -397,9 +397,11 @@ function WisdomHome() {
             </div>
           )}
           isEmpty={(d) => d.emptyFlags.noFormation}
-          className="col-span-12 md:col-span-6 lg:col-span-5 min-h-[220px]"
+          className="h-full min-h-[220px]"
         />
+        </div>
       </div>
+
     </div>
   );
 }
