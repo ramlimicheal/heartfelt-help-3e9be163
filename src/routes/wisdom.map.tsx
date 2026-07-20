@@ -1139,18 +1139,41 @@ function resolveDetail(node: LeafNode) {
 
 /* ── Ambient chat dock ───────────────────────────────────────── */
 
-function ChatDock() {
+function ChatDock({
+  activeNode,
+  categoryLabel,
+}: {
+  activeNode: LeafNode | null;
+  categoryLabel: string;
+}) {
   const [open, setOpen] = useState(false);
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<{ role: "user" | "agent"; text: string }[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const send = () => {
+    const q = input.trim();
+    if (!q) return;
+    const context = activeNode ? `${categoryLabel} · ${activeNode.label}` : categoryLabel;
+    const reply = activeNode
+      ? `On "${activeNode.label}" (${categoryLabel}): this node shows GAPS of ${activeNode.gaps}. In the seeded graph it points at how the pattern is held together — open the right rail for the mirror passage and the linked prayer.`
+      : `Ask about a specific node by selecting it in the graph. Context: ${context}.`;
+    setMessages((m) => [...m, { role: "user", text: q }, { role: "agent", text: reply }]);
+    setInput("");
+    setTimeout(() => scrollRef.current?.scrollTo({ top: 9999, behavior: "smooth" }), 50);
+  };
+
   return (
     <div className="fixed bottom-4 z-40" style={{ right: 456 }}>
       {open && (
         <div
-          className="mb-2 w-[360px] rounded-xl overflow-hidden animate-scale-in"
+          className="mb-2 w-[360px] rounded-xl overflow-hidden animate-scale-in flex flex-col"
           style={{
             background: "rgba(15,28,28,0.85)",
             backdropFilter: "blur(24px)",
             border: `1px solid ${DIM}`,
             boxShadow: "0 24px 64px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.04)",
+            maxHeight: 420,
           }}
         >
           <div
@@ -1163,22 +1186,56 @@ function ChatDock() {
             >
               <Bot className="w-3.5 h-3.5" />
             </div>
-            <div className="text-sm font-medium text-white/85">Wisdom agent</div>
+            <div className="flex-1 leading-tight">
+              <div className="text-sm font-medium text-white/85">Wisdom agent</div>
+              <div className="text-[10px] text-white/40 truncate">
+                {activeNode ? `On: ${activeNode.label}` : "Ambient"}
+              </div>
+            </div>
+            <button
+              onClick={() => setOpen(false)}
+              className="w-6 h-6 grid place-items-center text-white/40 hover:text-white/80 rounded"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <div className="p-4 text-xs text-white/55 min-h-[100px] leading-relaxed">
-            Ask about any node — a pattern, an archetype, a prayer. Answers ground
-            in your graph and Scripture.
+          <div
+            ref={scrollRef}
+            className="flex-1 overflow-y-auto p-4 text-xs text-white/70 space-y-3 leading-relaxed min-h-[120px]"
+          >
+            {messages.length === 0 ? (
+              <div className="text-white/50">
+                Ask about any node — a pattern, an archetype, a prayer. Answers
+                ground in your graph and Scripture.
+              </div>
+            ) : (
+              messages.map((m, i) => (
+                <div
+                  key={i}
+                  className={m.role === "user" ? "text-white/90" : "text-white/60"}
+                >
+                  <div className="text-[9px] uppercase tracking-wide text-white/30 mb-0.5">
+                    {m.role === "user" ? "You" : "Agent"}
+                  </div>
+                  {m.text}
+                </div>
+              ))
+            )}
           </div>
           <div
             className="p-2 flex items-center gap-2"
             style={{ borderTop: `1px solid ${DIM}` }}
           >
             <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && send()}
               className="flex-1 bg-transparent text-xs px-2 py-1.5 outline-none text-white/85 placeholder:text-white/35"
               placeholder="Ask a question..."
             />
             <button
-              className="w-8 h-8 rounded-md grid place-items-center"
+              onClick={send}
+              className="w-8 h-8 rounded-md grid place-items-center hover:opacity-90"
               style={{ background: TEAL, color: "#062028" }}
             >
               <Send className="w-3.5 h-3.5" />
@@ -1211,3 +1268,4 @@ function ChatDock() {
     </div>
   );
 }
+
