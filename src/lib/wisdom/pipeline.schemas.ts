@@ -58,10 +58,8 @@ export const zComposition = z.object({
       // passage_id must appear in the retrieval set (validated server-side)
       citations: z.array(z.object({
         passage_id: z.string().uuid(),
-        derivation: z.enum([
-          "direct_quote","paraphrase","narrative_pattern",
-          "movement_form","founder_language","model_composition",
-        ]),
+        // Matches DB enum public.derivation_type (Batch 2).
+        derivation: z.enum(["direct","inferred","pattern_matched"]),
         explanation: z.string().max(400),
       })).min(1).max(4),
     })).min(3).max(6),
