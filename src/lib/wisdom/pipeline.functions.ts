@@ -40,6 +40,7 @@ async function logRun(
     stage: string; status: "ok" | "error" | "skipped"; latencyMs: number;
     promptKey?: string; promptVersion?: number; model?: string;
     error?: string; idempotencyKey?: string;
+    tokensIn?: number; tokensOut?: number;
   },
 ) {
   await db.from("pipeline_runs").insert({
@@ -48,6 +49,7 @@ async function logRun(
     prompt_key: args.promptKey ?? null, prompt_version: args.promptVersion ?? null,
     model: args.model ?? null, error: args.error ?? null,
     idempotency_key: args.idempotencyKey ?? null,
+    tokens_in: args.tokensIn ?? null, tokens_out: args.tokensOut ?? null,
   });
 }
 
