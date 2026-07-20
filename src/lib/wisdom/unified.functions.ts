@@ -98,19 +98,16 @@ export function buildProductionDeps(db: Db): OrchestratorDeps {
     },
     retrieve: async () => {
       const { data } = await db.from("source_passages")
-        .select("id,reference,translation,text,source_documents!inner(tier,status,canon_profile)")
+        .select("id,reference,text,source_documents!inner(tier,status,translation)")
         .eq("source_documents.status", "approved").limit(24);
-      return (data ?? []).map((p) => {
-        const doc = (p as { source_documents: { tier: string; canon_profile: string } }).source_documents;
-        return {
-          id: p.id as string,
-          reference: p.reference as string,
-          translation: (p.translation as string) ?? "WEB",
-          canon_profile: doc.canon_profile ?? "protestant_66",
-          source_tier: doc.tier as "S1"|"S2"|"S3"|"S4"|"S5"|"S6"|"S7"|"S8",
-          text: p.text as string,
-        };
-      });
+      return ((data ?? []) as Array<{ id: string; reference: string; text: string; source_documents: { tier: string; translation: string | null } }>).map((p) => ({
+        id: p.id,
+        reference: p.reference,
+        translation: p.source_documents.translation ?? "WEB",
+        canon_profile: "protestant_66",
+        source_tier: p.source_documents.tier as "S1"|"S2"|"S3"|"S4"|"S5"|"S6"|"S7"|"S8",
+        text: p.text,
+      }));
     },
     callModel: async ({ system, userPrompt, mode, model }) => {
       const schema =
@@ -119,7 +116,9 @@ export function buildProductionDeps(db: Db): OrchestratorDeps {
       const gateway = await getGateway();
       const r = await generateText({
         model: gateway(model),
-        output: Output.object({ schema }),
+        // Cast: Output.object infers a single schema type; our per-mode union
+        // is narrowed above and validated again by the orchestrator.
+        output: Output.object({ schema: schema as unknown as typeof zCompanionResult }),
         system,
         prompt: userPrompt,
       });
