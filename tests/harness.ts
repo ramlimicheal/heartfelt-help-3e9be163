@@ -38,9 +38,12 @@ function opaqueKeyFetch(key: string): typeof fetch {
 }
 
 export function adminClient(): SupabaseClient {
+  // Service role: send BOTH apikey and Authorization: Bearer <service key>.
+  // For opaque sb_secret_ keys, PostgREST reads the role from apikey; but
+  // supabase-js defaults are fine — do not strip Authorization here, because
+  // some code paths still require the bearer to identify service_role.
   return createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
-    global: { fetch: opaqueKeyFetch(SUPABASE_SERVICE_ROLE_KEY!) },
   });
 }
 
