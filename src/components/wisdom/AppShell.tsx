@@ -60,8 +60,9 @@ const GROUPS: NavGroup[] = [
 
 const MOBILE_NAV: NavItem[] = [
   { to: "/wisdom", label: "Wisdom", Icon: Sparkles },
+  { to: "/wisdom", label: "Wisdom", Icon: Sparkles },
   { to: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
-  { to: "/wisdom/map", label: "Map", Icon: Orbit },
+  { to: "/patterns", label: "Patterns", Icon: Compass },
   { to: "/prayers", label: "Prayer", Icon: Hand },
   { to: "/you", label: "You", Icon: User },
 ];
@@ -252,31 +253,8 @@ export function AppShell({ children }: { children?: ReactNode }) {
           </nav>
 
 
-          {!collapsed && (
-            <div className="mt-6 px-3">
-              <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                Recent
-              </p>
-              <ul className="space-y-0.5">
-                {SESSIONS.slice(0, 5).map((s) => (
-                  <li key={s.id}>
-                    <Link
-                      to="/wisdom/$sessionId"
-                      params={{ sessionId: s.id }}
-                      className={[
-                        "block truncate rounded-sm px-2.5 py-1.5 text-xs transition",
-                        pathname.includes(s.id)
-                          ? "bg-surface text-foreground"
-                          : "text-muted-foreground hover:bg-surface/60 hover:text-foreground",
-                      ].join(" ")}
-                    >
-                      {s.title}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {!collapsed && <RecentSessionsSection user={user} pathname={pathname} />}
+
 
           <div className={["mt-auto space-y-0.5 pb-5", collapsed ? "px-2" : "px-3"].join(" ")}>
             {ready && !collapsed && (
