@@ -350,7 +350,7 @@ export const getSessionSlice = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const s = context.supabase;
     const [inter, disc, prayers, practices] = await Promise.all([
-      s.from("interpretations").select("*").eq("session_id", data.sessionId).order("created_at", { ascending: false }).limit(1),
+      s.from("interpretations").select("*, event_chain").eq("session_id", data.sessionId).order("created_at", { ascending: false }).limit(1),
       s.from("discernments").select("*").eq("session_id", data.sessionId).order("created_at"),
       s.from("prayers").select("id,title,mode,finalized_at,prayer_lines(id,ordering,movement,text,prayer_line_sources(passage_id,derivation,explanation,tier))").eq("session_id", data.sessionId).order("created_at", { ascending: false }).limit(1),
       s.from("practices").select("*").eq("session_id", data.sessionId).order("is_primary", { ascending: false }),
