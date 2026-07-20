@@ -91,10 +91,50 @@ function WisdomChat() {
     [],
   );
 
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, setMessages, status, error } = useChat({
     transport,
     onError: (e) => console.error("chat error", e),
   });
+
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const fetchRecentSessions = useServerFn(listRecentSessions);
+  const fetchSessionDetail = useServerFn(getSessionDetail);
+  const recent = useQuery({
+    queryKey: ["recent-sessions"],
+    queryFn: () => fetchRecentSessions(),
+    enabled: historyOpen,
+    staleTime: 15_000,
+  });
+
+  const resumeSession = async (sid: string, sMode: string) => {
+    setHistoryOpen(false);
+    const detail = await fetchSessionDetail({ data: { sessionId: sid } });
+    if (!detail) return;
+    const modeMap: Record<string, Mode> = {
+      companion: "companion", pattern: "pattern",
+      deep_wisdom: "deep", curse_breaker: "curse_breaker",
+    };
+    setMode(modeMap[sMode] ?? "pattern");
+    sessionIdRef.current = sid;
+    setSessionId(sid);
+    setMessages(
+      detail.messages
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .map((m) => ({
+          id: m.id,
+          role: m.role as "user" | "assistant",
+          parts: [{ type: "text", text: m.content }],
+        })) as UIMessage[],
+    );
+  };
+
+  const newSession = () => {
+    sessionIdRef.current = null;
+    setSessionId(null);
+    setMessages([]);
+    setInput("");
+    textareaRef.current?.focus();
+  };
 
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
