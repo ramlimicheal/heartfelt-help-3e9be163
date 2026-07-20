@@ -63,9 +63,11 @@ function AuthPage() {
         squareSize={4}
         gridGap={6}
         color="#FFFFFF"
-        maxOpacity={0.5}
-        flickerChance={0.15}
+        maxOpacity={0.18}
+        flickerChance={0.1}
       />
+      <div className="absolute inset-0 z-0 bg-background/60" />
+
       <form
         onSubmit={submit}
         className="relative z-10 w-full max-w-sm bg-card/80 backdrop-blur-xl border border-border rounded-2xl p-8 space-y-4 shadow-2xl"
