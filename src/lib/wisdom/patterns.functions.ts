@@ -26,7 +26,13 @@ export const transitionPatternLifecycle = createServerFn({ method: "POST" })
     // The DB trigger blocks accepted/rejected/reconsidered transitions from user-scoped writes,
     // so we escalate via the service role after ownership is verified.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: Record<string, unknown> = {
+    const patch: {
+      lifecycle: "accepted" | "rejected" | "reconsidered";
+      updated_at: string;
+      accepted_at?: string;
+      acceptance_feedback?: string;
+      rejected_reason?: string;
+    } = {
       lifecycle: data.lifecycle,
       updated_at: new Date().toISOString(),
     };
@@ -40,6 +46,7 @@ export const transitionPatternLifecycle = createServerFn({ method: "POST" })
     const { error: upErr } = await supabaseAdmin
       .from("patterns")
       .update(patch)
+
       .eq("id", data.patternId)
       .eq("user_id", context.userId);
     if (upErr) throw new Error(upErr.message);
