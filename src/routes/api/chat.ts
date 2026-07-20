@@ -97,8 +97,9 @@ export const Route = createFileRoute("/api/chat")({
           messages: UIMessage[];
           mode?: Mode;
           sessionId?: string | null;
+          memoryDirective?: "normal" | "do_not_remember";
         };
-        const { messages, mode = "companion", sessionId: incomingSessionId } = body;
+        const { messages, mode = "companion", sessionId: incomingSessionId, memoryDirective = "normal" } = body;
         if (!Array.isArray(messages)) return new Response("Messages required", { status: 400 });
 
         const lovableKey = process.env.LOVABLE_API_KEY;
@@ -139,13 +140,14 @@ export const Route = createFileRoute("/api/chat")({
                 session_id: sessionId,
                 role: "user",
                 content: lastUserText,
-                memory_directive: "normal",
+                memory_directive: memoryDirective,
               });
             }
           } catch (e) {
             console.error("[chat] persist user message failed", e);
           }
         }
+
 
         const modelMessages = await convertToModelMessages(messages);
         const system = `${SYSTEM}\n\n${shapeFor(mode)}`;

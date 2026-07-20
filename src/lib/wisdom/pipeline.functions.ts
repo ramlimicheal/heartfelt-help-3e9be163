@@ -269,6 +269,24 @@ export async function runPipelineForSession(userId: string, sessionId: string, i
     // Finalize (trigger enforces ≥1 source per line)
     await db.from("prayers").update({ finalized_at: new Date().toISOString() }).eq("id", prayer.id);
 
+    // Prayer lineage: link this prayer to the user's active patterns (accepted or
+    // pending, updated within the last 90 days) so /prayers/:id can walk back
+    // to the pattern and originating session.
+    const since90 = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: activePatterns } = await db.from("patterns")
+      .select("id").eq("user_id", userId)
+      .in("lifecycle", ["accepted", "pending"])
+      .gte("updated_at", since90)
+      .limit(6);
+    if (activePatterns && activePatterns.length) {
+      const linkRows = activePatterns.map((p) => ({
+        user_id: userId, prayer_id: prayer.id,
+        pattern_id: p.id, session_id: data.sessionId,
+      }));
+      await db.from("prayer_pattern_links").upsert(linkRows, { onConflict: "prayer_id,pattern_id" });
+    }
+
+
     const { data: practice, error: prErr } = await db.from("practices").insert({
       user_id: userId, session_id: data.sessionId,
       kind: composition.primaryPractice.kind,

@@ -1,46 +1,44 @@
-# Sync remaining 8 routes to real data
+## Goal
+Close the 6 remaining wiring gaps so every surface reflects real pipeline output.
 
-Same pattern as `dashboard` / `wisdom/index`: routes stay top-level, data is fetched via `useServerFn` + `useQuery` in the component (never in a loader), all queries scoped by `requireSupabaseAuth`. Every route gets loading / error / empty states and drops its `mock/seed` import.
+## Scope
 
-## Fidelity policy (important)
+### 1. Wisdom map — real signals
+- Extend `getConstellation` to compute per-node health from live data: pattern lifecycle + evidence count + recency, persona-fact status + confidence, prayer finalized/recency.
+- Return `{ health: "green" | "amber" | "red", score, trend }` per node.
+- Update `wisdom.map.tsx` `healthFor` to consume it (drop the neutral stub).
 
-Some mock structures don't have a full DB counterpart yet (composite `WisdomResponse`, hypothesis→archetype linkage graph, per-line prayer roots, "confidence" per pattern). Rules:
+### 2. Prayer lineage
+- Add `prayer_pattern_links` table (prayer_id, pattern_id, session_id) + RLS + grants.
+- `pipeline.functions.ts`: when composing a prayer, insert link rows for the triggering session and any accepted/pending patterns whose evidence overlaps the session's signals.
+- `getPrayerDetail` returns linked pattern summaries + originating session.
+- `prayers.$prayerId.tsx` renders a "Roots" section with links back to `/patterns/:id` and `/wisdom/:sessionId`.
 
-- Fetch every field the schema actually stores.
-- For fields with no backing table/column, **omit that UI block** rather than fabricate. No mock values injected as fallbacks. No fake confidence / fake health colours.
-- Keep the copy contract intact ("never as a verdict", "recorded, never identity", etc.).
+### 3. Event-chain cards in transcript
+- Pipeline already extracts `event_chain` in interpretation. Surface it in `getSessionSlice` (already partly there) and render an `EventChainCard` in `InlineArtifactStrip` (`wisdom.index.tsx`) — trigger → choice → cost → alt-choice → repair chips.
 
-## Files added
+### 4. Rate limiting + error surfacing on `/api/chat`
+- Simple per-user token bucket in Postgres: `chat_rate_limits(user_id, window_start, count)` — 20 msgs / 5 min. Return 429 with `Retry-After`.
+- `wisdom.index.tsx` `onError`: toast the message; render a red `pipeline_runs.status="error"` banner in the rail when the latest run failed.
 
-Client-safe server-fn modules under `src/lib/wisdom/`:
+### 5. Memory directive control in composer
+- Add a "Don't remember this" toggle next to the send button in `wisdom.index.tsx`.
+- Forward as `memoryDirective: "do_not_remember" | "remember"` in the chat body; `/api/chat` writes it onto the user `messages` row. Persona extraction and signals already respect the flag.
 
-- `journey.functions.ts` — `getJourneyTimeline` → `formation_events` for user (asc/desc, limit).
-- `you.functions.ts` — `listPersonaFacts`, `setPersonaFactStatus` (mutation goes through service role after ownership check, same shape as existing persona fns).
-- `prayers.functions.ts` — `listPrayers`, `getPrayerDetail` (join `prayer_lines` + `prayer_line_sources` + `source_passages`).
-- `patterns.functions.ts` — `listPatterns`, `getPatternDetail` (pattern + `pattern_evidence` + `practices` via `practice_assignments`; hypothesis-graph fields left out).
-- `session.functions.ts` — `getSessionDetail` (session + `messages` + latest `interpretations` row + `discernments` + linked `prayers`/`practices`).
-- `constellation.functions.ts` — `getConstellation` for `/wisdom/map`: user's patterns, persona facts (non-rejected), prayers, and archetype references pulled from `pattern_evidence`/`interpretations`.
-
-## Files changed
-
-- `src/routes/journey.tsx` — swap `seededTimeline` for `getJourneyTimeline`; keep the timeline UI and TYPE_LABEL map.
-- `src/routes/you.tsx` — swap `PERSONA_FACTS` for `listPersonaFacts`; buttons call `setPersonaFactStatus` and invalidate the query. No local `useState` seed.
-- `src/routes/prayers.index.tsx` — swap `PRAYERS` for `listPrayers`.
-- `src/routes/prayers.$prayerId.tsx` — swap loader-side mock lookup for a `useQuery` on `getPrayerDetail(prayerId)`; keep expandable Prayer Roots.
-- `src/routes/patterns.index.tsx` — swap `HYPOTHESES` for `listPatterns`.
-- `src/routes/patterns.$patternId.tsx` — swap `ARCHETYPE_INDEX / HYPOTHESES / PRACTICES / RESPONSES` for `getPatternDetail`; render only sections backed by real data.
-- `src/routes/wisdom.$sessionId.tsx` — swap `SESSIONS / RESPONSES / …` for `getSessionDetail`; render messages + interpretation + discernment + linked prayer/practices. Sections without backing data (hypothesis alternatives, per-line roots when absent) are hidden, not faked.
-- `src/routes/wisdom.map.tsx` — swap the seed graph for `getConstellation`; keep the visual shell (categories, sort, filter, chat dock). Empty categories render an empty state instead of seed nodes.
-
-Zero routes move under `_authenticated/`. Data fetching lives in the component via `useServerFn` — matches the existing dashboard/wisdom-index pattern and avoids the SSR-bearer-token pitfall.
+### 6. Archetype mirrors surface
+- New route `src/routes/mirrors.tsx` + nav entry.
+- `mirrors.functions.ts`: `listArchetypeMirrors` (user's `archetype_mirrors` + joined `biblical_archetypes` + `archetype_passages`) and `listAvailableArchetypes` for browsing.
+- Pipeline: when interpretation cites an archetype, upsert an `archetype_mirrors` row for the user.
 
 ## Verification
-
-- `bun run tsgo` (typecheck), `bun run build` (production build).
-- Preview-side spot check on `/journey`, `/you`, `/prayers`, `/patterns`, and `/wisdom/map` while signed in to confirm no console errors and empty states render before real data exists.
+- `bun run tsgo` and production build.
+- Manual: send a Wisdom turn → confirm inline event-chain card, rail updates, prayer shows lineage after finalize, /you and /journey reflect new proposals, map nodes render non-neutral health, `/mirrors` lists cited archetypes, rate limit trips after ~20 rapid sends.
 
 ## Technical notes
+- All server fns follow the existing `.middleware([requireSupabaseAuth])` + per-request `context.supabase` pattern; only rate-limit increment and mirror upsert use `supabaseAdmin` behind an authorized handler.
+- One migration bundle: `prayer_pattern_links`, `chat_rate_limits`, and a small `archetype_mirrors` grant/policy refresh if needed. No breaking changes to existing tables.
+- Query keys added: `["mirrors"]`, `["prayer-lineage", id]`. Existing keys invalidated on their mutations.
+- No new external deps.
 
-- All new server fns follow the existing `pattern.functions.ts` shape: `.middleware([requireSupabaseAuth])`, per-request `context.supabase` for reads, `await import('@/integrations/supabase/client.server')` only when a write needs to bypass RLS (`setPersonaFactStatus`).
-- No new tables or migrations. If a section legitimately needs new tables (e.g. persistent `WisdomResponse` composite), that's called out as follow-up and not silently modelled here.
-- Query keys: `["journey"]`, `["persona-facts"]`, `["prayers"]`, `["prayer", id]`, `["patterns"]`, `["pattern", id]`, `["session", id]`, `["constellation"]`. Invalidated on relevant mutations.
+## Sequencing
+Ship in this order so each step is independently verifiable: (1) map signals, (2) event-chain card, (3) memory-directive toggle, (4) prayer lineage (needs migration), (5) rate limiting + error surface (needs migration), (6) mirrors route (needs pipeline hook).

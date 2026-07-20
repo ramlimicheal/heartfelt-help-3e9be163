@@ -9,6 +9,8 @@ import {
   ArrowUp,
   BookOpen,
   Compass,
+  EyeOff,
+
   Hand,
   HandHelping,
   History,
@@ -62,16 +64,23 @@ function WisdomChat() {
   const [mode, setMode] = useState<Mode>("pattern");
   const [input, setInput] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [dontRemember, setDontRemember] = useState(false);
   const modeRef = useRef(mode);
   const sessionIdRef = useRef<string | null>(null);
+  const dontRememberRef = useRef(dontRemember);
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { sessionIdRef.current = sessionId; }, [sessionId]);
+  useEffect(() => { dontRememberRef.current = dontRemember; }, [dontRemember]);
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
-        body: () => ({ mode: modeRef.current, sessionId: sessionIdRef.current }),
+        body: () => ({
+          mode: modeRef.current,
+          sessionId: sessionIdRef.current,
+          memoryDirective: dontRememberRef.current ? "do_not_remember" : "normal",
+        }),
         headers: async (): Promise<Record<string, string>> => {
           const { supabase } = await import("@/integrations/supabase/client");
           const { data } = await supabase.auth.getSession();
@@ -90,6 +99,7 @@ function WisdomChat() {
       }),
     [],
   );
+
 
   const { messages, sendMessage, setMessages, status, error } = useChat({
     transport,
@@ -361,6 +371,19 @@ function WisdomChat() {
                     })}
                   </div>
                   <button
+                    onClick={() => setDontRemember((d) => !d)}
+                    title="This turn won't be used to derive durable memory."
+                    className={[
+                      "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition",
+                      dontRemember
+                        ? "border-primary/60 bg-primary/15 text-primary"
+                        : "border-panel-border bg-background/60 text-muted-foreground hover:text-foreground",
+                    ].join(" ")}
+                  >
+                    <EyeOff className="size-3" />
+                    {dontRemember ? "Don't remember" : "Remember"}
+                  </button>
+                  <button
                     onClick={submit}
                     disabled={busy || input.trim().length === 0}
                     className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
@@ -368,6 +391,7 @@ function WisdomChat() {
                     {busy ? <><Loader2 className="size-3 animate-spin" /> Composing…</> : <>Begin <ArrowUp className="size-3" /></>}
                   </button>
                 </div>
+
               </div>
               <p className="mt-2 px-2 text-center text-[10px] text-muted-foreground">
                 Scripture citations are checked against curated passages · nothing is remembered without your permission.

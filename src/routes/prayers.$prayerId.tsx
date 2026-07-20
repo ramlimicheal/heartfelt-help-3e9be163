@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, GitBranch, MessageSquare } from "lucide-react";
 import { getPrayerDetail, type PrayerLineDetail } from "@/lib/wisdom/prayers.functions";
 import { Card, TierChip } from "@/components/wisdom/primitives";
 
@@ -25,6 +25,8 @@ function PrayerDetail() {
   if (error) return <p className="text-sm text-destructive">This prayer could not be loaded.</p>;
   if (!data) return <p className="text-sm text-muted-foreground">Prayer not found.</p>;
 
+  const hasRoots = data.linkedPatterns.length > 0 || Boolean(data.sessionId);
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -36,6 +38,38 @@ function PrayerDetail() {
         </p>
         <h1 className="text-3xl leading-tight">{data.title}</h1>
       </header>
+
+      {hasRoots && (
+        <Card eyebrow="Roots" title="Where this prayer came from.">
+          <div className="space-y-2">
+            {data.linkedPatterns.map((p) => (
+              <Link
+                key={p.id}
+                to="/patterns/$patternId"
+                params={{ patternId: p.id }}
+                className="flex items-center gap-2 rounded-lg border border-surface-border bg-surface/40 px-3 py-2 text-sm transition hover:bg-surface"
+              >
+                <GitBranch className="size-3.5 text-primary" />
+                <span className="flex-1">{p.title}</span>
+                <span className="rounded bg-background/70 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {p.lifecycle}
+                </span>
+              </Link>
+            ))}
+            {data.sessionId && (
+              <Link
+                to="/wisdom/$sessionId"
+                params={{ sessionId: data.sessionId }}
+                className="flex items-center gap-2 rounded-lg border border-surface-border bg-surface/40 px-3 py-2 text-sm transition hover:bg-surface"
+              >
+                <MessageSquare className="size-3.5 text-primary" />
+                <span className="flex-1">Originating Wisdom session</span>
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Open</span>
+              </Link>
+            )}
+          </div>
+        </Card>
+      )}
 
       <Card eyebrow="The prayer" title="Tap any line for its Prayer Roots.">
         <div className="space-y-3">
