@@ -200,9 +200,9 @@ export type CbCategoryRow = {
   confidence: number | null;
   deep_analyzed: boolean;
   pastoral_note: string | null;
-  supporting_evidence: unknown;
-  counter_evidence: unknown;
-  alternative_explanations: unknown;
-  citations: unknown;
+  supporting_evidence: JsonValue;
+  counter_evidence: JsonValue;
+  alternative_explanations: JsonValue;
+  citations: JsonValue;
   updated_at: string;
 };
