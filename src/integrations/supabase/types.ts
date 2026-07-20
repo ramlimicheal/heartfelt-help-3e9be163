@@ -214,6 +214,7 @@ export type Database = {
           session_id: string
           text: string
           user_id: string
+          wisdom_turn_id: string | null
         }
         Insert: {
           created_at?: string
@@ -223,6 +224,7 @@ export type Database = {
           session_id: string
           text: string
           user_id: string
+          wisdom_turn_id?: string | null
         }
         Update: {
           created_at?: string
@@ -232,6 +234,7 @@ export type Database = {
           session_id?: string
           text?: string
           user_id?: string
+          wisdom_turn_id?: string | null
         }
         Relationships: [
           {
@@ -246,6 +249,13 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discernments_wisdom_turn_id_fkey"
+            columns: ["wisdom_turn_id"]
+            isOneToOne: false
+            referencedRelation: "wisdom_turns"
             referencedColumns: ["id"]
           },
         ]
@@ -320,6 +330,7 @@ export type Database = {
           pattern_id: string | null
           session_id: string
           user_id: string
+          wisdom_turn_id: string | null
         }
         Insert: {
           archetype_id?: string | null
@@ -332,6 +343,7 @@ export type Database = {
           pattern_id?: string | null
           session_id: string
           user_id: string
+          wisdom_turn_id?: string | null
         }
         Update: {
           archetype_id?: string | null
@@ -344,6 +356,7 @@ export type Database = {
           pattern_id?: string | null
           session_id?: string
           user_id?: string
+          wisdom_turn_id?: string | null
         }
         Relationships: [
           {
@@ -365,6 +378,13 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interpretations_wisdom_turn_id_fkey"
+            columns: ["wisdom_turn_id"]
+            isOneToOne: false
+            referencedRelation: "wisdom_turns"
             referencedColumns: ["id"]
           },
         ]
@@ -936,6 +956,7 @@ export type Database = {
           session_id: string
           title: string
           user_id: string
+          wisdom_turn_id: string | null
         }
         Insert: {
           created_at?: string
@@ -947,6 +968,7 @@ export type Database = {
           session_id: string
           title: string
           user_id: string
+          wisdom_turn_id?: string | null
         }
         Update: {
           created_at?: string
@@ -958,6 +980,7 @@ export type Database = {
           session_id?: string
           title?: string
           user_id?: string
+          wisdom_turn_id?: string | null
         }
         Relationships: [
           {
@@ -972,6 +995,13 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "practices_wisdom_turn_id_fkey"
+            columns: ["wisdom_turn_id"]
+            isOneToOne: false
+            referencedRelation: "wisdom_turns"
             referencedColumns: ["id"]
           },
         ]
@@ -1079,6 +1109,7 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          wisdom_turn_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1090,6 +1121,7 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
+          wisdom_turn_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1101,6 +1133,7 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          wisdom_turn_id?: string | null
         }
         Relationships: [
           {
@@ -1115,6 +1148,13 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prayers_wisdom_turn_id_fkey"
+            columns: ["wisdom_turn_id"]
+            isOneToOne: false
+            referencedRelation: "wisdom_turns"
             referencedColumns: ["id"]
           },
         ]
@@ -1637,6 +1677,87 @@ export type Database = {
         }
         Relationships: []
       }
+      wisdom_turns: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          idempotency_key: string
+          latency_ms: number | null
+          memory_directive: Database["public"]["Enums"]["memory_directive"]
+          mode: Database["public"]["Enums"]["session_mode"]
+          model: string
+          model_version: number
+          prompt_key: string
+          prompt_version: number
+          result: Json | null
+          session_id: string
+          status: Database["public"]["Enums"]["wisdom_turn_status"]
+          tokens_in: number | null
+          tokens_out: number | null
+          triggering_user_message_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          idempotency_key: string
+          latency_ms?: number | null
+          memory_directive: Database["public"]["Enums"]["memory_directive"]
+          mode: Database["public"]["Enums"]["session_mode"]
+          model: string
+          model_version: number
+          prompt_key: string
+          prompt_version: number
+          result?: Json | null
+          session_id: string
+          status?: Database["public"]["Enums"]["wisdom_turn_status"]
+          tokens_in?: number | null
+          tokens_out?: number | null
+          triggering_user_message_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          idempotency_key?: string
+          latency_ms?: number | null
+          memory_directive?: Database["public"]["Enums"]["memory_directive"]
+          mode?: Database["public"]["Enums"]["session_mode"]
+          model?: string
+          model_version?: number
+          prompt_key?: string
+          prompt_version?: number
+          result?: Json | null
+          session_id?: string
+          status?: Database["public"]["Enums"]["wisdom_turn_status"]
+          tokens_in?: number | null
+          tokens_out?: number | null
+          triggering_user_message_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wisdom_turns_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wisdom_turns_triggering_user_message_id_fkey"
+            columns: ["triggering_user_message_id"]
+            isOneToOne: true
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1782,6 +1903,7 @@ export type Database = {
         | "superseded"
         | "retired"
       source_tier: "S1" | "S2" | "S3" | "S4" | "S5" | "S6" | "S7" | "S8"
+      wisdom_turn_status: "pending" | "ok" | "validation_error" | "model_error"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2048,6 +2170,7 @@ export const Constants = {
         "retired",
       ],
       source_tier: ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8"],
+      wisdom_turn_status: ["pending", "ok", "validation_error", "model_error"],
     },
   },
 } as const
