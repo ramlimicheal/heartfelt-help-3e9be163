@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, Play, Eye, MessageSquare, Paperclip } from "lucide-react";
+import { ArrowUpRight, Play, Eye, MessageSquare, Paperclip, Ear, BookOpen, Sparkles, Footprints, Map, ShieldCheck } from "lucide-react";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -182,7 +183,148 @@ function Landing() {
         </div>
       </section>
 
-      <div className="h-24" />
+      {/* Chapter 1 — The ache */}
+      <section className="mx-auto mt-32 max-w-[1000px] px-6 text-center">
+        <div className="mb-4 text-[11px] font-medium tracking-[0.22em] text-white/50">CHAPTER ONE — THE ACHE</div>
+        <h2 className="text-4xl font-normal leading-tight tracking-tight md:text-5xl">
+          You've noticed something<br />returning in your life.
+        </h2>
+        <p className="mx-auto mt-6 max-w-xl text-[15px] leading-relaxed text-white/60">
+          The same argument. The same fear. The same season that seems to arrive again and again.
+          You've named it in therapy. You've prayed about it. And still — it comes back.
+        </p>
+      </section>
+
+      {/* Chapter 2 — The listening */}
+      <section className="mx-auto mt-32 max-w-[1280px] px-6">
+        <div className="grid gap-12 md:grid-cols-2 md:items-center">
+          <div>
+            <div className="mb-4 text-[11px] font-medium tracking-[0.22em] text-white/50">CHAPTER TWO — LISTENING</div>
+            <h2 className="text-4xl font-normal leading-tight tracking-tight md:text-[44px]">
+              Wisdom listens<br />before it speaks.
+            </h2>
+            <p className="mt-5 max-w-md text-[15px] leading-relaxed text-white/60">
+              You tell it what is happening — in your own words, at your own pace.
+              No forms. No forced categories. Just the story as you carry it.
+            </p>
+            <div className="mt-8 space-y-3 text-sm text-white/70">
+              <div className="flex items-start gap-3"><Ear className="mt-0.5 size-4 text-emerald-300" /> Companion mode holds the story without a verdict.</div>
+              <div className="flex items-start gap-3"><Sparkles className="mt-0.5 size-4 text-emerald-300" /> Signals are gathered quietly — never assumed.</div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur">
+            <div className="mb-3 text-[11px] tracking-[0.18em] text-white/40">SESSION · COMPANION</div>
+            <div className="space-y-4 text-[14px] leading-relaxed">
+              <div className="rounded-xl bg-white/[0.05] p-4 text-white/80">
+                It happened again this week. I promised myself I wouldn't react — and I did.
+              </div>
+              <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] p-4 text-white/80">
+                <span className="text-emerald-300">Wisdom · </span>
+                Thank you for telling me. Before we look for a pattern, can you say more about the moment just before it happened?
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Chapter 3 — The mirror */}
+      <section className="mx-auto mt-32 max-w-[1280px] px-6">
+        <div className="mb-4 text-center text-[11px] font-medium tracking-[0.22em] text-white/50">CHAPTER THREE — THE MIRROR</div>
+        <h2 className="mx-auto max-w-2xl text-center text-4xl font-normal leading-tight tracking-tight md:text-[44px]">
+          Then it holds Scripture up<br />beside your story.
+        </h2>
+        <p className="mx-auto mt-5 max-w-xl text-center text-[15px] leading-relaxed text-white/60">
+          Not to declare a verdict. To let an ancient mirror show you where you already are.
+        </p>
+
+        <div className="mt-12 grid gap-4 md:grid-cols-3">
+          {[
+            { icon: BookOpen, eyebrow: "PATTERN", title: "Pattern Graph", body: "Recurring loops are named, sourced to your own words, and shown alongside biblical archetypes that mirror them." },
+            { icon: Map, eyebrow: "PERSONA", title: "Persona Graph", body: "The way you carry yourself in the story — reluctant helper, exiled prophet, quiet builder — held with care and revisable." },
+            { icon: ShieldCheck, eyebrow: "CURSE BREAKER", title: "Fourteen categories", body: "For patterns that will not leave, discern across chosen behavior, habit, shame, lineage, and biblical stronghold — with evidence." },
+          ].map((c) => (
+            <div key={c.title} className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 hover:bg-white/[0.05] transition">
+              <c.icon className="size-5 text-emerald-300" />
+              <div className="mt-4 text-[10px] tracking-[0.2em] text-white/40">{c.eyebrow}</div>
+              <div className="mt-1 text-lg font-medium">{c.title}</div>
+              <p className="mt-3 text-[13px] leading-relaxed text-white/60">{c.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Chapter 4 — Prayer & one step */}
+      <section className="mx-auto mt-32 max-w-[1280px] px-6">
+        <div className="grid gap-12 md:grid-cols-2 md:items-center">
+          <div className="order-2 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-transparent p-8 md:order-1">
+            <div className="mb-3 text-[11px] tracking-[0.18em] text-white/40">GROUNDED PRAYER</div>
+            <p className="font-serif text-xl leading-relaxed text-white/85">
+              "For the returning thing I could not name — meet me here. Give me one honest sentence to carry into tomorrow."
+            </p>
+            <div className="mt-6 flex items-center gap-2 text-xs text-white/50">
+              <Footprints className="size-4 text-emerald-300" />
+              One next faithful step — not ten.
+            </div>
+          </div>
+          <div className="order-1 md:order-2">
+            <div className="mb-4 text-[11px] font-medium tracking-[0.22em] text-white/50">CHAPTER FOUR — PRAYER & STEP</div>
+            <h2 className="text-4xl font-normal leading-tight tracking-tight md:text-[44px]">
+              Prayer in your own<br />grounded language.
+            </h2>
+            <p className="mt-5 max-w-md text-[15px] leading-relaxed text-white/60">
+              Wisdom writes a prayer scaffolded from what you actually said and what Scripture actually says —
+              then offers one small act to carry forward. Never ten. Never a verdict. Just the next honest step.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Chapter 5 — What Wisdom is / is not */}
+      <section className="mx-auto mt-32 max-w-[1280px] px-6">
+        <div className="mb-4 text-center text-[11px] font-medium tracking-[0.22em] text-white/50">A PROMISE</div>
+        <h2 className="mx-auto max-w-2xl text-center text-4xl font-normal leading-tight tracking-tight md:text-[44px]">
+          What Wisdom is — and is not.
+        </h2>
+        <div className="mt-12 grid gap-6 md:grid-cols-2">
+          <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.04] p-6">
+            <div className="mb-4 text-[11px] tracking-[0.2em] text-emerald-300/80">WISDOM IS</div>
+            <ul className="space-y-3 text-[14px] leading-relaxed text-white/75">
+              <li>— A mirror held with care, sourced to your own words.</li>
+              <li>— Scripture-first, evidence-bounded, revisable.</li>
+              <li>— A companion for prayer and discernment.</li>
+              <li>— Honest about uncertainty in every claim it makes.</li>
+            </ul>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <div className="mb-4 text-[11px] tracking-[0.2em] text-white/50">WISDOM IS NOT</div>
+            <ul className="space-y-3 text-[14px] leading-relaxed text-white/60">
+              <li>— A verdict on who you are.</li>
+              <li>— A replacement for pastors, counselors, or community.</li>
+              <li>— A tool for shame or spiritual manipulation.</li>
+              <li>— A fortune-teller or a decoder of God's hidden will.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Chapter 6 — Invitation */}
+      <section className="mx-auto mt-32 max-w-[1000px] px-6 pb-32 text-center">
+        <div className="mb-4 text-[11px] font-medium tracking-[0.22em] text-white/50">BEGIN</div>
+        <h2 className="text-4xl font-normal leading-tight tracking-tight md:text-5xl">
+          The pattern is already there.<br />
+          <span className="text-white/60">You do not have to name it alone.</span>
+        </h2>
+        <div className="mt-10 flex items-center justify-center gap-3">
+          <Link to="/auth" className="rounded-full bg-white px-6 py-3 text-sm font-medium text-black hover:bg-white/90">
+            Start your first session
+          </Link>
+          <Link to="/auth" className="rounded-full border border-white/15 px-6 py-3 text-sm font-medium hover:bg-white/5">
+            Sign in
+          </Link>
+        </div>
+        <p className="mt-6 text-xs text-white/40">Free to begin · Nothing declared · Nothing saved without your consent</p>
+      </section>
     </div>
   );
 }
+
