@@ -345,7 +345,7 @@ export const getSessionSlice = createServerFn({ method: "GET" })
 const startInput = z.object({
   mode: z.enum(["companion", "pattern", "deep_wisdom", "curse_breaker"]),
   text: z.string().min(1).max(8000),
-  memoryDirective: z.enum(["normal", "session_only", "do_not_remember"]).default("normal"),
+  memoryDirective: z.enum(["normal", "session_only", "do_not_remember"]).optional().default("normal"),
 });
 
 export const startWisdomSession = createServerFn({ method: "POST" })
@@ -370,7 +370,7 @@ const sendInput = z.object({
   sessionId: z.string().uuid(),
   text: z.string().min(1).max(8000),
   requestedMode: z.enum(["companion", "pattern", "deep_wisdom", "curse_breaker"]),
-  memoryDirective: z.enum(["normal", "session_only", "do_not_remember"]).default("normal"),
+  memoryDirective: z.enum(["normal", "session_only", "do_not_remember"]).optional().default("normal"),
 });
 
 export const sendUserMessage = createServerFn({ method: "POST" })
@@ -412,7 +412,7 @@ const linkedInput = z.object({
   parentSessionId: z.string().uuid(),
   mode: z.enum(["companion", "pattern", "deep_wisdom", "curse_breaker"]),
   text: z.string().min(1).max(8000),
-  memoryDirective: z.enum(["normal", "session_only", "do_not_remember"]).default("normal"),
+  memoryDirective: z.enum(["normal", "session_only", "do_not_remember"]).optional().default("normal"),
 });
 
 export const startLinkedSession = createServerFn({ method: "POST" })
