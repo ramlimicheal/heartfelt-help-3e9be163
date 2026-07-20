@@ -57,6 +57,35 @@ Use this structure:
 **One honest question** — a single question that would help surface evidence one way or the other before the next conversation.`;
 
 
+export const Route = createFileRoute("/api/chat")({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        const { messages, mode } = (await request.json()) as {
+          messages: UIMessage[];
+          mode?: "companion" | "pattern" | "deep" | "curse_breaker";
+        };
+        if (!Array.isArray(messages)) {
+          return new Response("Messages required", { status: 400 });
+        }
+        const lovableKey = process.env.LOVABLE_API_KEY;
+        const geminiKey = process.env.GEMINI_API_KEY;
+        if (!lovableKey && !geminiKey) {
+          return new Response("Missing LOVABLE_API_KEY and GEMINI_API_KEY", { status: 500 });
+        }
+
+        const modeShape =
+          mode === "curse_breaker"
+            ? CURSE_BREAKER_SHAPE
+            : mode === "deep"
+              ? DEEP_SHAPE
+              : mode === "pattern"
+                ? PATTERN_SHAPE
+                : COMPANION_SHAPE;
+
+        const modelMessages = await convertToModelMessages(messages);
+        const system = `${SYSTEM}\n\n${modeShape}`;
+
         const buildGatewayModel = async () => {
           const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
           return createLovableAiGatewayProvider(lovableKey!)("google/gemini-3-flash-preview");
@@ -79,3 +108,4 @@ Use this structure:
     },
   },
 });
+
