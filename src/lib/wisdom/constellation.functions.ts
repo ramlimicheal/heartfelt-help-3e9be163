@@ -106,10 +106,11 @@ export const getConstellation = createServerFn({ method: "GET" })
             : f.key;
       const conf = Number(f.confidence ?? 0);
       let health: NodeHealth = "amber";
-      let note = f.status;
+      let note: string = f.status;
       if (f.status === "accepted") { health = "green"; note = "you confirmed this"; }
       else if (f.status === "corrected") { health = "amber"; note = "you refined this"; }
       else { health = "amber"; note = "proposed — awaits your review"; }
+
       const score = f.status === "accepted" ? Math.max(0.7, conf) : Math.min(0.6, Math.max(0.3, conf));
       return { id: `fact_${f.id}`, refId: f.id, label, health, score, note };
     });
