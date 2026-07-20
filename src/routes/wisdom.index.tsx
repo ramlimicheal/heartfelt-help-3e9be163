@@ -9,6 +9,8 @@ import {
   ArrowUp,
   BookOpen,
   Compass,
+  EyeOff,
+
   Hand,
   HandHelping,
   History,
