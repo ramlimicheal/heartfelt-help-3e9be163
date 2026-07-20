@@ -174,7 +174,10 @@ function WisdomHome() {
           </div>
         </section>
 
+        {/* TILES — uniform grid */}
+        <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 auto-rows-[minmax(220px,1fr)] gap-3 md:gap-4">
         {/* SESSION TILE */}
+
         <Tile
           title="Session"
           query={slice}
@@ -215,7 +218,7 @@ function WisdomHome() {
             ) : null
           }
           isEmpty={(d) => !d.currentSession}
-          className="col-span-12 md:col-span-6 lg:col-span-4 min-h-[220px]"
+          className="h-full min-h-[220px]"
         />
 
         {/* PATTERN ACTIVITY */}
