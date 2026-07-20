@@ -18,6 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
 import { useSession } from "@/hooks/useSession";
 import { FlickeringGrid } from "@/registry/magicui/flickering-grid";
+import { ShineBorder } from "@/registry/magicui/shine-border";
 
 
 
@@ -154,7 +155,8 @@ function WisdomChat() {
 
         {/* Sticky composer */}
         <div className="mx-auto w-full max-w-3xl">
-          <div className="rounded-2xl border border-panel-border bg-surface/70 p-3 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur">
+          <div className="relative overflow-hidden rounded-2xl border border-panel-border bg-surface/70 p-3 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur">
+            <ShineBorder borderWidth={1.5} duration={12} shineColor={["#E8DFC8", "#B8A470", "#E8DFC8"]} />
             <textarea
               ref={textareaRef}
               value={input}
