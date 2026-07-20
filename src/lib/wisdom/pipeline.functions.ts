@@ -156,10 +156,20 @@ export const runWisdomPipeline = createServerFn({ method: "POST" })
       }
     }
 
-    // Grounding gate: every prayer line must cite a passage_id from retrieval set.
+    // Grounding gate: each prayer line must (a) cite passages from retrieval,
+    // (b) supply a substantive per-citation explanation that connects the
+    // passage to the line, and (c) not duplicate citations.
     for (const [i, line] of composition.prayer.lines.entries()) {
-      const bad = line.citations.find((c) => !retrievalIds.has(c.passage_id));
-      if (bad) throw new Error(`prayer line ${i}: fabricated passage_id ${bad.passage_id}`);
+      const seen = new Set<string>();
+      for (const c of line.citations) {
+        if (!retrievalIds.has(c.passage_id))
+          throw new Error(`prayer line ${i}: fabricated passage_id ${c.passage_id}`);
+        if (seen.has(c.passage_id))
+          throw new Error(`prayer line ${i}: duplicate citation ${c.passage_id}`);
+        seen.add(c.passage_id);
+        if (!c.explanation || c.explanation.trim().length < 40)
+          throw new Error(`prayer line ${i}: citation ${c.passage_id} lacks a supporting explanation (≥40 chars) tying the passage to the prayer line`);
+      }
     }
 
     // ── Stage 4: persistence ─────────────────────────────────────────
