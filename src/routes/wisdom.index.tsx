@@ -62,16 +62,23 @@ function WisdomChat() {
   const [mode, setMode] = useState<Mode>("pattern");
   const [input, setInput] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [dontRemember, setDontRemember] = useState(false);
   const modeRef = useRef(mode);
   const sessionIdRef = useRef<string | null>(null);
+  const dontRememberRef = useRef(dontRemember);
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { sessionIdRef.current = sessionId; }, [sessionId]);
+  useEffect(() => { dontRememberRef.current = dontRemember; }, [dontRemember]);
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
-        body: () => ({ mode: modeRef.current, sessionId: sessionIdRef.current }),
+        body: () => ({
+          mode: modeRef.current,
+          sessionId: sessionIdRef.current,
+          memoryDirective: dontRememberRef.current ? "do_not_remember" : "normal",
+        }),
         headers: async (): Promise<Record<string, string>> => {
           const { supabase } = await import("@/integrations/supabase/client");
           const { data } = await supabase.auth.getSession();
@@ -90,6 +97,7 @@ function WisdomChat() {
       }),
     [],
   );
+
 
   const { messages, sendMessage, setMessages, status, error } = useChat({
     transport,
