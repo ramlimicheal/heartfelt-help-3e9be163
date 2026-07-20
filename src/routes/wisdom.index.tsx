@@ -17,6 +17,8 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
 import { useSession } from "@/hooks/useSession";
+import { FlickeringGrid } from "@/registry/magicui/flickering-grid";
+
 
 
 export const Route = createFileRoute("/wisdom/")({
@@ -103,6 +105,26 @@ function WisdomChat() {
 
   return (
     <div className="relative flex h-[calc(100vh-6rem)] gap-4 md:gap-6">
+      {/* Diagonal flickering grid band across the top */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-[200px] overflow-hidden text-primary"
+        style={{
+          maskImage:
+            "linear-gradient(115deg, black 0%, rgba(0,0,0,0.55) 45%, transparent 80%)",
+          WebkitMaskImage:
+            "linear-gradient(115deg, black 0%, rgba(0,0,0,0.55) 45%, transparent 80%)",
+        }}
+      >
+        <FlickeringGrid
+          className="h-full w-full"
+          squareSize={3}
+          gridGap={6}
+          flickerChance={0.25}
+          color="currentColor"
+          maxOpacity={0.35}
+        />
+      </div>
       {/* Conversation column */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         <div ref={scrollerRef} className="flex-1 overflow-y-auto pr-2">
