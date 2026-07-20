@@ -2,6 +2,60 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
+const transitionInput = z.object({
+  patternId: z.string().uuid(),
+  lifecycle: z.enum(["accepted", "rejected", "reconsidered"]),
+  feedback: z.string().max(2000).optional(),
+});
+
+export const transitionPatternLifecycle = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: z.infer<typeof transitionInput>) => transitionInput.parse(d))
+  .handler(async ({ data, context }) => {
+    // Verify ownership under RLS first.
+    const { data: existing, error: readErr } = await context.supabase
+      .from("patterns")
+      .select("id, user_id, lifecycle")
+      .eq("id", data.patternId)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!existing || existing.user_id !== context.userId) {
+      throw new Error("Pattern not found");
+    }
+
+    // The DB trigger blocks accepted/rejected/reconsidered transitions from user-scoped writes,
+    // so we escalate via the service role after ownership is verified.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const patch: {
+      lifecycle: "accepted" | "rejected" | "reconsidered";
+      updated_at: string;
+      accepted_at?: string;
+      acceptance_feedback?: string;
+      rejected_reason?: string;
+    } = {
+      lifecycle: data.lifecycle,
+      updated_at: new Date().toISOString(),
+    };
+    if (data.lifecycle === "accepted") {
+      patch.accepted_at = new Date().toISOString();
+      if (data.feedback) patch.acceptance_feedback = data.feedback;
+    } else if (data.lifecycle === "rejected") {
+      if (data.feedback) patch.rejected_reason = data.feedback;
+    }
+
+    const { error: upErr } = await supabaseAdmin
+      .from("patterns")
+      .update(patch)
+
+      .eq("id", data.patternId)
+      .eq("user_id", context.userId);
+    if (upErr) throw new Error(upErr.message);
+
+    return { ok: true, lifecycle: data.lifecycle };
+  });
+
+
+
 export type PatternListItem = {
   id: string;
   title: string;

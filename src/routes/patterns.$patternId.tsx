@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getPatternDetail } from "@/lib/wisdom/patterns.functions";
+import { useState } from "react";
+import { getPatternDetail, transitionPatternLifecycle } from "@/lib/wisdom/patterns.functions";
 import { Card } from "@/components/wisdom/primitives";
+
 
 export const Route = createFileRoute("/patterns/$patternId")({
   head: () => ({
@@ -14,14 +16,30 @@ export const Route = createFileRoute("/patterns/$patternId")({
 function PatternDetail() {
   const { patternId } = Route.useParams();
   const fn = useServerFn(getPatternDetail);
+  const transitionFn = useServerFn(transitionPatternLifecycle);
+  const qc = useQueryClient();
+  const [feedback, setFeedback] = useState("");
   const { data, isLoading, error } = useQuery({
     queryKey: ["pattern", patternId],
     queryFn: () => fn({ data: { patternId } }),
   });
 
+  const transition = useMutation({
+    mutationFn: (lifecycle: "accepted" | "rejected" | "reconsidered") =>
+      transitionFn({ data: { patternId, lifecycle, feedback: feedback.trim() || undefined } }),
+    onSuccess: () => {
+      setFeedback("");
+      qc.invalidateQueries({ queryKey: ["pattern", patternId] });
+      qc.invalidateQueries({ queryKey: ["patterns"] });
+    },
+  });
+
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading pattern…</p>;
   if (error) return <p className="text-sm text-destructive">This pattern could not be loaded.</p>;
   if (!data) return <p className="text-sm text-muted-foreground">Pattern not found.</p>;
+
+  const isTerminal = data.lifecycle === "accepted" || data.lifecycle === "rejected";
+
 
   return (
     <div className="space-y-6">
@@ -37,6 +55,67 @@ function PatternDetail() {
           <p className="text-[15px] leading-relaxed text-muted-foreground">{data.description}</p>
         )}
       </header>
+
+      <Card
+        eyebrow="Your discernment"
+        title={
+          isTerminal
+            ? data.lifecycle === "accepted"
+              ? "You accepted this pattern."
+              : "You rejected this pattern."
+            : "Do you recognize this pattern in your life?"
+        }
+      >
+        <p className="text-[13px] text-muted-foreground">
+          {isTerminal
+            ? "You can reconsider it if something shifts."
+            : "No verdict. Accept if it lands, reject if it doesn't, or reconsider later."}
+        </p>
+        {!isTerminal && (
+          <textarea
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            rows={2}
+            placeholder="Optional: a sentence about what makes this land — or not."
+            className="mt-3 w-full resize-none rounded-lg border border-panel-border bg-background/60 px-3 py-2 text-[13px] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/40"
+          />
+        )}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {!isTerminal && (
+            <>
+              <button
+                onClick={() => transition.mutate("accepted")}
+                disabled={transition.isPending}
+                className="rounded-full bg-primary px-3 py-1.5 text-[12px] font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+              >
+                Accept
+              </button>
+              <button
+                onClick={() => transition.mutate("rejected")}
+                disabled={transition.isPending}
+                className="rounded-full border border-panel-border bg-background/60 px-3 py-1.5 text-[12px] text-foreground/80 transition hover:bg-surface disabled:opacity-50"
+              >
+                Reject
+              </button>
+            </>
+          )}
+          {isTerminal && (
+            <button
+              onClick={() => transition.mutate("reconsidered")}
+              disabled={transition.isPending}
+              className="rounded-full border border-panel-border bg-background/60 px-3 py-1.5 text-[12px] text-foreground/80 transition hover:bg-surface disabled:opacity-50"
+            >
+              Reconsider
+            </button>
+          )}
+          {transition.error && (
+            <span className="text-[11px] text-destructive">
+              {(transition.error as Error).message}
+            </span>
+          )}
+        </div>
+      </Card>
+
 
       {data.acceptanceFeedback && (
         <Card eyebrow="Your acceptance feedback" title="Why this landed.">
