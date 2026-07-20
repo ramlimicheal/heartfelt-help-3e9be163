@@ -91,10 +91,6 @@ function WisdomHome() {
   };
 
 
-  const openSeed = () => {
-    navigate({ to: "/wisdom/$sessionId", params: { sessionId: SESSIONS[0].id } });
-  };
-
   const begin = async () => {
     if (!text.trim() || busy) return;
     setBusy(true);
