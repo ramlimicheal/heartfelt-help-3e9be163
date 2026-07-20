@@ -152,7 +152,7 @@ export const runCurseBreakerPipeline = createServerFn({ method: "POST" })
           citations: r.output.citations,
         })
         .eq("session_id", data.sessionId)
-        .eq("category", r.category);
+        .eq("category", r.category as (typeof INTERPRETATION_CATEGORIES)[number]);
     }
 
     return { ok: true, deepAnalyzedCount: deepResults.filter(Boolean).length };
