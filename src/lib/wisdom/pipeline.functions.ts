@@ -257,7 +257,7 @@ export const getSessionSlice = createServerFn({ method: "GET" })
 
 // ── Session bootstrap: create session + first user message ──────────────
 const startInput = z.object({
-  mode: z.enum(["companion", "pattern", "deep", "curse_breaker"]),
+  mode: z.enum(["companion", "pattern", "deep_wisdom", "curse_breaker"]),
   text: z.string().min(1).max(8000),
 });
 
@@ -272,7 +272,7 @@ export const startWisdomSession = createServerFn({ method: "POST" })
     if (sErr || !sess) throw new Error(sErr?.message ?? "session insert failed");
     const { error: mErr } = await s.from("messages").insert({
       user_id: context.userId, session_id: sess.id, role: "user",
-      content: data.text, memory_directive: "default",
+      content: data.text, memory_directive: "normal",
     });
     if (mErr) throw new Error(mErr.message);
     return { sessionId: sess.id };
