@@ -123,7 +123,6 @@ export async function runPersonaExtractionForSession(
     (inserted ?? []).map((row) => ({
       user_id: userId,
       event_type: "memory_change" as const,
-      persona_fact_id: row.id,
       note: `persona fact proposed: ${row.key}`,
       fruit: [],
       at: nowIso,
