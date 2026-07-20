@@ -3,6 +3,7 @@ import {
   BookOpen,
   Compass,
   Hand,
+  LayoutDashboard,
   LogIn,
   LogOut,
   Moon,
@@ -13,6 +14,7 @@ import {
   Sparkles,
   Sun,
   User,
+  Users,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -23,14 +25,43 @@ import { useQueryClient } from "@tanstack/react-query";
 
 
 type NavItem = { to: string; label: string; Icon: typeof Compass };
+type NavGroup = { label: string; caption: string; items: NavItem[] };
 
-const NAV: NavItem[] = [
+const GROUPS: NavGroup[] = [
+  {
+    label: "Begin",
+    caption: "Talk to Wisdom. It listens for the pattern beneath.",
+    items: [
+      { to: "/wisdom", label: "Wisdom", Icon: Sparkles },
+      { to: "/wisdom/curse-breaker", label: "Curse Breaker", Icon: ShieldAlert },
+    ],
+  },
+  {
+    label: "Discern",
+    caption: "What Wisdom has surfaced about you.",
+    items: [
+      { to: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
+      { to: "/patterns", label: "Patterns", Icon: Compass },
+      { to: "/wisdom/map", label: "Constellation", Icon: Orbit },
+      { to: "/journey", label: "Mirrors", Icon: Users },
+    ],
+  },
+  {
+    label: "Hold",
+    caption: "What you carry forward.",
+    items: [
+      { to: "/prayers", label: "Prayer", Icon: Hand },
+      { to: "/journey", label: "Journey", Icon: BookOpen },
+      { to: "/you", label: "You", Icon: User },
+    ],
+  },
+];
+
+const MOBILE_NAV: NavItem[] = [
   { to: "/wisdom", label: "Wisdom", Icon: Sparkles },
-  { to: "/wisdom/curse-breaker", label: "Curse Breaker", Icon: ShieldAlert },
-  { to: "/wisdom/map", label: "Constellation", Icon: Orbit },
-  { to: "/patterns", label: "Patterns", Icon: Compass },
+  { to: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
+  { to: "/wisdom/map", label: "Map", Icon: Orbit },
   { to: "/prayers", label: "Prayer", Icon: Hand },
-  { to: "/journey", label: "Journey", Icon: BookOpen },
   { to: "/you", label: "You", Icon: User },
 ];
 
@@ -59,10 +90,12 @@ function useTheme() {
 
 function isActive(pathname: string, to: string) {
   if (to === "/wisdom") {
-    return pathname === "/" || (pathname.startsWith("/wisdom") && !pathname.startsWith("/wisdom/curse-breaker"));
+    return pathname === "/wisdom" || pathname === "/";
   }
+  if (to === "/dashboard") return pathname === "/dashboard";
   return pathname.startsWith(to);
 }
+
 
 
 export function AppShell({ children }: { children?: ReactNode }) {
