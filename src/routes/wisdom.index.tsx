@@ -30,13 +30,14 @@ import { ShineBorder } from "@/registry/magicui/shine-border";
 
 
 
+type Mode = "companion" | "pattern" | "deep" | "curse_breaker";
 type WisdomSearch = { prompt?: string; mode?: Mode };
 export const Route = createFileRoute("/wisdom/")({
   validateSearch: (s: Record<string, unknown>): WisdomSearch => ({
     prompt: typeof s.prompt === "string" ? s.prompt : undefined,
     mode:
       s.mode === "companion" || s.mode === "pattern" || s.mode === "deep" || s.mode === "curse_breaker"
-        ? s.mode
+        ? (s.mode as Mode)
         : undefined,
   }),
   head: () => ({
@@ -52,7 +53,6 @@ export const Route = createFileRoute("/wisdom/")({
   component: WisdomChat,
 });
 
-type Mode = "companion" | "pattern" | "deep" | "curse_breaker";
 
 const MODES: { id: Mode; label: string; hint: string }[] = [
   { id: "companion", label: "Companion", hint: "Presence first, discernment second." },
