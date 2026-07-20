@@ -163,31 +163,28 @@ describe("DNR fan-out — protected turn creates no new durable rows anywhere", 
     const { data: ok, error: okErr } = await ctx.admin.from("messages").insert({
       user_id: ctx.userA.id, session_id: sess!.id, role: "assistant",
       content: "I hear you. This won't be remembered.", memory_directive: "do_not_remember",
-      parent_message_id: dnrMsg.id,
     }).select("id,memory_directive").single();
-    // Either insertion succeeds with DNR (option b) or is not attempted at all
-    // (option a). Both are acceptable. What must never happen is a normal-level
-    // assistant reply tied to a DNR user turn.
     if (okErr) {
-      // Option (a): schema/product rejects persistence. Accept.
       expect(okErr).toBeTruthy();
     } else {
       expect(ok?.memory_directive).toBe("do_not_remember");
     }
 
-    // The forbidden case: assistant reply persisted at "normal" level with a DNR parent.
-    // (No schema-level trigger currently forbids this specific combination; we
-    // assert here that any assistant reply we persist with a DNR parent MUST
-    // inherit do_not_remember, and that no DNR-derived signal can be built
-    // from that reply either.)
+    // Even if a DNR-inheriting assistant reply exists, the DNR trigger must
+    // reject any durable signal that names it as source, because the source
+    // itself carries the do_not_remember directive.
     if (ok?.id) {
       const { error: leak } = await ctx.admin.from("signals").insert({
         user_id: ctx.userA.id, session_id: sess!.id, source_message_id: ok.id,
-        kind: "belief", origin: "inferred", confidence: 0.9, payload: { paraphrase: "leak-via-assistant" },
+        kind: "belief", origin: "inferred", confidence: 0.9,
+        payload: { paraphrase: "leak-via-assistant" },
       });
-      // Even if a DNR assistant row exists, the DNR trigger must reject any
-      // durable signal that names it as the source (source is a DNR message).
       expect(leak).not.toBeNull();
     }
-  });
-});
+
+    // Prove the original DNR user turn also can't back a signal (defence-in-depth).
+    const { error: leak2 } = await ctx.admin.from("signals").insert({
+      user_id: ctx.userA.id, session_id: sess!.id, source_message_id: dnrMsg.id,
+      kind: "belief", origin: "inferred", confidence: 0.9, payload: { paraphrase: "direct-leak" },
+    });
+    expect(leak2).not.toBeNull();
