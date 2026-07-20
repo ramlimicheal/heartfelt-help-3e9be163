@@ -28,11 +28,12 @@ export const Route = createFileRoute("/api/chat")({
         if (!Array.isArray(messages)) {
           return new Response("Messages required", { status: 400 });
         }
-        const key = process.env.LOVABLE_API_KEY;
-        if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
+        const lovableKey = process.env.LOVABLE_API_KEY;
+        const geminiKey = process.env.GEMINI_API_KEY;
+        if (!lovableKey && !geminiKey) {
+          return new Response("Missing LOVABLE_API_KEY and GEMINI_API_KEY", { status: 500 });
+        }
 
-        const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
-        const gateway = createLovableAiGatewayProvider(key);
         const modeLine =
           mode === "curse_breaker"
             ? "Mode: Curse Breaker. The person is testing a possible spiritual stronghold. Slow down, name the category tentatively, invite them to bring it before God."
@@ -42,13 +43,34 @@ export const Route = createFileRoute("/api/chat")({
                 ? "Mode: Pattern. Focus your reflection on the repetition beneath the surface."
                 : "Mode: Companion. Be present first, discerning second.";
 
-        const result = streamText({
-          model: gateway("google/gemini-3-flash-preview"),
-          system: `${SYSTEM}\n\n${modeLine}`,
-          messages: await convertToModelMessages(messages),
-        });
+        const modelMessages = await convertToModelMessages(messages);
+        const system = `${SYSTEM}\n\n${modeLine}`;
 
-        return result.toUIMessageStreamResponse({ originalMessages: messages });
+        const buildGatewayModel = async () => {
+          const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
+          return createLovableAiGatewayProvider(lovableKey!)("google/gemini-3-flash-preview");
+        };
+        const buildDirectGeminiModel = async () => {
+          const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
+          const provider = createOpenAICompatible({
+            name: "gemini-direct",
+            baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
+            headers: { Authorization: `Bearer ${geminiKey}` },
+          });
+          return provider("gemini-2.0-flash");
+        };
+
+        try {
+          const model = lovableKey ? await buildGatewayModel() : await buildDirectGeminiModel();
+          const result = streamText({ model, system, messages: modelMessages });
+          return result.toUIMessageStreamResponse({ originalMessages: messages });
+        } catch (err) {
+          if (!geminiKey) throw err;
+          console.warn("[chat] gateway failed, falling back to direct Gemini:", err);
+          const model = await buildDirectGeminiModel();
+          const result = streamText({ model, system, messages: modelMessages });
+          return result.toUIMessageStreamResponse({ originalMessages: messages });
+        }
       },
     },
   },
