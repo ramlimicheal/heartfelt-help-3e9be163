@@ -8,6 +8,8 @@ import {
   LogOut,
   Moon,
   Orbit,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   Settings,
   ShieldAlert,
