@@ -1,30 +1,30 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { PASSAGE_INDEX, PRAYERS } from "@/lib/wisdom/mock/seed";
+import { getPrayerDetail, type PrayerLineDetail } from "@/lib/wisdom/prayers.functions";
 import { Card, TierChip } from "@/components/wisdom/primitives";
 
 export const Route = createFileRoute("/prayers/$prayerId")({
-  head: ({ params }) => ({
-    meta: [
-      { title: `${PRAYERS[params.prayerId]?.title ?? "Prayer"} — Wisdom` },
-      { name: "robots", content: "noindex" },
-    ],
+  head: () => ({
+    meta: [{ title: "Prayer — Wisdom" }, { name: "robots", content: "noindex" }],
   }),
-  loader: ({ params }) => {
-    const prayer = PRAYERS[params.prayerId];
-    if (!prayer) throw notFound();
-    return { prayer };
-  },
-  notFoundComponent: () => <p className="text-sm text-muted-foreground">Prayer not found.</p>,
-  errorComponent: () => (
-    <p className="text-sm text-destructive">This prayer could not be loaded.</p>
-  ),
   component: PrayerDetail,
 });
 
 function PrayerDetail() {
-  const { prayer } = Route.useLoaderData();
+  const { prayerId } = Route.useParams();
+  const fn = useServerFn(getPrayerDetail);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["prayer", prayerId],
+    queryFn: () => fn({ data: { prayerId } }),
+  });
+
+  if (isLoading) return <p className="text-sm text-muted-foreground">Loading prayer…</p>;
+  if (error) return <p className="text-sm text-destructive">This prayer could not be loaded.</p>;
+  if (!data) return <p className="text-sm text-muted-foreground">Prayer not found.</p>;
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -32,23 +32,26 @@ function PrayerDetail() {
           ← All prayers
         </Link>
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary">
-          Prayer · {prayer.mode}
+          Prayer · {data.mode}
         </p>
-        <h1 className="text-3xl leading-tight">{prayer.title}</h1>
+        <h1 className="text-3xl leading-tight">{data.title}</h1>
       </header>
 
       <Card eyebrow="The prayer" title="Tap any line for its Prayer Roots.">
         <div className="space-y-3">
-          {prayer.lines.map((line: import("@/lib/wisdom/schemas").PrayerLine) => (
+          {data.lines.map((line) => (
             <LineBlock key={line.id} line={line} />
           ))}
+          {data.lines.length === 0 && (
+            <p className="text-sm text-muted-foreground">No lines recorded for this prayer.</p>
+          )}
         </div>
       </Card>
     </div>
   );
 }
 
-function LineBlock({ line }: { line: (typeof PRAYERS)[string]["lines"][number] }) {
+function LineBlock({ line }: { line: PrayerLineDetail }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="rounded-lg border border-surface-border bg-surface/30">
@@ -71,24 +74,26 @@ function LineBlock({ line }: { line: (typeof PRAYERS)[string]["lines"][number] }
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             Prayer roots
           </p>
-          {line.sources.map((src, i) => {
-            const passage = PASSAGE_INDEX[src.passageId];
-            return (
-              <div key={i} className="rounded border border-surface-border bg-background px-3 py-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <TierChip tier={src.tier} />
-                  <span className="text-sm font-medium">{passage.reference}</span>
-                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                    · {src.derivation.replace("_", " ")}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{src.explanation}</p>
-                <p className="mt-1 text-[11px] italic text-muted-foreground">
-                  {passage.curatorSummary}
-                </p>
+          {line.sources.length === 0 && (
+            <p className="text-xs text-muted-foreground">No sources recorded for this line.</p>
+          )}
+          {line.sources.map((src) => (
+            <div key={src.id} className="rounded border border-surface-border bg-background px-3 py-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <TierChip tier={src.tier as never} />
+                <span className="text-sm font-medium">{src.reference}</span>
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  · {src.derivation.replace("_", " ")}
+                </span>
               </div>
-            );
-          })}
+              <p className="mt-1 text-xs text-muted-foreground">{src.explanation}</p>
+              {src.passageText && (
+                <p className="mt-1 text-[11px] italic text-muted-foreground">
+                  {src.passageText}
+                </p>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>

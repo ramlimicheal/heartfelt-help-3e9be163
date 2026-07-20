@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { seededTimeline } from "@/lib/wisdom/mock/seed";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getJourneyTimeline } from "@/lib/wisdom/journey.functions";
 
 export const Route = createFileRoute("/journey")({
   head: () => ({ meta: [{ title: "Journey — Wisdom" }] }),
@@ -23,6 +25,12 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 function Journey() {
+  const fn = useServerFn(getJourneyTimeline);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["journey"],
+    queryFn: () => fn(),
+  });
+
   return (
     <div className="space-y-8">
       <header className="space-y-2">
@@ -34,22 +42,39 @@ function Journey() {
         </p>
       </header>
 
-      <ol className="relative space-y-4 border-l border-panel-border pl-6">
-        {seededTimeline.map((e) => (
-          <li key={e.id} className="relative">
-            <span className="absolute -left-[29px] top-2 grid size-3 place-items-center rounded-full bg-primary ring-4 ring-background" />
-            <div className="rounded-xl border border-panel-border bg-panel px-4 py-3">
-              <p className="text-[11px] uppercase tracking-wide text-primary">
-                {TYPE_LABEL[e.type] ?? e.type}
-              </p>
-              <p className="mt-1 text-sm">{e.note}</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                {new Date(e.at).toLocaleString()}
-              </p>
-            </div>
-          </li>
-        ))}
-      </ol>
+      {isLoading && <p className="text-sm text-muted-foreground">Loading your journey…</p>}
+      {error && (
+        <p className="text-sm text-destructive">Your journey could not be loaded.</p>
+      )}
+      {!isLoading && !error && (data?.length ?? 0) === 0 && (
+        <p className="rounded-xl border border-panel-border bg-panel px-5 py-4 text-sm text-muted-foreground">
+          Nothing to show yet. As you use Wisdom, formation events appear here.
+        </p>
+      )}
+
+      {data && data.length > 0 && (
+        <ol className="relative space-y-4 border-l border-panel-border pl-6">
+          {data.map((e) => (
+            <li key={e.id} className="relative">
+              <span className="absolute -left-[29px] top-2 grid size-3 place-items-center rounded-full bg-primary ring-4 ring-background" />
+              <div className="rounded-xl border border-panel-border bg-panel px-4 py-3">
+                <p className="text-[11px] uppercase tracking-wide text-primary">
+                  {TYPE_LABEL[e.eventType] ?? e.eventType}
+                </p>
+                {e.note && <p className="mt-1 text-sm">{e.note}</p>}
+                {e.fruit.length > 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Fruit: {e.fruit.join(", ")}
+                  </p>
+                )}
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {new Date(e.at).toLocaleString()}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }
