@@ -106,6 +106,15 @@ export function AppShell({ children }: { children?: ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, ready } = useSession();
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("wisdom-nav-collapsed") === "1";
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("wisdom-nav-collapsed", collapsed ? "1" : "0");
+    }
+  }, [collapsed]);
   const isFullBleed =
     pathname === "/welcome" || pathname === "/onboarding" || pathname === "/auth";
 
