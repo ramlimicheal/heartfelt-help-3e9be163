@@ -9,38 +9,332 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as YouRouteImport } from './routes/you'
+import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as JourneyRouteImport } from './routes/journey'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WisdomIndexRouteImport } from './routes/wisdom.index'
+import { Route as PrayersIndexRouteImport } from './routes/prayers.index'
+import { Route as PatternsIndexRouteImport } from './routes/patterns.index'
+import { Route as WisdomMapRouteImport } from './routes/wisdom.map'
+import { Route as WisdomCurseBreakerRouteImport } from './routes/wisdom.curse-breaker'
+import { Route as WisdomSessionIdRouteImport } from './routes/wisdom.$sessionId'
+import { Route as SettingsPrivacyRouteImport } from './routes/settings.privacy'
+import { Route as PrayersPrayerIdRouteImport } from './routes/prayers.$prayerId'
+import { Route as PatternsPatternIdRouteImport } from './routes/patterns.$patternId'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
+import { Route as WisdomLiveSessionIdRouteImport } from './routes/wisdom.live.$sessionId'
 
+const YouRoute = YouRouteImport.update({
+  id: '/you',
+  path: '/you',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JourneyRoute = JourneyRouteImport.update({
+  id: '/journey',
+  path: '/journey',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WisdomIndexRoute = WisdomIndexRouteImport.update({
+  id: '/wisdom/',
+  path: '/wisdom/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrayersIndexRoute = PrayersIndexRouteImport.update({
+  id: '/prayers/',
+  path: '/prayers/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatternsIndexRoute = PatternsIndexRouteImport.update({
+  id: '/patterns/',
+  path: '/patterns/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WisdomMapRoute = WisdomMapRouteImport.update({
+  id: '/wisdom/map',
+  path: '/wisdom/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WisdomCurseBreakerRoute = WisdomCurseBreakerRouteImport.update({
+  id: '/wisdom/curse-breaker',
+  path: '/wisdom/curse-breaker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WisdomSessionIdRoute = WisdomSessionIdRouteImport.update({
+  id: '/wisdom/$sessionId',
+  path: '/wisdom/$sessionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsPrivacyRoute = SettingsPrivacyRouteImport.update({
+  id: '/settings/privacy',
+  path: '/settings/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrayersPrayerIdRoute = PrayersPrayerIdRouteImport.update({
+  id: '/prayers/$prayerId',
+  path: '/prayers/$prayerId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatternsPatternIdRoute = PatternsPatternIdRouteImport.update({
+  id: '/patterns/$patternId',
+  path: '/patterns/$patternId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const WisdomLiveSessionIdRoute = WisdomLiveSessionIdRouteImport.update({
+  id: '/wisdom/live/$sessionId',
+  path: '/wisdom/live/$sessionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
+  '/journey': typeof JourneyRoute
+  '/onboarding': typeof OnboardingRoute
+  '/welcome': typeof WelcomeRoute
+  '/you': typeof YouRoute
+  '/home': typeof AuthenticatedHomeRoute
+  '/api/chat': typeof ApiChatRoute
+  '/patterns/$patternId': typeof PatternsPatternIdRoute
+  '/prayers/$prayerId': typeof PrayersPrayerIdRoute
+  '/settings/privacy': typeof SettingsPrivacyRoute
+  '/wisdom/$sessionId': typeof WisdomSessionIdRoute
+  '/wisdom/curse-breaker': typeof WisdomCurseBreakerRoute
+  '/wisdom/map': typeof WisdomMapRoute
+  '/patterns/': typeof PatternsIndexRoute
+  '/prayers/': typeof PrayersIndexRoute
+  '/wisdom/': typeof WisdomIndexRoute
+  '/wisdom/live/$sessionId': typeof WisdomLiveSessionIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
+  '/journey': typeof JourneyRoute
+  '/onboarding': typeof OnboardingRoute
+  '/welcome': typeof WelcomeRoute
+  '/you': typeof YouRoute
+  '/home': typeof AuthenticatedHomeRoute
+  '/api/chat': typeof ApiChatRoute
+  '/patterns/$patternId': typeof PatternsPatternIdRoute
+  '/prayers/$prayerId': typeof PrayersPrayerIdRoute
+  '/settings/privacy': typeof SettingsPrivacyRoute
+  '/wisdom/$sessionId': typeof WisdomSessionIdRoute
+  '/wisdom/curse-breaker': typeof WisdomCurseBreakerRoute
+  '/wisdom/map': typeof WisdomMapRoute
+  '/patterns': typeof PatternsIndexRoute
+  '/prayers': typeof PrayersIndexRoute
+  '/wisdom': typeof WisdomIndexRoute
+  '/wisdom/live/$sessionId': typeof WisdomLiveSessionIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
+  '/journey': typeof JourneyRoute
+  '/onboarding': typeof OnboardingRoute
+  '/welcome': typeof WelcomeRoute
+  '/you': typeof YouRoute
+  '/_authenticated/home': typeof AuthenticatedHomeRoute
+  '/api/chat': typeof ApiChatRoute
+  '/patterns/$patternId': typeof PatternsPatternIdRoute
+  '/prayers/$prayerId': typeof PrayersPrayerIdRoute
+  '/settings/privacy': typeof SettingsPrivacyRoute
+  '/wisdom/$sessionId': typeof WisdomSessionIdRoute
+  '/wisdom/curse-breaker': typeof WisdomCurseBreakerRoute
+  '/wisdom/map': typeof WisdomMapRoute
+  '/patterns/': typeof PatternsIndexRoute
+  '/prayers/': typeof PrayersIndexRoute
+  '/wisdom/': typeof WisdomIndexRoute
+  '/wisdom/live/$sessionId': typeof WisdomLiveSessionIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/journey'
+    | '/onboarding'
+    | '/welcome'
+    | '/you'
+    | '/home'
+    | '/api/chat'
+    | '/patterns/$patternId'
+    | '/prayers/$prayerId'
+    | '/settings/privacy'
+    | '/wisdom/$sessionId'
+    | '/wisdom/curse-breaker'
+    | '/wisdom/map'
+    | '/patterns/'
+    | '/prayers/'
+    | '/wisdom/'
+    | '/wisdom/live/$sessionId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/journey'
+    | '/onboarding'
+    | '/welcome'
+    | '/you'
+    | '/home'
+    | '/api/chat'
+    | '/patterns/$patternId'
+    | '/prayers/$prayerId'
+    | '/settings/privacy'
+    | '/wisdom/$sessionId'
+    | '/wisdom/curse-breaker'
+    | '/wisdom/map'
+    | '/patterns'
+    | '/prayers'
+    | '/wisdom'
+    | '/wisdom/live/$sessionId'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/dashboard'
+    | '/journey'
+    | '/onboarding'
+    | '/welcome'
+    | '/you'
+    | '/_authenticated/home'
+    | '/api/chat'
+    | '/patterns/$patternId'
+    | '/prayers/$prayerId'
+    | '/settings/privacy'
+    | '/wisdom/$sessionId'
+    | '/wisdom/curse-breaker'
+    | '/wisdom/map'
+    | '/patterns/'
+    | '/prayers/'
+    | '/wisdom/'
+    | '/wisdom/live/$sessionId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  DashboardRoute: typeof DashboardRoute
+  JourneyRoute: typeof JourneyRoute
+  OnboardingRoute: typeof OnboardingRoute
+  WelcomeRoute: typeof WelcomeRoute
+  YouRoute: typeof YouRoute
+  ApiChatRoute: typeof ApiChatRoute
+  PatternsPatternIdRoute: typeof PatternsPatternIdRoute
+  PrayersPrayerIdRoute: typeof PrayersPrayerIdRoute
+  SettingsPrivacyRoute: typeof SettingsPrivacyRoute
+  WisdomSessionIdRoute: typeof WisdomSessionIdRoute
+  WisdomCurseBreakerRoute: typeof WisdomCurseBreakerRoute
+  WisdomMapRoute: typeof WisdomMapRoute
+  PatternsIndexRoute: typeof PatternsIndexRoute
+  PrayersIndexRoute: typeof PrayersIndexRoute
+  WisdomIndexRoute: typeof WisdomIndexRoute
+  WisdomLiveSessionIdRoute: typeof WisdomLiveSessionIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/you': {
+      id: '/you'
+      path: '/you'
+      fullPath: '/you'
+      preLoaderRoute: typeof YouRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journey': {
+      id: '/journey'
+      path: '/journey'
+      fullPath: '/journey'
+      preLoaderRoute: typeof JourneyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +342,125 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wisdom/': {
+      id: '/wisdom/'
+      path: '/wisdom'
+      fullPath: '/wisdom/'
+      preLoaderRoute: typeof WisdomIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prayers/': {
+      id: '/prayers/'
+      path: '/prayers'
+      fullPath: '/prayers/'
+      preLoaderRoute: typeof PrayersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patterns/': {
+      id: '/patterns/'
+      path: '/patterns'
+      fullPath: '/patterns/'
+      preLoaderRoute: typeof PatternsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wisdom/map': {
+      id: '/wisdom/map'
+      path: '/wisdom/map'
+      fullPath: '/wisdom/map'
+      preLoaderRoute: typeof WisdomMapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wisdom/curse-breaker': {
+      id: '/wisdom/curse-breaker'
+      path: '/wisdom/curse-breaker'
+      fullPath: '/wisdom/curse-breaker'
+      preLoaderRoute: typeof WisdomCurseBreakerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wisdom/$sessionId': {
+      id: '/wisdom/$sessionId'
+      path: '/wisdom/$sessionId'
+      fullPath: '/wisdom/$sessionId'
+      preLoaderRoute: typeof WisdomSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/privacy': {
+      id: '/settings/privacy'
+      path: '/settings/privacy'
+      fullPath: '/settings/privacy'
+      preLoaderRoute: typeof SettingsPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prayers/$prayerId': {
+      id: '/prayers/$prayerId'
+      path: '/prayers/$prayerId'
+      fullPath: '/prayers/$prayerId'
+      preLoaderRoute: typeof PrayersPrayerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patterns/$patternId': {
+      id: '/patterns/$patternId'
+      path: '/patterns/$patternId'
+      fullPath: '/patterns/$patternId'
+      preLoaderRoute: typeof PatternsPatternIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/home': {
+      id: '/_authenticated/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AuthenticatedHomeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/wisdom/live/$sessionId': {
+      id: '/wisdom/live/$sessionId'
+      path: '/wisdom/live/$sessionId'
+      fullPath: '/wisdom/live/$sessionId'
+      preLoaderRoute: typeof WisdomLiveSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedHomeRoute: AuthenticatedHomeRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
+  DashboardRoute: DashboardRoute,
+  JourneyRoute: JourneyRoute,
+  OnboardingRoute: OnboardingRoute,
+  WelcomeRoute: WelcomeRoute,
+  YouRoute: YouRoute,
+  ApiChatRoute: ApiChatRoute,
+  PatternsPatternIdRoute: PatternsPatternIdRoute,
+  PrayersPrayerIdRoute: PrayersPrayerIdRoute,
+  SettingsPrivacyRoute: SettingsPrivacyRoute,
+  WisdomSessionIdRoute: WisdomSessionIdRoute,
+  WisdomCurseBreakerRoute: WisdomCurseBreakerRoute,
+  WisdomMapRoute: WisdomMapRoute,
+  PatternsIndexRoute: PatternsIndexRoute,
+  PrayersIndexRoute: PrayersIndexRoute,
+  WisdomIndexRoute: WisdomIndexRoute,
+  WisdomLiveSessionIdRoute: WisdomLiveSessionIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
