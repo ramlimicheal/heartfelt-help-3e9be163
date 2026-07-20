@@ -289,7 +289,7 @@ export const setPracticeAssignment = createServerFn({ method: "POST" })
     if (data.status === "committed" || data.status === "completed") {
       await context.supabase.from("formation_events").insert({
         user_id: context.userId,
-        event_type: data.status === "completed" ? "practice_completed" : "practice_committed",
+        event_type: "practice_assigned",
         pattern_id: pr.pattern_id,
         practice_id: pr.id,
         note:
@@ -299,6 +299,7 @@ export const setPracticeAssignment = createServerFn({ method: "POST" })
         fruit: [],
       });
     }
+
 
     return { ok: true, assignmentId, status: data.status };
   });
