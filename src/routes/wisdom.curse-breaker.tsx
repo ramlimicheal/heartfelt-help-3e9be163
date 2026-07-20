@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ShieldAlert, ChevronDown, ChevronRight } from "lucide-react";
+import { ShieldAlert, ChevronDown, ChevronRight, Check, X, HelpCircle, Clock, MessageCircle } from "lucide-react";
+import { toast } from "sonner";
 import { COPY } from "@/lib/wisdom/copy/v1";
 import {
   getLatestCurseBreakerReading,
+  recordCategoryVerdict,
   type CbCategoryRow,
+  type CbVerdict,
 } from "@/lib/wisdom/curseBreaker.functions";
 
 export const Route = createFileRoute("/wisdom/curse-breaker")({
