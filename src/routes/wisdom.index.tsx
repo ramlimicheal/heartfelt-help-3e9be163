@@ -417,14 +417,7 @@ function RailCard({ label, head, children }: { label: string; head: string; chil
   );
 }
 
-  return (
-    <div className="rounded-2xl border border-panel-border bg-surface/50 p-4">
-      <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
-      <div className="mt-1 text-[13px] font-medium">{head}</div>
-      <div className="mt-2">{children}</div>
-    </div>
-  );
-}
+
 
 function ConfidenceBar({ value }: { value: number }) {
   const pct = Math.round(value * 100);
