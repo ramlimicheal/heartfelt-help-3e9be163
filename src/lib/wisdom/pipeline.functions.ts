@@ -160,9 +160,17 @@ export const runWisdomPipeline = createServerFn({ method: "POST" })
       }
     }
 
-    // Grounding gate: each prayer line must (a) cite passages from retrieval,
-    // (b) supply a substantive per-citation explanation that connects the
-    // passage to the line, and (c) not duplicate citations.
+    // Grounding gate: EVERY citation on EVERY prayer line must (a) cite a
+    // passage from the retrieval set, (b) be unique within the line, (c) carry
+    // a per-derivation explanation that names the actual connection to the
+    // passage — not generic filler padded to length. A single valid citation
+    // does not rescue a line whose other citations fail; we reject the whole
+    // composition so the caller retries.
+    const GENERIC_FILLER = [
+      "this verse relates", "this passage relates", "this scripture supports",
+      "this supports the prayer", "this is relevant", "connects to the prayer",
+      "aligns with", "reminds us that", "encourages us to",
+    ];
     for (const [i, line] of composition.prayer.lines.entries()) {
       const seen = new Set<string>();
       for (const c of line.citations) {
@@ -171,8 +179,33 @@ export const runWisdomPipeline = createServerFn({ method: "POST" })
         if (seen.has(c.passage_id))
           throw new Error(`prayer line ${i}: duplicate citation ${c.passage_id}`);
         seen.add(c.passage_id);
-        if (!c.explanation || c.explanation.trim().length < 40)
-          throw new Error(`prayer line ${i}: citation ${c.passage_id} lacks a supporting explanation (≥40 chars) tying the passage to the prayer line`);
+        const exp = (c.explanation ?? "").trim();
+        if (exp.length < 40)
+          throw new Error(`prayer line ${i}: citation ${c.passage_id} lacks a supporting explanation (≥40 chars)`);
+        const lower = exp.toLowerCase();
+        if (GENERIC_FILLER.some((f) => lower.startsWith(f) && lower.length < 90))
+          throw new Error(`prayer line ${i}: citation ${c.passage_id} explanation is generic filler`);
+        const passage = retrieval.find((r) => r.id === c.passage_id)!;
+        // Per-derivation semantic checks — the three claims Wisdom makes.
+        if (c.derivation === "direct") {
+          // "Direct" = Scripture's own language, not a thematically similar verse.
+          // Require the explanation to quote or reference specific wording from the passage.
+          const words = passage.text.toLowerCase().split(/[^a-z]+/).filter((w) => w.length >= 5);
+          const overlap = words.filter((w) => lower.includes(w)).length;
+          const quoted = /["“][^"”]{6,}["”]/.test(exp) || exp.includes(passage.reference);
+          if (!quoted && overlap < 3)
+            throw new Error(`prayer line ${i}: direct citation ${passage.reference} must quote or reference the passage's actual language`);
+        } else if (c.derivation === "inferred") {
+          // "Inferred" = Wisdom's application, not something Scripture explicitly promises.
+          if (!/(infer|appl(y|ication)|we (draw|read|understand)|not (a )?promise|extends?|implication)/i.test(exp))
+            throw new Error(`prayer line ${i}: inferred citation ${passage.reference} must frame the connection as Wisdom's application, not an explicit promise`);
+        } else if (c.derivation === "pattern_matched") {
+          // "Pattern" = structural similarity AND its limits.
+          if (!/(pattern|parallel|structur|similar|echo|type)/i.test(exp))
+            throw new Error(`prayer line ${i}: pattern_matched citation ${passage.reference} must name the structural parallel`);
+          if (!/(limit|differ|not identical|context|caveat|however|but )/i.test(exp))
+            throw new Error(`prayer line ${i}: pattern_matched citation ${passage.reference} must state the limits of the parallel`);
+        }
       }
     }
 
