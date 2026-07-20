@@ -235,7 +235,7 @@ function GraphCanvas({
     <div className="absolute inset-0 grid grid-cols-[280px_240px_1fr] items-center">
       {/* Column 1: orb */}
       <div className="relative h-full flex items-center justify-center">
-        <OrbNode label={seededSession.userMessage.slice(0, 22) + "…"} sub="Session · today" />
+        <OrbNode label={(seededSession.title ?? "Session").slice(0, 22) + "…"} sub="Session · today" />
       </div>
 
       {/* Connectors 1 → 2 */}
