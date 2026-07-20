@@ -103,9 +103,9 @@ function WisdomChat() {
 
   return (
     <div className="relative flex h-[calc(100vh-6rem)] gap-4 md:gap-6">
-      {/* Ambient light rays — subtle */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-[55%] overflow-hidden opacity-[0.35] text-primary [mask-image:linear-gradient(to_bottom,black,transparent)]">
-        <LightRays intensity={0.05} blur={40} count={10} />
+      {/* Ambient light rays — anchored at very top, fades quickly */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-[220px] overflow-hidden opacity-60 text-primary/70 [mask-image:linear-gradient(to_bottom,black_0%,black_30%,transparent_100%)]">
+        <LightRays intensity={0.09} blur={22} count={9} speed={0.6} origin={{ x: 0.5, y: -0.35 }} />
       </div>
       {/* Conversation column */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
