@@ -237,18 +237,40 @@ export function AppShell({ children }: { children?: ReactNode }) {
               </span>
               <span className="text-sm font-semibold">Wisdom</span>
             </Link>
-            <button
-              onClick={toggle}
-              aria-label="Toggle theme"
-              className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-surface/60 hover:text-foreground"
-            >
-              {theme === "dark" ? (
-                <Sun className="size-4" strokeWidth={1.75} />
-              ) : (
-                <Moon className="size-4" strokeWidth={1.75} />
+            <div className="flex items-center gap-1">
+              {ready && !user && (
+                <Link
+                  to="/auth"
+                  search={{ redirect: pathname }}
+                  className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary"
+                >
+                  <LogIn className="size-3" strokeWidth={2} />
+                  Sign in
+                </Link>
               )}
-            </button>
+              {ready && user && (
+                <button
+                  onClick={signOut}
+                  aria-label="Sign out"
+                  className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-surface/60 hover:text-foreground"
+                >
+                  <LogOut className="size-4" strokeWidth={1.75} />
+                </button>
+              )}
+              <button
+                onClick={toggle}
+                aria-label="Toggle theme"
+                className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-surface/60 hover:text-foreground"
+              >
+                {theme === "dark" ? (
+                  <Sun className="size-4" strokeWidth={1.75} />
+                ) : (
+                  <Moon className="size-4" strokeWidth={1.75} />
+                )}
+              </button>
+            </div>
           </header>
+
 
           <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-10 md:py-10">
             {children ?? <Outlet />}
