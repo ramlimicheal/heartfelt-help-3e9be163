@@ -13,10 +13,10 @@ import { Route as YouRouteImport } from './routes/you'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as JourneyRouteImport } from './routes/journey'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as WisdomIndexRouteImport } from './routes/wisdom.index'
 import { Route as PrayersIndexRouteImport } from './routes/prayers.index'
 import { Route as PatternsIndexRouteImport } from './routes/patterns.index'
 import { Route as WisdomMapRouteImport } from './routes/wisdom.map'
@@ -48,6 +48,11 @@ const JourneyRoute = JourneyRouteImport.update({
   path: '/journey',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -60,11 +65,6 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WisdomIndexRoute = WisdomIndexRouteImport.update({
-  id: '/wisdom/',
-  path: '/wisdom/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrayersIndexRoute = PrayersIndexRouteImport.update({
@@ -121,6 +121,7 @@ const WisdomLiveSessionIdRoute = WisdomLiveSessionIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
   '/journey': typeof JourneyRoute
   '/onboarding': typeof OnboardingRoute
   '/welcome': typeof WelcomeRoute
@@ -134,12 +135,12 @@ export interface FileRoutesByFullPath {
   '/wisdom/map': typeof WisdomMapRoute
   '/patterns/': typeof PatternsIndexRoute
   '/prayers/': typeof PrayersIndexRoute
-  '/wisdom/': typeof WisdomIndexRoute
   '/wisdom/live/$sessionId': typeof WisdomLiveSessionIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
   '/journey': typeof JourneyRoute
   '/onboarding': typeof OnboardingRoute
   '/welcome': typeof WelcomeRoute
@@ -153,7 +154,6 @@ export interface FileRoutesByTo {
   '/wisdom/map': typeof WisdomMapRoute
   '/patterns': typeof PatternsIndexRoute
   '/prayers': typeof PrayersIndexRoute
-  '/wisdom': typeof WisdomIndexRoute
   '/wisdom/live/$sessionId': typeof WisdomLiveSessionIdRoute
 }
 export interface FileRoutesById {
@@ -161,6 +161,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
   '/journey': typeof JourneyRoute
   '/onboarding': typeof OnboardingRoute
   '/welcome': typeof WelcomeRoute
@@ -174,7 +175,6 @@ export interface FileRoutesById {
   '/wisdom/map': typeof WisdomMapRoute
   '/patterns/': typeof PatternsIndexRoute
   '/prayers/': typeof PrayersIndexRoute
-  '/wisdom/': typeof WisdomIndexRoute
   '/wisdom/live/$sessionId': typeof WisdomLiveSessionIdRoute
 }
 export interface FileRouteTypes {
@@ -182,6 +182,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/dashboard'
     | '/journey'
     | '/onboarding'
     | '/welcome'
@@ -195,12 +196,12 @@ export interface FileRouteTypes {
     | '/wisdom/map'
     | '/patterns/'
     | '/prayers/'
-    | '/wisdom/'
     | '/wisdom/live/$sessionId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
+    | '/dashboard'
     | '/journey'
     | '/onboarding'
     | '/welcome'
@@ -214,13 +215,13 @@ export interface FileRouteTypes {
     | '/wisdom/map'
     | '/patterns'
     | '/prayers'
-    | '/wisdom'
     | '/wisdom/live/$sessionId'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/dashboard'
     | '/journey'
     | '/onboarding'
     | '/welcome'
@@ -234,7 +235,6 @@ export interface FileRouteTypes {
     | '/wisdom/map'
     | '/patterns/'
     | '/prayers/'
-    | '/wisdom/'
     | '/wisdom/live/$sessionId'
   fileRoutesById: FileRoutesById
 }
@@ -242,6 +242,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  DashboardRoute: typeof DashboardRoute
   JourneyRoute: typeof JourneyRoute
   OnboardingRoute: typeof OnboardingRoute
   WelcomeRoute: typeof WelcomeRoute
@@ -254,7 +255,6 @@ export interface RootRouteChildren {
   WisdomMapRoute: typeof WisdomMapRoute
   PatternsIndexRoute: typeof PatternsIndexRoute
   PrayersIndexRoute: typeof PrayersIndexRoute
-  WisdomIndexRoute: typeof WisdomIndexRoute
   WisdomLiveSessionIdRoute: typeof WisdomLiveSessionIdRoute
 }
 
@@ -288,6 +288,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JourneyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -307,13 +314,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/wisdom/': {
-      id: '/wisdom/'
-      path: '/wisdom'
-      fullPath: '/wisdom/'
-      preLoaderRoute: typeof WisdomIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/prayers/': {
@@ -404,6 +404,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  DashboardRoute: DashboardRoute,
   JourneyRoute: JourneyRoute,
   OnboardingRoute: OnboardingRoute,
   WelcomeRoute: WelcomeRoute,
@@ -416,7 +417,6 @@ const rootRouteChildren: RootRouteChildren = {
   WisdomMapRoute: WisdomMapRoute,
   PatternsIndexRoute: PatternsIndexRoute,
   PrayersIndexRoute: PrayersIndexRoute,
-  WisdomIndexRoute: WisdomIndexRoute,
   WisdomLiveSessionIdRoute: WisdomLiveSessionIdRoute,
 }
 export const routeTree = rootRouteImport
