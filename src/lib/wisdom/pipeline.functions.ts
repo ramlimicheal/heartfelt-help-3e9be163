@@ -275,13 +275,20 @@ export async function runPipelineForSession(userId: string, sessionId: string, i
     ]);
 
     // ── Stage 6: pattern candidate detection (non-blocking) ──────────
-    // Cross-session sweep. Failures are swallowed — the primary artifacts
-    // (interpretation/prayer/practice) have already persisted.
     try {
       const { runPatternDetectionForUser } = await import("./patternDetection.functions");
       await runPatternDetectionForUser(userId, data.sessionId);
     } catch (e) {
       console.error("pattern detection failed", e);
+    }
+
+    // ── Stage 7: persona fact extraction (non-blocking) ──────────────
+    // Proposes durable facts to /you as `proposed`. User must accept.
+    try {
+      const { runPersonaExtractionForSession } = await import("./personaExtraction.functions");
+      await runPersonaExtractionForSession(userId, data.sessionId);
+    } catch (e) {
+      console.error("persona extraction failed", e);
     }
 
     return {
