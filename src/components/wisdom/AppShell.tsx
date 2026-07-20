@@ -1,8 +1,10 @@
-import { Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   BookOpen,
   Compass,
   Hand,
+  LogIn,
+  LogOut,
   Moon,
   Plus,
   Settings,
@@ -14,6 +16,10 @@ import {
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { SESSIONS } from "@/lib/wisdom/mock/seed";
+import { useSession } from "@/hooks/useSession";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+
 
 type NavItem = { to: string; label: string; Icon: typeof Compass };
 
