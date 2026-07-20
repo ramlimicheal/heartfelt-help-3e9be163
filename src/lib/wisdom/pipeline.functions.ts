@@ -264,7 +264,13 @@ export async function runPipelineForSession(userId: string, sessionId: string, i
       interpretationId: interp.id,
       prayerId: prayer.id,
     };
-  });
+}
+
+export const runWisdomPipeline = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: z.infer<typeof runInput>) => runInput.parse(d))
+  .handler(async ({ data, context }) => runPipelineForSession(context.userId, data.sessionId, data.idempotencyKey));
+
 
 /** Owner-scoped read of the composed slice for UI. */
 export const getSessionSlice = createServerFn({ method: "GET" })
