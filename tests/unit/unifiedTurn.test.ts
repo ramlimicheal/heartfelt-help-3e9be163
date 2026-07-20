@@ -328,11 +328,11 @@ describe("Checkpoint 3A — Unified Wisdom Turn orchestrator", () => {
   it("active prompt/model versions appear in telemetry with the idempotency key", async () => {
     const { deps, store } = makeDeps({ buildResult: (_, r) => patternResult(r) });
     await runUnifiedTurn(baseInput({ storedSessionMode: "pattern" }), deps);
-    const okRun = store.runs.find((r) => (r as { stage: string }).stage === "unified.turn")!;
-    expect(okRun.prompt_key).toBe("unified.pattern");
-    expect(okRun.prompt_version).toBe(1);
+    const okRun = store.runs.find((r) => (r as { stage: string }).stage === "unified.turn") as Record<string, unknown>;
+    expect(okRun.promptKey).toBe("unified.pattern");
+    expect(okRun.promptVersion).toBe(1);
     expect(okRun.model).toBe("google/gemini-3-flash-preview");
-    expect(okRun.idempotency_key ?? okRun.idempotencyKey).toBeTruthy();
+    expect(okRun.idempotencyKey).toBeTruthy();
   });
 
   it("computed idempotency key is deterministic in triggering message + prompt/model versions", () => {
