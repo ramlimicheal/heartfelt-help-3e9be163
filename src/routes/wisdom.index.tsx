@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
+import { getSessionSlice } from "@/lib/wisdom/pipeline.functions";
 import { useSession } from "@/hooks/useSession";
 import { FlickeringGrid } from "@/registry/magicui/flickering-grid";
 import { ShineBorder } from "@/registry/magicui/shine-border";
