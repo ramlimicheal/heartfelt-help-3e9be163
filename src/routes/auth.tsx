@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
+
 import { z } from "zod";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
