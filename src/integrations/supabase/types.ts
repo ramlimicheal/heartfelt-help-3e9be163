@@ -1236,6 +1236,41 @@ export type Database = {
           },
         ]
       }
+      signal_corrections: {
+        Row: {
+          correction_kind: string
+          created_at: string
+          id: string
+          note: string
+          signal_id: string
+          user_id: string
+        }
+        Insert: {
+          correction_kind: string
+          created_at?: string
+          id?: string
+          note: string
+          signal_id: string
+          user_id: string
+        }
+        Update: {
+          correction_kind?: string
+          created_at?: string
+          id?: string
+          note?: string
+          signal_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signal_corrections_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       signals: {
         Row: {
           confidence: number
