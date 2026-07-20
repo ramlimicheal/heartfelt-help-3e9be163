@@ -251,18 +251,34 @@ export async function runPipelineForSession(userId: string, sessionId: string, i
     // Finalize (trigger enforces ≥1 source per line)
     await db.from("prayers").update({ finalized_at: new Date().toISOString() }).eq("id", prayer.id);
 
-    await db.from("practices").insert({
+    const { data: practice, error: prErr } = await db.from("practices").insert({
       user_id: userId, session_id: data.sessionId,
       kind: composition.primaryPractice.kind,
       title: composition.primaryPractice.title,
       rationale: composition.primaryPractice.rationale,
       is_primary: true,
-    });
+    }).select("id").single();
+    if (prErr) throw new Error(prErr.message);
+
+    // ── Stage 5: formation_events (append-only journey trail) ────────
+    // Every discernment materializes as a journey event so the timeline
+    // lights up in lockstep with the pipeline artifacts.
+    const nowIso = new Date().toISOString();
+    await db.from("formation_events").insert([
+      { user_id: userId, event_type: "interpretation" as const,
+        note: composition.hypothesis.name, fruit: [], at: nowIso },
+      { user_id: userId, event_type: "prayer" as const,
+        prayer_id: prayer.id, note: composition.prayer.title, fruit: [], at: nowIso },
+      { user_id: userId, event_type: "practice_assigned" as const,
+        practice_id: practice.id, note: composition.primaryPractice.title,
+        fruit: [], at: nowIso },
+    ]);
 
     return {
       ok: true,
       interpretationId: interp.id,
       prayerId: prayer.id,
+      practiceId: practice.id,
     };
 }
 
