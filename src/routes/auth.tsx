@@ -62,7 +62,7 @@ function AuthPage() {
         className="absolute inset-0 z-0 size-full"
         squareSize={4}
         gridGap={6}
-        color="#A3E635"
+        color="#FFFFFF"
         maxOpacity={0.5}
         flickerChance={0.15}
       />
