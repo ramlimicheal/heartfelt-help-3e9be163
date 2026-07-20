@@ -187,9 +187,22 @@ function WisdomChat() {
               <EmptyState onPick={(p, m) => { setInput(p); setMode(m); textareaRef.current?.focus(); }} />
             ) : (
               <div className="mx-auto flex max-w-3xl flex-col gap-8 py-8">
-                {messages.map((m) => (
-                  <MessageBubble key={m.id} message={m} />
-                ))}
+                {messages.map((m, idx) => {
+                  const isLastAssistant =
+                    m.role === "assistant" && idx === messages.length - 1;
+                  return (
+                    <div key={m.id} className="space-y-4">
+                      <MessageBubble message={m} />
+                      {isLastAssistant && mode !== "companion" && (
+                        <InlineArtifactStrip
+                          artifacts={artifacts}
+                          busy={busy}
+                          hasSession={!!sessionId}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
                 {status === "submitted" && (
                   <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
                     <Loader2 className="size-3 animate-spin" /> Wisdom is listening…
@@ -201,6 +214,7 @@ function WisdomChat() {
                   </div>
                 )}
               </div>
+
             )}
           </div>
 
@@ -537,3 +551,185 @@ function ConfidenceBar({ value }: { value: number }) {
     </div>
   );
 }
+
+type SessionArtifacts = {
+  interpretation?: {
+    hypothesis_name?: string | null;
+    hypothesis_description?: string | null;
+    confidence?: number | null;
+    distinguishing_question?: string | null;
+  } | null;
+  prayer?: {
+    id: string;
+    title?: string | null;
+    prayer_lines?: { movement: string; text?: string | null; order_index?: number | null }[] | null;
+  } | null;
+  practices?: {
+    is_primary?: boolean;
+    kind: string;
+    rationale?: string | null;
+  }[] | null;
+  signals?: { kind: string; label?: string | null }[] | null;
+} | undefined | null;
+
+function InlineArtifactStrip({
+  artifacts,
+  busy,
+  hasSession,
+}: {
+  artifacts: SessionArtifacts;
+  busy: boolean;
+  hasSession: boolean;
+}) {
+  const hasAny =
+    !!artifacts?.interpretation ||
+    !!artifacts?.prayer ||
+    (artifacts?.practices?.length ?? 0) > 0 ||
+    (artifacts?.signals?.length ?? 0) > 0;
+
+  if (!hasSession) return null;
+
+  if (!hasAny) {
+    if (!busy) return null;
+    return (
+      <div className="ml-10 flex items-center gap-2 rounded-xl border border-dashed border-panel-border/70 bg-surface/30 px-3 py-2 text-[11px] text-muted-foreground">
+        <Loader2 className="size-3 animate-spin text-primary" />
+        Discernment pipeline running · extracting signals, weighing interpretations, composing prayer…
+      </div>
+    );
+  }
+
+  const it = artifacts?.interpretation ?? null;
+  const pr = artifacts?.prayer ?? null;
+  const primary =
+    artifacts?.practices?.find((p) => p.is_primary) ?? artifacts?.practices?.[0] ?? null;
+  const signals = artifacts?.signals ?? [];
+
+  return (
+    <div className="ml-10 space-y-2">
+      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="h-px flex-1 bg-gradient-to-r from-primary/40 to-transparent" />
+        <span>Discernment artifacts</span>
+        <span className="h-px flex-[3] bg-gradient-to-l from-panel-border to-transparent" />
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+        {signals.length > 0 && (
+          <ArtifactCard icon="◆" label={`Signals · ${signals.length}`} tone="muted">
+            <div className="flex flex-wrap gap-1">
+              {signals.slice(0, 10).map((s, i) => (
+                <span
+                  key={i}
+                  className="rounded-full border border-panel-border/60 bg-background/50 px-1.5 py-0.5 text-[10px] text-foreground/75"
+                  title={s.kind}
+                >
+                  {s.label ?? s.kind}
+                </span>
+              ))}
+            </div>
+          </ArtifactCard>
+        )}
+
+        {it && (
+          <ArtifactCard icon="✻" label="Interpretation" tone="primary">
+            {it.hypothesis_name && (
+              <div className="text-[12.5px] font-medium text-foreground">{it.hypothesis_name}</div>
+            )}
+            {it.hypothesis_description && (
+              <p className="mt-1 line-clamp-3 text-[11.5px] leading-relaxed text-muted-foreground">
+                {it.hypothesis_description}
+              </p>
+            )}
+            {typeof it.confidence === "number" && (
+              <div className="mt-2">
+                <ConfidenceBar value={it.confidence} />
+              </div>
+            )}
+            {it.distinguishing_question && (
+              <p className="mt-2 border-l-2 border-primary/40 pl-2 text-[11px] italic text-foreground/80">
+                {it.distinguishing_question}
+              </p>
+            )}
+          </ArtifactCard>
+        )}
+
+        {pr && (
+          <ArtifactCard icon="✦" label="Prayer">
+            <div className="text-[12.5px] font-medium text-foreground">
+              {pr.title || "Composed prayer"}
+            </div>
+            {(() => {
+              const movements = Array.from(new Set((pr.prayer_lines ?? []).map((l) => l.movement)));
+              return movements.length > 0 ? (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {movements.map((m) => (
+                    <span
+                      key={m}
+                      className="rounded-full border border-panel-border/60 bg-background/60 px-1.5 py-0.5 text-[9.5px] uppercase tracking-[0.12em] text-muted-foreground"
+                    >
+                      {m}
+                    </span>
+                  ))}
+                </div>
+              ) : null;
+            })()}
+            <Link
+              to="/prayers/$prayerId"
+              params={{ prayerId: pr.id }}
+              className="mt-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-primary/90 hover:text-primary"
+            >
+              Open prayer →
+            </Link>
+          </ArtifactCard>
+        )}
+
+        {primary && (
+          <ArtifactCard icon="◈" label="Primary practice">
+            <div className="text-[12.5px] font-medium capitalize text-foreground">
+              {primary.kind.replace(/_/g, " ")}
+            </div>
+            {primary.rationale && (
+              <p className="mt-1 line-clamp-3 text-[11.5px] leading-relaxed text-muted-foreground">
+                {primary.rationale}
+              </p>
+            )}
+          </ArtifactCard>
+        )}
+      </div>
+
+      {busy && (
+        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.14em] text-primary/70">
+          <Loader2 className="size-3 animate-spin" /> refining…
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ArtifactCard({
+  icon,
+  label,
+  tone = "muted",
+  children,
+}: {
+  icon: string;
+  label: string;
+  tone?: "primary" | "muted";
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={[
+        "rounded-xl border bg-surface/50 px-3 py-2.5 shadow-[0_10px_30px_-24px_rgba(0,0,0,0.6)]",
+        tone === "primary" ? "border-primary/30" : "border-panel-border/60",
+      ].join(" ")}
+    >
+      <div className="mb-1 flex items-center gap-1.5 text-[9.5px] uppercase tracking-[0.18em] text-muted-foreground">
+        <span className={tone === "primary" ? "text-primary" : "text-foreground/60"}>{icon}</span>
+        <span>{label}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
