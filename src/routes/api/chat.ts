@@ -183,7 +183,7 @@ export const Route = createFileRoute("/api/chat")({
               // Curse Breaker two-pass (cheap triage + deep analysis of top categories).
               if (capturedMode === "curse_breaker") {
                 const { runCurseBreakerForSession } = await import("@/lib/wisdom/curseBreaker.functions");
-                runCurseBreakerForSession(capturedUserId, capturedSessionId).catch((e) => {
+                runCurseBreakerForSession(capturedUserId, capturedSessionId).catch((e: unknown) => {
                   console.error("[chat] curse breaker pipeline failed", e);
                 });
               }
