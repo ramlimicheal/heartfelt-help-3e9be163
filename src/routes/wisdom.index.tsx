@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
+import { getSessionSlice } from "@/lib/wisdom/pipeline.functions";
 import { useSession } from "@/hooks/useSession";
 import { FlickeringGrid } from "@/registry/magicui/flickering-grid";
 import { ShineBorder } from "@/registry/magicui/shine-border";
@@ -121,6 +122,19 @@ function WisdomChat() {
     staleTime: 30_000,
   });
   const d = slice.data;
+
+  // Live session artifacts (interpretation / prayer / practice) surfaced from the pipeline.
+  const fetchSessionSlice = useServerFn(getSessionSlice);
+  const sessionSlice = useQuery({
+    queryKey: ["session-slice", sessionId ?? "none"],
+    queryFn: () => fetchSessionSlice({ data: { sessionId: sessionId! } }),
+    enabled: !!sessionId && !!user,
+    // Poll while a turn is being processed; slow down when idle.
+    refetchInterval: busy ? 2500 : 15000,
+    staleTime: 1000,
+  });
+  const artifacts = sessionSlice.data;
+
 
 
   return (
@@ -244,30 +258,91 @@ function WisdomChat() {
 
       {/* Live surfacing rail */}
       <aside className="hidden w-[300px] shrink-0 flex-col gap-3 overflow-y-auto pt-6 md:pt-10 lg:flex">
-        <RailCard label="Session" head="Live">
+        <RailCard label="Session" head={sessionId ? "Live · persisted" : "Live"}>
           <div className="text-[12px] text-muted-foreground">
             {isEmpty ? "Waiting for your first message." : `${messages.length} exchange${messages.length === 1 ? "" : "s"} · mode ${mode}`}
           </div>
+          {busy && mode !== "companion" && (
+            <div className="mt-2 flex items-center gap-2 text-[10.5px] uppercase tracking-[0.14em] text-primary/80">
+              <Loader2 className="size-3 animate-spin" /> Running discernment pipeline…
+            </div>
+          )}
         </RailCard>
 
-        {d?.patterns.mostRecent ? (
-          <RailCard label="Emerging pattern" head={d.patterns.mostRecent.title}>
+        {/* Live interpretation from the pipeline */}
+        {artifacts?.interpretation ? (
+          <RailCard
+            label="Interpretation"
+            head={((artifacts.interpretation as { hypothesis_name?: string | null }).hypothesis_name) || "Working hypothesis"}
+          >
+            {(() => {
+              const it = artifacts.interpretation as {
+                hypothesis_description?: string | null;
+                confidence?: number | null;
+                distinguishing_question?: string | null;
+              };
+              return (
+                <div className="space-y-2">
+                  {it.hypothesis_description && (
+                    <p className="line-clamp-3 text-[11.5px] leading-relaxed text-muted-foreground">
+                      {it.hypothesis_description}
+                    </p>
+                  )}
+                  {typeof it.confidence === "number" && <ConfidenceBar value={it.confidence} />}
+                  {it.distinguishing_question && (
+                    <p className="mt-1 border-l-2 border-primary/40 pl-2 text-[11px] italic text-foreground/80">
+                      {it.distinguishing_question}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+          </RailCard>
+        ) : sessionId && !busy ? (
+          <RailCard label="Interpretation" head="Forming…">
             <p className="text-[11.5px] text-muted-foreground">
-              {d.patterns.mostRecent.lifecycle} · updated {new Date(d.patterns.mostRecent.updatedAt).toLocaleDateString()}
-            </p>
-            <p className="mt-2 line-clamp-3 text-[11.5px] italic text-muted-foreground">
-              This remains a candidate until you confirm or refine it.
+              Wisdom is weighing signals into a testable hypothesis.
             </p>
           </RailCard>
-        ) : (
-          <RailCard label="Emerging pattern" head="Nothing surfaced yet">
-            <p className="text-[11.5px] text-muted-foreground">
-              Patterns appear only after you describe a real situation.
-            </p>
-          </RailCard>
-        )}
+        ) : null}
 
-        {d?.latestPrayer ? (
+        {/* Live prayer from the pipeline */}
+        {artifacts?.prayer ? (
+          <RailCard
+            label="Prayer"
+            head={(artifacts.prayer as { title?: string | null }).title || "Composed prayer"}
+          >
+            {(() => {
+              const p = artifacts.prayer as {
+                id: string;
+                prayer_lines?: { movement: string }[] | null;
+              };
+              const movements = Array.from(
+                new Set((p.prayer_lines ?? []).map((l) => l.movement)),
+              );
+              return (
+                <>
+                  {movements.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {movements.map((m) => (
+                        <span key={m} className="rounded-full border border-panel-border/60 bg-background/60 px-1.5 py-0.5 text-[9.5px] uppercase tracking-[0.12em] text-muted-foreground">
+                          {m}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <Link
+                    to="/prayers/$prayerId"
+                    params={{ prayerId: p.id }}
+                    className="mt-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
+                  >
+                    Open prayer →
+                  </Link>
+                </>
+              );
+            })()}
+          </RailCard>
+        ) : d?.latestPrayer ? (
           <RailCard label="Latest prayer" head={`${d.latestPrayer.movementCount} movements`}>
             <p className="line-clamp-2 text-[11.5px] text-muted-foreground">{d.latestPrayer.title}</p>
             <Link
@@ -285,7 +360,36 @@ function WisdomChat() {
             </p>
           </RailCard>
         )}
+
+        {/* Primary practice */}
+        {artifacts?.practices?.length ? (
+          (() => {
+            const list = artifacts.practices as {
+              is_primary?: boolean;
+              kind: string;
+              rationale?: string | null;
+            }[];
+            const primary = list.find((p) => p.is_primary) ?? list[0];
+            return (
+              <RailCard label="Primary practice" head={primary.kind.replace(/_/g, " ")}>
+                {primary.rationale && (
+                  <p className="line-clamp-3 text-[11.5px] leading-relaxed text-muted-foreground">
+                    {primary.rationale}
+                  </p>
+                )}
+              </RailCard>
+            );
+          })()
+
+        ) : d?.patterns.mostRecent ? (
+          <RailCard label="Emerging pattern" head={d.patterns.mostRecent.title}>
+            <p className="text-[11.5px] text-muted-foreground">
+              {d.patterns.mostRecent.lifecycle} · updated {new Date(d.patterns.mostRecent.updatedAt).toLocaleDateString()}
+            </p>
+          </RailCard>
+        ) : null}
       </aside>
+
     </div>
   );
 }
