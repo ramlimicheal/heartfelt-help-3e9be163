@@ -57,9 +57,8 @@ type Category = {
   nodes: LeafNode[];
 };
 
-function healthFor(_conf: number): [Health, Health, Health] {
-  // Health signal isn't backed by real data yet — render a neutral triple.
-  return ["green", "green", "green"];
+function healthTriple(h: Health): [Health, Health, Health] {
+  return [h, h, h];
 }
 
 const ICONS: Record<ConstellationCategory["id"], typeof Scale> = {
@@ -85,8 +84,8 @@ function useGraph() {
       const nodes: LeafNode[] = c.nodes.map((n) => ({
         id: n.id,
         label: n.label,
-        gaps: 0,
-        health: healthFor(0.65),
+        gaps: n.health === "red" ? 2 : n.health === "amber" ? 1 : 0,
+        health: healthTriple(n.health),
         kind: KINDS[c.id],
         refId: n.refId,
       }));
@@ -98,6 +97,7 @@ function useGraph() {
         nodes,
       };
     });
+
     if (categories.length === 0) {
       // Preserve category slots so the UI shell renders while empty.
       return {

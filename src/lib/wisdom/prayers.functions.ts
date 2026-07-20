@@ -52,12 +52,20 @@ export type PrayerLineDetail = {
   sources: PrayerLineSource[];
 };
 
+export type PrayerLinkedPattern = {
+  id: string;
+  title: string;
+  lifecycle: string;
+};
+
 export type PrayerDetail = {
   id: string;
   title: string;
   mode: string;
   createdAt: string;
   finalizedAt: string | null;
+  sessionId: string | null;
+  linkedPatterns: PrayerLinkedPattern[];
   lines: PrayerLineDetail[];
 };
 
@@ -69,20 +77,32 @@ export const getPrayerDetail = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<PrayerDetail | null> => {
     const { data: prayer, error } = await context.supabase
       .from("prayers")
-      .select("id, title, mode, created_at, finalized_at, user_id")
+      .select("id, title, mode, created_at, finalized_at, session_id, user_id")
       .eq("id", data.prayerId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!prayer || prayer.user_id !== context.userId) return null;
 
-    const { data: lines, error: lErr } = await context.supabase
-      .from("prayer_lines")
-      .select("id, ordering, movement, text, confidence")
-      .eq("prayer_id", prayer.id)
-      .order("ordering", { ascending: true });
-    if (lErr) throw new Error(lErr.message);
+    const [linesRes, linksRes] = await Promise.all([
+      context.supabase
+        .from("prayer_lines")
+        .select("id, ordering, movement, text, confidence")
+        .eq("prayer_id", prayer.id)
+        .order("ordering", { ascending: true }),
+      context.supabase
+        .from("prayer_pattern_links")
+        .select("pattern_id, patterns(id, title, lifecycle)")
+        .eq("prayer_id", prayer.id),
+    ]);
+    if (linesRes.error) throw new Error(linesRes.error.message);
+    if (linksRes.error) throw new Error(linksRes.error.message);
+    const lines = linesRes.data ?? [];
 
-    const lineIds = (lines ?? []).map((l) => l.id);
+    const linkedPatterns: PrayerLinkedPattern[] = (linksRes.data ?? [])
+      .map((row) => row.patterns as unknown as PrayerLinkedPattern | null)
+      .filter((p): p is PrayerLinkedPattern => Boolean(p));
+
+    const lineIds = lines.map((l) => l.id);
     let sourceRows: Array<{
       id: string;
       prayer_line_id: string;
@@ -109,7 +129,9 @@ export const getPrayerDetail = createServerFn({ method: "GET" })
       mode: prayer.mode,
       createdAt: prayer.created_at,
       finalizedAt: prayer.finalized_at,
-      lines: (lines ?? []).map((l) => ({
+      sessionId: prayer.session_id,
+      linkedPatterns,
+      lines: lines.map((l) => ({
         id: l.id,
         ordering: l.ordering,
         movement: l.movement,
@@ -129,3 +151,4 @@ export const getPrayerDetail = createServerFn({ method: "GET" })
       })),
     };
   });
+
