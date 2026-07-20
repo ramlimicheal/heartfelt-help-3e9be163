@@ -60,17 +60,10 @@ export const Route = createFileRoute("/api/chat")({
           return provider("gemini-2.0-flash");
         };
 
-        try {
-          const model = lovableKey ? await buildGatewayModel() : await buildDirectGeminiModel();
-          const result = streamText({ model, system, messages: modelMessages });
-          return result.toUIMessageStreamResponse({ originalMessages: messages });
-        } catch (err) {
-          if (!geminiKey) throw err;
-          console.warn("[chat] gateway failed, falling back to direct Gemini:", err);
-          const model = await buildDirectGeminiModel();
-          const result = streamText({ model, system, messages: modelMessages });
-          return result.toUIMessageStreamResponse({ originalMessages: messages });
-        }
+        // Prefer direct Gemini when the user has provided a key (gateway may be out of credits).
+        const model = geminiKey ? await buildDirectGeminiModel() : await buildGatewayModel();
+        const result = streamText({ model, system, messages: modelMessages });
+        return result.toUIMessageStreamResponse({ originalMessages: messages });
       },
     },
   },
