@@ -17,6 +17,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
 import { useSession } from "@/hooks/useSession";
+import { LightRays } from "@/components/magicui/light-rays";
 
 export const Route = createFileRoute("/wisdom/")({
   head: () => ({
@@ -101,9 +102,13 @@ function WisdomChat() {
 
 
   return (
-    <div className="flex h-[calc(100vh-6rem)] gap-4 md:gap-6">
+    <div className="relative flex h-[calc(100vh-6rem)] gap-4 md:gap-6">
+      {/* Ambient light rays */}
+      <div className="pointer-events-none absolute inset-0 -z-0 overflow-hidden text-primary">
+        <LightRays intensity={0.14} blur={30} count={16} />
+      </div>
       {/* Conversation column */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         <div ref={scrollerRef} className="flex-1 overflow-y-auto pr-2">
           {isEmpty ? (
             <EmptyState onPick={(p, m) => { setInput(p); setMode(m); textareaRef.current?.focus(); }} />
