@@ -122,9 +122,9 @@ export async function runPersonaExtractionForSession(
   await db.from("formation_events").insert(
     (inserted ?? []).map((row) => ({
       user_id: userId,
-      event_type: "persona_fact_proposed" as const,
+      event_type: "memory_change" as const,
       persona_fact_id: row.id,
-      note: row.key,
+      note: `persona fact proposed: ${row.key}`,
       fruit: [],
       at: nowIso,
     })),
