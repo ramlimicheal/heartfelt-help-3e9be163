@@ -337,7 +337,7 @@ function WisdomChat() {
                       <MessageBubble message={m} />
                       {isLastAssistant && mode !== "companion" && (
                         <InlineArtifactStrip
-                          artifacts={artifacts}
+                          artifacts={artifacts as unknown as SessionArtifacts}
                           busy={busy}
                           hasSession={!!sessionId}
                         />
