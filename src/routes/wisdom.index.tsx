@@ -199,6 +199,21 @@ function WisdomChat() {
   });
   const artifacts = sessionSlice.data;
 
+  // Pipeline telemetry — surface last failed stage as a banner in the rail.
+  const fetchTelemetry = useServerFn(getSessionTelemetry);
+  const telemetry = useQuery({
+    queryKey: ["session-telemetry", sessionId ?? "none"],
+    queryFn: () => fetchTelemetry({ data: { sessionId: sessionId! } }),
+    enabled: !!sessionId && !!user,
+    refetchInterval: busy ? 3000 : 20000,
+  });
+  const latestRuns = telemetry.data?.runs ?? [];
+  const lastErrorRun = [...latestRuns].reverse().find((r) => r.status === "error") as
+    | { stage: string; error: string | null; created_at: string }
+    | undefined;
+
+
+
 
 
   return (
