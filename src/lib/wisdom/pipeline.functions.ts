@@ -231,7 +231,7 @@ export async function runPipelineForSession(userId: string, sessionId: string, i
       headline: composition.hypothesis.name,
       body: composition.hypothesis.description,
       confidence: composition.hypothesis.confidence,
-      event_chain: extraction.event_chain as unknown as object,
+      event_chain: extraction.event_chain as unknown as never,
     }).select("id").single();
     if (iErr) throw new Error(iErr.message);
 
