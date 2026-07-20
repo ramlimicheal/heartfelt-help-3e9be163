@@ -193,6 +193,10 @@ export const getLatestCurseBreakerReading = createServerFn({ method: "GET" })
     return { session: sess, categories: (cats ?? []) as CbCategoryRow[] };
   });
 
+export type JsonValue =
+  | string | number | boolean | null
+  | { [k: string]: JsonValue } | JsonValue[];
+
 export type CbCategoryRow = {
   id: string;
   category: string;
