@@ -190,7 +190,7 @@ export const getLatestCurseBreakerReading = createServerFn({ method: "GET" })
       .select("id, category, cheap_score, confidence, deep_analyzed, pastoral_note, supporting_evidence, counter_evidence, alternative_explanations, citations, updated_at")
       .eq("session_id", sess.id)
       .order("cheap_score", { ascending: false });
-    return { session: sess, categories: (cats ?? []) as CbCategoryRow[] };
+    return { session: sess, categories: (cats ?? []) as unknown as CbCategoryRow[] };
   });
 
 export type JsonValue =
