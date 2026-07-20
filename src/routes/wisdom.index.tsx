@@ -769,12 +769,21 @@ function ConfidenceBar({ value }: { value: number }) {
   );
 }
 
+type EventChainLink = {
+  kind:
+    | "context" | "trigger" | "interpretation" | "need" | "choice"
+    | "immediate_reward" | "cost" | "afterthought" | "re_entry";
+  text: string;
+  fromUser?: boolean;
+};
+
 type SessionArtifacts = {
   interpretation?: {
     hypothesis_name?: string | null;
     hypothesis_description?: string | null;
     confidence?: number | null;
     distinguishing_question?: string | null;
+    event_chain?: EventChainLink[] | null;
   } | null;
   prayer?: {
     id: string;
