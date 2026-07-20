@@ -165,27 +165,44 @@ function PatternDetail() {
       )}
 
       {data.practices.length > 0 && (
-        <Card eyebrow="Practices" title="One next act, plus optional.">
+        <Card eyebrow="Practices" title="Commit to one next act.">
           <div className="space-y-2">
             {data.practices.map((p) => (
-              <div
-                key={p.id}
-                className="rounded-lg border border-surface-border bg-surface/40 px-4 py-3"
-              >
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium">{p.title}</p>
-                  {p.isPrimary && (
-                    <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-primary">
-                      primary
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{p.rationale}</p>
-              </div>
+              <PracticeRow key={p.id} patternId={patternId} practice={p} />
             ))}
           </div>
         </Card>
       )}
+
+      <Card eyebrow="Take it deeper" title="Bring this pattern into Wisdom.">
+        <p className="text-[13px] text-muted-foreground">
+          Open a new turn pre-filled with this pattern so diagnosis flows straight into
+          prayer and practice.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            to="/wisdom"
+            search={{
+              mode: "deep",
+              prompt: `Help me discern the pattern: "${data.title}". ${data.description ?? ""}`.trim(),
+            }}
+            className="rounded-full bg-primary px-3 py-1.5 text-[12px] font-medium text-primary-foreground transition hover:opacity-90"
+          >
+            Take to Wisdom · Deep
+          </Link>
+          <Link
+            to="/wisdom"
+            search={{
+              mode: "companion",
+              prompt: `Pray with me over this pattern in my life: "${data.title}".`,
+            }}
+            className="rounded-full border border-panel-border bg-background/60 px-3 py-1.5 text-[12px] text-foreground/80 transition hover:bg-surface"
+          >
+            Pray it through · Companion
+          </Link>
+        </div>
+      </Card>
+
 
       {data.evidence.length === 0 && data.practices.length === 0 && !data.acceptanceFeedback && !data.rejectedReason && (
         <p className="rounded-xl border border-panel-border bg-panel px-5 py-4 text-sm text-muted-foreground">
