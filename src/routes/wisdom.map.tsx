@@ -63,7 +63,7 @@ function useGraph() {
   return useMemo(() => {
     const hyps = Object.values(HYPOTHESES);
     const archetypes = Object.values(ARCHETYPE_INDEX);
-    const facts = PERSONA_FACTS.filter((f) => f.status !== "proposed_dnr").slice(0, 12);
+    const facts = PERSONA_FACTS.filter((f) => f.status !== "rejected" && f.status !== "deleted").slice(0, 12);
     const prayers = Object.values(PRAYERS);
 
     const patterns: LeafNode[] = hyps.map((h) => ({
