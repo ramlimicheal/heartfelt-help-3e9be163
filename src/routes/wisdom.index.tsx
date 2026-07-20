@@ -439,6 +439,17 @@ function WisdomChat() {
           )}
         </RailCard>
 
+        {lastErrorRun && (
+          <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-[11px] leading-relaxed text-destructive">
+            <div className="flex items-center gap-1.5 font-medium uppercase tracking-[0.14em]">
+              <ShieldAlert className="size-3" /> Pipeline · {lastErrorRun.stage} failed
+            </div>
+            <p className="mt-1 text-destructive/90">
+              {lastErrorRun.error?.slice(0, 220) || "Discernment stage errored. Retry the last message or try a shorter turn."}
+            </p>
+          </div>
+        )}
+
         {/* Live interpretation from the pipeline */}
         {artifacts?.interpretation ? (
           <RailCard
