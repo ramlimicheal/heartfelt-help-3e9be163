@@ -29,9 +29,8 @@ export const Route = createFileRoute("/api/chat")({
           return new Response("Messages required", { status: 400 });
         }
         const lovableKey = process.env.LOVABLE_API_KEY;
-        const geminiKey = process.env.GEMINI_API_KEY;
-        if (!lovableKey && !geminiKey) {
-          return new Response("Missing LOVABLE_API_KEY and GEMINI_API_KEY", { status: 500 });
+        if (!lovableKey) {
+          return new Response("Missing LOVABLE_API_KEY", { status: 500 });
         }
 
         const modeLine =
@@ -46,22 +45,9 @@ export const Route = createFileRoute("/api/chat")({
         const modelMessages = await convertToModelMessages(messages);
         const system = `${SYSTEM}\n\n${modeLine}`;
 
-        const buildGatewayModel = async () => {
-          const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
-          return createLovableAiGatewayProvider(lovableKey!)("google/gemini-3-flash-preview");
-        };
-        const buildDirectGeminiModel = async () => {
-          const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
-          const provider = createOpenAICompatible({
-            name: "gemini-direct",
-            baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
-            headers: { Authorization: `Bearer ${geminiKey}` },
-          });
-          return provider("gemini-2.0-flash");
-        };
+        const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
+        const model = createLovableAiGatewayProvider(lovableKey)("google/gemini-3-flash-preview");
 
-        // Prefer the Lovable AI Gateway; only fall back to a direct Gemini key if the gateway isn't configured.
-        const model = lovableKey ? await buildGatewayModel() : await buildDirectGeminiModel();
         const result = streamText({ model, system, messages: modelMessages });
         return result.toUIMessageStreamResponse({ originalMessages: messages });
       },
