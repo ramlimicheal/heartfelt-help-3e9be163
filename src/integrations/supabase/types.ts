@@ -157,6 +157,218 @@ export type Database = {
         }
         Relationships: []
       }
+      check_ins: {
+        Row: {
+          at: string
+          id: string
+          note: string | null
+          observed: string | null
+          practice_assignment_id: string | null
+          session_id: string | null
+          setback: string | null
+          user_id: string
+        }
+        Insert: {
+          at?: string
+          id?: string
+          note?: string | null
+          observed?: string | null
+          practice_assignment_id?: string | null
+          session_id?: string | null
+          setback?: string | null
+          user_id: string
+        }
+        Update: {
+          at?: string
+          id?: string
+          note?: string | null
+          observed?: string | null
+          practice_assignment_id?: string | null
+          session_id?: string | null
+          setback?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "check_ins_practice_assignment_id_fkey"
+            columns: ["practice_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "practice_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "check_ins_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discernments: {
+        Row: {
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["discernment_kind"]
+          pattern_id: string | null
+          session_id: string
+          text: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["discernment_kind"]
+          pattern_id?: string | null
+          session_id: string
+          text: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["discernment_kind"]
+          pattern_id?: string | null
+          session_id?: string
+          text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discernments_pattern_id_fkey"
+            columns: ["pattern_id"]
+            isOneToOne: false
+            referencedRelation: "patterns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discernments_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formation_events: {
+        Row: {
+          at: string
+          event_type: Database["public"]["Enums"]["formation_event_type"]
+          fruit: string[]
+          id: string
+          note: string | null
+          pattern_id: string | null
+          practice_id: string | null
+          prayer_id: string | null
+          user_id: string
+        }
+        Insert: {
+          at?: string
+          event_type: Database["public"]["Enums"]["formation_event_type"]
+          fruit?: string[]
+          id?: string
+          note?: string | null
+          pattern_id?: string | null
+          practice_id?: string | null
+          prayer_id?: string | null
+          user_id: string
+        }
+        Update: {
+          at?: string
+          event_type?: Database["public"]["Enums"]["formation_event_type"]
+          fruit?: string[]
+          id?: string
+          note?: string | null
+          pattern_id?: string | null
+          practice_id?: string | null
+          prayer_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formation_events_pattern_id_fkey"
+            columns: ["pattern_id"]
+            isOneToOne: false
+            referencedRelation: "patterns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formation_events_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "practices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formation_events_prayer_id_fkey"
+            columns: ["prayer_id"]
+            isOneToOne: false
+            referencedRelation: "prayers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interpretations: {
+        Row: {
+          archetype_id: string | null
+          body: string
+          confidence: number
+          created_at: string
+          headline: string
+          id: string
+          min_source_tier: Database["public"]["Enums"]["source_tier"] | null
+          pattern_id: string | null
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          archetype_id?: string | null
+          body: string
+          confidence: number
+          created_at?: string
+          headline: string
+          id?: string
+          min_source_tier?: Database["public"]["Enums"]["source_tier"] | null
+          pattern_id?: string | null
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          archetype_id?: string | null
+          body?: string
+          confidence?: number
+          created_at?: string
+          headline?: string
+          id?: string
+          min_source_tier?: Database["public"]["Enums"]["source_tier"] | null
+          pattern_id?: string | null
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interpretations_archetype_id_fkey"
+            columns: ["archetype_id"]
+            isOneToOne: false
+            referencedRelation: "biblical_archetypes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interpretations_pattern_id_fkey"
+            columns: ["pattern_id"]
+            isOneToOne: false
+            referencedRelation: "patterns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interpretations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -194,6 +406,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      model_configs: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          model: string
+          params: Json
+          provider: string
+          stage: string
+          version: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          model: string
+          params?: Json
+          provider: string
+          stage: string
+          version: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          model?: string
+          params?: Json
+          provider?: string
+          stage?: string
+          version?: number
+        }
+        Relationships: []
       }
       pattern_events: {
         Row: {
@@ -571,6 +819,306 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_runs: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          idempotency_key: string | null
+          latency_ms: number | null
+          mode: Database["public"]["Enums"]["pipeline_mode"]
+          model: string | null
+          payload_hash: string | null
+          prompt_key: string | null
+          prompt_version: number | null
+          session_id: string
+          stage: string
+          status: Database["public"]["Enums"]["pipeline_run_status"]
+          tokens_in: number | null
+          tokens_out: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          idempotency_key?: string | null
+          latency_ms?: number | null
+          mode: Database["public"]["Enums"]["pipeline_mode"]
+          model?: string | null
+          payload_hash?: string | null
+          prompt_key?: string | null
+          prompt_version?: number | null
+          session_id: string
+          stage: string
+          status: Database["public"]["Enums"]["pipeline_run_status"]
+          tokens_in?: number | null
+          tokens_out?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          idempotency_key?: string | null
+          latency_ms?: number | null
+          mode?: Database["public"]["Enums"]["pipeline_mode"]
+          model?: string | null
+          payload_hash?: string | null
+          prompt_key?: string | null
+          prompt_version?: number | null
+          session_id?: string
+          stage?: string
+          status?: Database["public"]["Enums"]["pipeline_run_status"]
+          tokens_in?: number | null
+          tokens_out?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_runs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      practice_assignments: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          practice_id: string
+          scheduled_for: string | null
+          status: Database["public"]["Enums"]["practice_assignment_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          practice_id: string
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["practice_assignment_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          practice_id?: string
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["practice_assignment_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_assignments_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      practices: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          kind: Database["public"]["Enums"]["practice_kind"]
+          pattern_id: string | null
+          rationale: string
+          session_id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          kind: Database["public"]["Enums"]["practice_kind"]
+          pattern_id?: string | null
+          rationale: string
+          session_id: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          kind?: Database["public"]["Enums"]["practice_kind"]
+          pattern_id?: string | null
+          rationale?: string
+          session_id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practices_pattern_id_fkey"
+            columns: ["pattern_id"]
+            isOneToOne: false
+            referencedRelation: "patterns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "practices_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prayer_line_sources: {
+        Row: {
+          created_at: string
+          derivation: Database["public"]["Enums"]["derivation_type"]
+          explanation: string
+          id: string
+          passage_id: string
+          prayer_line_id: string
+          tier: Database["public"]["Enums"]["source_tier"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          derivation: Database["public"]["Enums"]["derivation_type"]
+          explanation: string
+          id?: string
+          passage_id: string
+          prayer_line_id: string
+          tier: Database["public"]["Enums"]["source_tier"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          derivation?: Database["public"]["Enums"]["derivation_type"]
+          explanation?: string
+          id?: string
+          passage_id?: string
+          prayer_line_id?: string
+          tier?: Database["public"]["Enums"]["source_tier"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prayer_line_sources_passage_id_fkey"
+            columns: ["passage_id"]
+            isOneToOne: false
+            referencedRelation: "source_passages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prayer_line_sources_prayer_line_id_fkey"
+            columns: ["prayer_line_id"]
+            isOneToOne: false
+            referencedRelation: "prayer_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prayer_lines: {
+        Row: {
+          confidence: number
+          created_at: string
+          id: string
+          movement: Database["public"]["Enums"]["prayer_movement"]
+          ordering: number
+          prayer_id: string
+          text: string
+          user_edited: boolean
+          user_id: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          id?: string
+          movement: Database["public"]["Enums"]["prayer_movement"]
+          ordering: number
+          prayer_id: string
+          text: string
+          user_edited?: boolean
+          user_id: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          id?: string
+          movement?: Database["public"]["Enums"]["prayer_movement"]
+          ordering?: number
+          prayer_id?: string
+          text?: string
+          user_edited?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prayer_lines_prayer_id_fkey"
+            columns: ["prayer_id"]
+            isOneToOne: false
+            referencedRelation: "prayers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prayers: {
+        Row: {
+          created_at: string
+          finalized_at: string | null
+          id: string
+          mode: Database["public"]["Enums"]["prayer_mode"]
+          pattern_id: string | null
+          session_id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          finalized_at?: string | null
+          id?: string
+          mode?: Database["public"]["Enums"]["prayer_mode"]
+          pattern_id?: string | null
+          session_id: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          finalized_at?: string | null
+          id?: string
+          mode?: Database["public"]["Enums"]["prayer_mode"]
+          pattern_id?: string | null
+          session_id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prayers_pattern_id_fkey"
+            columns: ["pattern_id"]
+            isOneToOne: false
+            referencedRelation: "patterns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prayers_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           canon_profile: Database["public"]["Enums"]["canon_profile"]
@@ -595,6 +1143,42 @@ export type Database = {
           id?: string
           source_profile?: Database["public"]["Enums"]["source_profile"]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      prompt_versions: {
+        Row: {
+          active: boolean
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+          key: string
+          model_hint: string | null
+          notes: string | null
+          version: number
+        }
+        Insert: {
+          active?: boolean
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key: string
+          model_hint?: string | null
+          notes?: string | null
+          version: number
+        }
+        Update: {
+          active?: boolean
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key?: string
+          model_hint?: string | null
+          notes?: string | null
+          version?: number
         }
         Relationships: []
       }
@@ -873,6 +1457,100 @@ export type Database = {
           },
         ]
       }
+      stronghold_categories: {
+        Row: {
+          alternative_explanations: Json
+          category: Database["public"]["Enums"]["interpretation_category"]
+          cheap_score: number
+          citations: Json
+          confidence: number
+          counter_evidence: Json
+          created_at: string
+          deep_analyzed: boolean
+          id: string
+          pastoral_note: string | null
+          session_id: string
+          supporting_evidence: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alternative_explanations?: Json
+          category: Database["public"]["Enums"]["interpretation_category"]
+          cheap_score?: number
+          citations?: Json
+          confidence?: number
+          counter_evidence?: Json
+          created_at?: string
+          deep_analyzed?: boolean
+          id?: string
+          pastoral_note?: string | null
+          session_id: string
+          supporting_evidence?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alternative_explanations?: Json
+          category?: Database["public"]["Enums"]["interpretation_category"]
+          cheap_score?: number
+          citations?: Json
+          confidence?: number
+          counter_evidence?: Json
+          created_at?: string
+          deep_analyzed?: boolean
+          id?: string
+          pastoral_note?: string | null
+          session_id?: string
+          supporting_evidence?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stronghold_categories_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stronghold_category_approvals: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          note: string | null
+          user_id: string
+          verdict: Database["public"]["Enums"]["category_verdict"]
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          user_id: string
+          verdict: Database["public"]["Enums"]["category_verdict"]
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          user_id?: string
+          verdict?: Database["public"]["Enums"]["category_verdict"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stronghold_category_approvals_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "stronghold_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           assigned_by: string | null
@@ -920,8 +1598,16 @@ export type Database = {
         | "protestant_66"
         | "ethiopian_orthodox_tewahedo_research"
         | "comparative_early_christian_literature"
+      category_verdict: "accepted" | "rejected" | "unsure" | "deferred"
       check_in_result: "kept" | "partial" | "missed" | "deferred"
       derivation_type: "direct" | "inferred" | "pattern_matched"
+      discernment_kind:
+        | "context_note"
+        | "direct_vs_inferred"
+        | "descriptive_vs_prescriptive"
+        | "counter_evidence"
+        | "distinguishing_question"
+        | "tension"
       eval_dimension:
         | "persona_fidelity"
         | "event_chain_fidelity"
@@ -988,6 +1674,30 @@ export type Database = {
         | "rejected"
         | "deleted"
         | "corrected"
+      pipeline_mode: "companion" | "wisdom" | "curse_breaker"
+      pipeline_run_status: "ok" | "error" | "skipped"
+      practice_assignment_status:
+        | "pending"
+        | "committed"
+        | "completed"
+        | "skipped"
+        | "abandoned"
+      practice_kind:
+        | "boundary"
+        | "confession"
+        | "forgiveness"
+        | "restitution"
+        | "reconciliation"
+        | "silence"
+        | "scripture_meditation"
+        | "journaling"
+        | "accountability"
+        | "environmental_change"
+        | "service"
+        | "waiting"
+        | "gratitude"
+        | "fasting_reflection"
+      prayer_mode: "concise" | "full" | "guided" | "journal"
       prayer_movement:
         | "adoration"
         | "confession"
@@ -1143,8 +1853,17 @@ export const Constants = {
         "ethiopian_orthodox_tewahedo_research",
         "comparative_early_christian_literature",
       ],
+      category_verdict: ["accepted", "rejected", "unsure", "deferred"],
       check_in_result: ["kept", "partial", "missed", "deferred"],
       derivation_type: ["direct", "inferred", "pattern_matched"],
+      discernment_kind: [
+        "context_note",
+        "direct_vs_inferred",
+        "descriptive_vs_prescriptive",
+        "counter_evidence",
+        "distinguishing_question",
+        "tension",
+      ],
       eval_dimension: [
         "persona_fidelity",
         "event_chain_fidelity",
@@ -1217,6 +1936,32 @@ export const Constants = {
         "deleted",
         "corrected",
       ],
+      pipeline_mode: ["companion", "wisdom", "curse_breaker"],
+      pipeline_run_status: ["ok", "error", "skipped"],
+      practice_assignment_status: [
+        "pending",
+        "committed",
+        "completed",
+        "skipped",
+        "abandoned",
+      ],
+      practice_kind: [
+        "boundary",
+        "confession",
+        "forgiveness",
+        "restitution",
+        "reconciliation",
+        "silence",
+        "scripture_meditation",
+        "journaling",
+        "accountability",
+        "environmental_change",
+        "service",
+        "waiting",
+        "gratitude",
+        "fasting_reflection",
+      ],
+      prayer_mode: ["concise", "full", "guided", "journal"],
       prayer_movement: [
         "adoration",
         "confession",
