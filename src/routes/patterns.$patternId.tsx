@@ -16,14 +16,30 @@ export const Route = createFileRoute("/patterns/$patternId")({
 function PatternDetail() {
   const { patternId } = Route.useParams();
   const fn = useServerFn(getPatternDetail);
+  const transitionFn = useServerFn(transitionPatternLifecycle);
+  const qc = useQueryClient();
+  const [feedback, setFeedback] = useState("");
   const { data, isLoading, error } = useQuery({
     queryKey: ["pattern", patternId],
     queryFn: () => fn({ data: { patternId } }),
   });
 
+  const transition = useMutation({
+    mutationFn: (lifecycle: "accepted" | "rejected" | "reconsidered") =>
+      transitionFn({ data: { patternId, lifecycle, feedback: feedback.trim() || undefined } }),
+    onSuccess: () => {
+      setFeedback("");
+      qc.invalidateQueries({ queryKey: ["pattern", patternId] });
+      qc.invalidateQueries({ queryKey: ["patterns"] });
+    },
+  });
+
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading pattern…</p>;
   if (error) return <p className="text-sm text-destructive">This pattern could not be loaded.</p>;
   if (!data) return <p className="text-sm text-muted-foreground">Pattern not found.</p>;
+
+  const isTerminal = data.lifecycle === "accepted" || data.lifecycle === "rejected";
+
 
   return (
     <div className="space-y-6">
