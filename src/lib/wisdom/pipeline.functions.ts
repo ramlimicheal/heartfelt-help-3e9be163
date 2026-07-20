@@ -106,7 +106,9 @@ export const runWisdomPipeline = createServerFn({ method: "POST" })
     if (firstUserMsgId) {
       const rows = extraction.signals.slice(0, 20).map((s) => ({
         user_id: userId, session_id: data.sessionId, source_message_id: firstUserMsgId,
-        kind: s.kind, paraphrase: s.paraphrase, explicit: s.explicit, confidence: s.confidence,
+        kind: s.kind, confidence: s.confidence,
+        origin: (s.explicit ? "explicit" : "inferred") as "explicit" | "inferred",
+        payload: { paraphrase: s.paraphrase },
       }));
       if (rows.length) await db.from("signals").insert(rows);
     }
