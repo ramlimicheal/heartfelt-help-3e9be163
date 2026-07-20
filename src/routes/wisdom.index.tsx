@@ -187,9 +187,22 @@ function WisdomChat() {
               <EmptyState onPick={(p, m) => { setInput(p); setMode(m); textareaRef.current?.focus(); }} />
             ) : (
               <div className="mx-auto flex max-w-3xl flex-col gap-8 py-8">
-                {messages.map((m) => (
-                  <MessageBubble key={m.id} message={m} />
-                ))}
+                {messages.map((m, idx) => {
+                  const isLastAssistant =
+                    m.role === "assistant" && idx === messages.length - 1;
+                  return (
+                    <div key={m.id} className="space-y-4">
+                      <MessageBubble message={m} />
+                      {isLastAssistant && mode !== "companion" && (
+                        <InlineArtifactStrip
+                          artifacts={artifacts}
+                          busy={busy}
+                          hasSession={!!sessionId}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
                 {status === "submitted" && (
                   <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
                     <Loader2 className="size-3 animate-spin" /> Wisdom is listening…
@@ -201,6 +214,7 @@ function WisdomChat() {
                   </div>
                 )}
               </div>
+
             )}
           </div>
 
