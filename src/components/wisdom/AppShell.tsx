@@ -397,3 +397,48 @@ export function AppShell({ children }: { children?: ReactNode }) {
     </div>
   );
 }
+
+function RecentSessionsSection({ user, pathname }: { user: { id: string } | null; pathname: string }) {
+  const fetchSlice = useServerFn(getDashboardSlice);
+  const q = useQuery({
+    queryKey: ["dashboard-slice", user?.id ?? "anon"],
+    queryFn: () => fetchSlice(),
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+  const sessions = q.data?.recentSessions ?? [];
+  return (
+    <div className="mt-6 px-3">
+      <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        Recent
+      </p>
+      {q.isLoading ? (
+        <div className="space-y-1 px-2" aria-busy="true">
+          <div className="h-3 w-3/4 animate-pulse rounded bg-surface/70" />
+          <div className="h-3 w-2/3 animate-pulse rounded bg-surface/70" />
+        </div>
+      ) : sessions.length === 0 ? (
+        <p className="px-2 text-[11px] text-muted-foreground">No sessions yet.</p>
+      ) : (
+        <ul className="space-y-0.5">
+          {sessions.slice(0, 5).map((s) => (
+            <li key={s.id}>
+              <Link
+                to="/wisdom/$sessionId"
+                params={{ sessionId: s.id }}
+                className={[
+                  "block truncate rounded-sm px-2.5 py-1.5 text-xs transition",
+                  pathname.includes(s.id)
+                    ? "bg-surface text-foreground"
+                    : "text-muted-foreground hover:bg-surface/60 hover:text-foreground",
+                ].join(" ")}
+              >
+                {s.title ?? "Untitled session"}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
