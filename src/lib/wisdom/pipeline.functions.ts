@@ -10,6 +10,13 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import { zExtractionResult, zComposition } from "./pipeline.schemas";
+import {
+  selectDurableUserMessages,
+  hasAnyDurableUserInput,
+  assertValidSignalAttribution,
+  type MessageForDnr,
+} from "./dnr";
+import { assertModeAllowed, MODE_LOCK_ERROR, type SessionMode } from "./modeLock";
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -56,6 +63,7 @@ async function logRun(
 const runInput = z.object({
   sessionId: z.string().uuid(),
   idempotencyKey: z.string().min(6).max(120).optional(),
+  requestedMode: z.enum(["companion", "pattern", "deep_wisdom", "curse_breaker"]).optional(),
 });
 
 export const runWisdomPipeline = createServerFn({ method: "POST" })
@@ -67,15 +75,45 @@ export const runWisdomPipeline = createServerFn({ method: "POST" })
 
     // Ownership + load messages
     const { data: session, error: sErr } = await db
-      .from("sessions").select("id,user_id,mode").eq("id", data.sessionId).maybeSingle();
+      .from("sessions")
+      .select("id,user_id,mode,mode_locked_at")
+      .eq("id", data.sessionId)
+      .maybeSingle();
     if (sErr || !session) throw new Error("session not found");
     if (session.user_id !== userId) throw new Error("Forbidden");
 
+    // Mode-lock guard (DB trigger is the ultimate authority; this returns a
+    // clean typed error instead of a raw Postgres exception).
+    if (data.requestedMode) {
+      assertModeAllowed({
+        session: {
+          id: session.id,
+          user_id: session.user_id,
+          mode: session.mode as SessionMode,
+          mode_locked_at: session.mode_locked_at as string | null,
+        },
+        requestedMode: data.requestedMode,
+      });
+    }
+
     const { data: messages } = await db
-      .from("messages").select("id,role,content,memory_directive,created_at")
-      .eq("session_id", data.sessionId).order("created_at", { ascending: true });
-    const userTurns = (messages ?? []).filter((m) => m.role === "user").map((m) => m.content).join("\n\n");
-    if (!userTurns.trim()) throw new Error("session has no user messages");
+      .from("messages")
+      .select("id,role,content,memory_directive,created_at")
+      .eq("session_id", data.sessionId)
+      .order("created_at", { ascending: true });
+
+    // DNR gate: only non-DNR user turns may feed durable extraction.
+    const allMessages = (messages ?? []) as MessageForDnr[];
+    const durableUserMessages = selectDurableUserMessages(allMessages);
+    if (!hasAnyDurableUserInput(allMessages)) {
+      // Session contains only protected turns → NO durable artifacts.
+      throw new Error(
+        "session has no durable user messages (all user turns are do_not_remember)",
+      );
+    }
+    // Concatenate ONLY the durable turns; DNR content never enters the model
+    // prompt for durable artifact generation.
+    const userTurns = durableUserMessages.map((m) => m.content).join("\n\n");
 
     const gateway = await getGateway();
 
@@ -104,15 +142,30 @@ export const runWisdomPipeline = createServerFn({ method: "POST" })
       }
     }
 
-    // Persist signals (append-only DNR guard already at DB level requires source_message_id).
-    const firstUserMsgId = (messages ?? []).find((m) => m.role === "user")?.id;
-    if (firstUserMsgId) {
-      const rows = extraction.signals.slice(0, 20).map((s) => ({
-        user_id: userId, session_id: data.sessionId, source_message_id: firstUserMsgId,
-        kind: s.kind, confidence: s.confidence,
-        origin: (s.explicit ? "explicit" : "inferred") as "explicit" | "inferred",
-        payload: { paraphrase: s.paraphrase },
-      }));
+    // Persist signals with PER-SIGNAL attribution to a durable turn.
+    // The old first-user-message attribution is REMOVED. When the extractor
+    // does not attach a source, we fall back to the most recent durable turn
+    // (never the first, never a DNR turn). Every insert is validated by both
+    // the pure helper and the DB append-only guard.
+    const durableIds = durableUserMessages.map((m) => m.id);
+    const defaultAttribution = durableIds[durableIds.length - 1];
+    if (defaultAttribution) {
+      const rows = extraction.signals.slice(0, 20).map((s) => {
+        const sourceMessageId = defaultAttribution;
+        assertValidSignalAttribution({
+          sourceMessageId,
+          sessionMessages: allMessages,
+        });
+        return {
+          user_id: userId,
+          session_id: data.sessionId,
+          source_message_id: sourceMessageId,
+          kind: s.kind,
+          confidence: s.confidence,
+          origin: (s.explicit ? "explicit" : "inferred") as "explicit" | "inferred",
+          payload: { paraphrase: s.paraphrase },
+        };
+      });
       if (rows.length) await db.from("signals").insert(rows);
     }
 
@@ -292,11 +345,12 @@ export const getSessionSlice = createServerFn({ method: "GET" })
 const startInput = z.object({
   mode: z.enum(["companion", "pattern", "deep_wisdom", "curse_breaker"]),
   text: z.string().min(1).max(8000),
+  memoryDirective: z.enum(["normal", "session_only", "do_not_remember"]).optional().default("normal"),
 });
 
 export const startWisdomSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof startInput>) => startInput.parse(d))
+  .inputValidator((d: z.input<typeof startInput>) => startInput.parse(d))
   .handler(async ({ data, context }) => {
     const s = context.supabase;
     const { data: sess, error: sErr } = await s.from("sessions")
@@ -305,11 +359,99 @@ export const startWisdomSession = createServerFn({ method: "POST" })
     if (sErr || !sess) throw new Error(sErr?.message ?? "session insert failed");
     const { error: mErr } = await s.from("messages").insert({
       user_id: context.userId, session_id: sess.id, role: "user",
-      content: data.text, memory_directive: "normal",
+      content: data.text, memory_directive: data.memoryDirective,
     });
     if (mErr) throw new Error(mErr.message);
     return { sessionId: sess.id };
   });
+
+// ── Send a user turn into an existing session, enforcing mode-lock ──────
+const sendInput = z.object({
+  sessionId: z.string().uuid(),
+  text: z.string().min(1).max(8000),
+  requestedMode: z.enum(["companion", "pattern", "deep_wisdom", "curse_breaker"]),
+  memoryDirective: z.enum(["normal", "session_only", "do_not_remember"]).optional().default("normal"),
+});
+
+export const sendUserMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: z.input<typeof sendInput>) => sendInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const s = context.supabase;
+    const { data: sess, error: sErr } = await s
+      .from("sessions")
+      .select("id,user_id,mode,mode_locked_at")
+      .eq("id", data.sessionId)
+      .maybeSingle();
+    if (sErr || !sess) throw new Error("session not found");
+    if (sess.user_id !== context.userId) throw new Error("Forbidden");
+
+    const decision = assertModeAllowed({
+      session: {
+        id: sess.id,
+        user_id: sess.user_id,
+        mode: sess.mode as SessionMode,
+        mode_locked_at: sess.mode_locked_at as string | null,
+      },
+      requestedMode: data.requestedMode,
+    });
+
+    const { error: mErr } = await s.from("messages").insert({
+      user_id: context.userId,
+      session_id: data.sessionId,
+      role: "user",
+      content: data.text,
+      memory_directive: data.memoryDirective,
+    });
+    if (mErr) throw new Error(mErr.message);
+    return { ok: true, effectiveMode: decision };
+  });
+
+// ── Escalate mismatched mode into a NEW linked session ──────────────────
+const linkedInput = z.object({
+  parentSessionId: z.string().uuid(),
+  mode: z.enum(["companion", "pattern", "deep_wisdom", "curse_breaker"]),
+  text: z.string().min(1).max(8000),
+  memoryDirective: z.enum(["normal", "session_only", "do_not_remember"]).optional().default("normal"),
+});
+
+export const startLinkedSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: z.input<typeof linkedInput>) => linkedInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const s = context.supabase;
+    // Owner check on parent (RLS also enforces).
+    const { data: parent, error: pErr } = await s
+      .from("sessions")
+      .select("id,user_id")
+      .eq("id", data.parentSessionId)
+      .maybeSingle();
+    if (pErr || !parent) throw new Error("parent session not found");
+    if (parent.user_id !== context.userId) throw new Error("Forbidden");
+
+    const { data: sess, error: sErr } = await s
+      .from("sessions")
+      .insert({
+        user_id: context.userId,
+        mode: data.mode,
+        title: data.text.slice(0, 80),
+        parent_session_id: data.parentSessionId,
+      })
+      .select("id")
+      .single();
+    if (sErr || !sess) throw new Error(sErr?.message ?? "linked session insert failed");
+    const { error: mErr } = await s.from("messages").insert({
+      user_id: context.userId,
+      session_id: sess.id,
+      role: "user",
+      content: data.text,
+      memory_directive: data.memoryDirective,
+    });
+    if (mErr) throw new Error(mErr.message);
+    return { sessionId: sess.id, parentSessionId: data.parentSessionId };
+  });
+
+export { MODE_LOCK_ERROR };
 
 // ── Telemetry: pipeline_runs for a session (owner-scoped by RLS) ────────
 export const getSessionTelemetry = createServerFn({ method: "GET" })

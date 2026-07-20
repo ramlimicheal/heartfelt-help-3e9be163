@@ -172,14 +172,17 @@ function WisdomChat() {
               <div className="flex items-center gap-0.5 rounded-full border border-panel-border bg-background/60 p-0.5">
                 {MODES.map((m) => {
                   const active = mode === m.id;
+                  const locked = messages.length > 0;
                   return (
                     <button
                       key={m.id}
-                      onClick={() => setMode(m.id)}
-                      title={m.hint}
+                      onClick={() => !locked && setMode(m.id)}
+                      disabled={locked && !active}
+                      title={locked ? "Mode locks after the first message. Start a new session to switch." : m.hint}
                       className={[
                         "rounded-full px-2.5 py-1 text-[11px] transition",
                         active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                        locked && !active ? "cursor-not-allowed opacity-40" : "",
                       ].join(" ")}
                     >
                       {m.label}
@@ -188,7 +191,9 @@ function WisdomChat() {
                 })}
               </div>
               <span className="hidden text-[10px] uppercase tracking-[0.14em] text-muted-foreground md:inline">
-                {MODES.find((m) => m.id === mode)?.hint}
+                {messages.length > 0
+                  ? `Locked · ${MODES.find((m) => m.id === mode)?.label}`
+                  : MODES.find((m) => m.id === mode)?.hint}
               </span>
               <button
                 onClick={submit}
