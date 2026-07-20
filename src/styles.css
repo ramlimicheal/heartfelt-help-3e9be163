@@ -180,17 +180,16 @@ body {
   background: var(--panel);
 }
 
-@property --shine-angle {
-  syntax: "<angle>";
-  initial-value: 0deg;
-  inherits: false;
+@keyframes shine-orbit {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
-@keyframes shine-spin {
-  0% { --shine-angle: 0deg; }
-  100% { --shine-angle: 360deg; }
-}
-.animate-shine-spin {
-  animation: shine-spin var(--duration, 6s) linear infinite;
+.animate-shine-orbit {
+  animation: shine-orbit var(--duration, 4s) linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
