@@ -529,18 +529,19 @@ function DetailRail({
 function resolveDetail(node: LeafNode) {
   if (node.kind === "archetype") {
     const a = ARCHETYPE_INDEX[node.refId];
-    const passage = a ? PASSAGE_INDEX[a.passageRefs[0]] : undefined;
+    const passage = a ? PASSAGE_INDEX[a.primaryPassages[0]?.id] : undefined;
     return {
-      title: a ? `${a.person} — ${a.title}` : node.label,
+      title: a ? `${a.person} — ${a.headline}` : node.label,
       summary:
         passage?.curatorSummary ??
+        a?.narrativeSummary ??
         "A biblical mirror surfaced from your pattern graph. Names the shape, not the person.",
       scores: { percent: 72, delta: "-4%", label: "Moderate" },
       metrics: [
-        { label: "Passages", value: a?.passageRefs.length ?? 0, icon: Layers },
+        { label: "Passages", value: a?.primaryPassages.length ?? 0, icon: Layers },
         { label: "Related patterns", value: 3, icon: Scale },
         { label: "Prayers linked", value: 2, icon: Sparkles },
-        { label: "Practices", value: 4, icon: Activity },
+        { label: "Practices", value: a?.practiceMovements.length ?? 0, icon: Activity },
       ],
       recommendation: {
         title: "Sit with the mirror",
@@ -552,7 +553,7 @@ function resolveDetail(node: LeafNode) {
   if (node.kind === "fact") {
     const f = PERSONA_FACTS.find((x) => x.id === node.refId);
     return {
-      title: f?.summary ?? node.label,
+      title: f?.value ?? node.label,
       summary:
         "A remembered belief in your persona graph. Editable, contestable, always yours to revise.",
       scores: {
@@ -561,10 +562,10 @@ function resolveDetail(node: LeafNode) {
         label: (f?.confidence ?? 0.6) > 0.7 ? "Strong" : "Moderate",
       },
       metrics: [
-        { label: "Sources", value: f?.sourceMessageIds.length ?? 1, icon: Layers },
-        { label: "Sensitivity", value: f?.sensitivity ?? "std", icon: Scale },
-        { label: "Directive", value: f?.remember ? "Keep" : "DNR", icon: Sparkles },
-        { label: "Related", value: 2, icon: Activity },
+        { label: "Sources", value: f?.evidenceMessageIds.length ?? 1, icon: Layers },
+        { label: "Sensitivity", value: f?.sensitivity ?? "normal", icon: Scale },
+        { label: "Status", value: f?.status ?? "proposed", icon: Sparkles },
+        { label: "Domain", value: f?.domain ?? "—", icon: Activity },
       ],
       recommendation: {
         title: "Test the belief",
@@ -578,14 +579,14 @@ function resolveDetail(node: LeafNode) {
     return {
       title: p?.title ?? node.label,
       summary:
-        p?.movements.map((m) => m.text).join(" ").slice(0, 220) ??
+        (p?.lines.map((l) => l.text).join(" ").slice(0, 220)) ??
         "A prayer scaffold rooted in Scripture. Not a script — a starting point.",
       scores: { percent: 65, delta: "0%", label: "Steady" },
       metrics: [
-        { label: "Movements", value: p?.movements.length ?? 3, icon: Layers },
-        { label: "Sources", value: p?.movements[0]?.sourceIds.length ?? 1, icon: Scale },
+        { label: "Lines", value: p?.lines.length ?? 3, icon: Layers },
+        { label: "Sources", value: p?.lines[0]?.sources.length ?? 1, icon: Scale },
         { label: "Tier", value: "S1", icon: Sparkles },
-        { label: "Used", value: 1, icon: Activity },
+        { label: "Mode", value: p?.mode ?? "concise", icon: Activity },
       ],
       recommendation: {
         title: "Pray slowly",
