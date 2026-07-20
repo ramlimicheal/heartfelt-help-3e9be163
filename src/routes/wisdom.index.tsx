@@ -184,39 +184,42 @@ function WisdomChat() {
           </div>
         </RailCard>
 
-        <RailCard label="Emerging pattern" head={primaryHyp.name}>
-          <ConfidenceBar value={primaryHyp.confidence} />
-          <p className="mt-2 line-clamp-3 text-[11.5px] text-muted-foreground">
-            Wisdom will confirm this pattern once you've named more of what's happening.
-          </p>
-        </RailCard>
+        {d?.patterns.mostRecent ? (
+          <RailCard label="Emerging pattern" head={d.patterns.mostRecent.title}>
+            <p className="text-[11.5px] text-muted-foreground">
+              {d.patterns.mostRecent.lifecycle} · updated {new Date(d.patterns.mostRecent.updatedAt).toLocaleDateString()}
+            </p>
+            <p className="mt-2 line-clamp-3 text-[11.5px] italic text-muted-foreground">
+              This remains a candidate until you confirm or refine it.
+            </p>
+          </RailCard>
+        ) : (
+          <RailCard label="Emerging pattern" head="Nothing surfaced yet">
+            <p className="text-[11.5px] text-muted-foreground">
+              Patterns appear only after you describe a real situation.
+            </p>
+          </RailCard>
+        )}
 
-        <RailCard label="Candidate mirror" head={arch?.person ?? "—"}>
-          <p className="text-[11.5px] text-muted-foreground">{arch?.headline}</p>
-          <div className="mt-2 rounded-lg border border-panel-border bg-background/40 px-2.5 py-1.5 text-[11px]">
-            <span className="text-muted-foreground">Passage · </span>
-            <span className="font-medium">{passage?.reference}</span>
-            <span className="ml-1 rounded bg-primary/15 px-1 py-0.5 text-[9px] uppercase tracking-wider text-primary">S1</span>
-          </div>
-        </RailCard>
+        {d?.latestPrayer ? (
+          <RailCard label="Latest prayer" head={`${d.latestPrayer.movementCount} movements`}>
+            <p className="line-clamp-2 text-[11.5px] text-muted-foreground">{d.latestPrayer.title}</p>
+            <Link
+              to="/prayers/$prayerId"
+              params={{ prayerId: d.latestPrayer.id }}
+              className="mt-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
+            >
+              Open prayer →
+            </Link>
+          </RailCard>
+        ) : (
+          <RailCard label="Prayer" head="Not formed yet">
+            <p className="text-[11.5px] text-muted-foreground">
+              A prayer will appear after Wisdom understands the situation and verifies its biblical roots.
+            </p>
+          </RailCard>
+        )}
 
-        <RailCard label="Prayer drafting" head={`${prayer.lines.length} movements`}>
-          <div className="flex items-end gap-[3px] h-8">
-            {prayer.lines.map((_, i) => (
-              <span
-                key={i}
-                className="w-[6px] rounded-sm"
-                style={{ height: `${40 + i * 10}%`, background: i < 3 ? "var(--primary)" : "oklch(1 0 0 / 0.15)" }}
-              />
-            ))}
-          </div>
-          <Link
-            to="/dashboard"
-            className="mt-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
-          >
-            Open dashboard →
-          </Link>
-        </RailCard>
       </aside>
     </div>
   );
