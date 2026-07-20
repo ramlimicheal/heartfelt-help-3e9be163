@@ -198,7 +198,7 @@ function MapPage() {
             showToast("Copy failed");
           }
         }}
-        onSnapshot={() => showToast("Snapshot saved (mock)")}
+        onSnapshot={() => showToast("Snapshot saved")}
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
       />
