@@ -123,6 +123,19 @@ function WisdomChat() {
   });
   const d = slice.data;
 
+  // Live session artifacts (interpretation / prayer / practice) surfaced from the pipeline.
+  const fetchSessionSlice = useServerFn(getSessionSlice);
+  const sessionSlice = useQuery({
+    queryKey: ["session-slice", sessionId ?? "none"],
+    queryFn: () => fetchSessionSlice({ data: { sessionId: sessionId! } }),
+    enabled: !!sessionId && !!user,
+    // Poll while a turn is being processed; slow down when idle.
+    refetchInterval: busy ? 2500 : 15000,
+    staleTime: 1000,
+  });
+  const artifacts = sessionSlice.data;
+
+
 
   return (
     <div className="relative flex h-[calc(100vh-6rem)] gap-4 md:gap-6">
