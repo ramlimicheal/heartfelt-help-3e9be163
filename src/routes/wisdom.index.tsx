@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   ArrowUp,
   BookOpen,
@@ -491,8 +492,58 @@ function MessageBubble({ message }: { message: UIMessage }) {
 
 function ProseBlock({ text }: { text: string }) {
   return (
-    <div className="prose prose-sm prose-invert max-w-none text-[14px] leading-relaxed text-foreground/90 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-primary/60 [&_blockquote]:pl-3 [&_blockquote]:text-foreground/85 [&_blockquote]:italic [&_ul]:my-2 [&_ol]:my-2 [&_p]:my-2">
-      <ReactMarkdown>{text}</ReactMarkdown>
+    <div className="text-[14px] leading-relaxed text-foreground/90">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          p: ({ children }) => <p className="my-2 first:mt-0 last:mb-0">{children}</p>,
+          strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+          em: ({ children }) => <em className="italic text-foreground/90">{children}</em>,
+          h1: ({ children }) => <h1 className="mt-4 mb-2 text-lg font-semibold text-foreground first:mt-0">{children}</h1>,
+          h2: ({ children }) => <h2 className="mt-4 mb-2 text-base font-semibold text-foreground first:mt-0">{children}</h2>,
+          h3: ({ children }) => <h3 className="mt-3 mb-1.5 text-[15px] font-semibold text-foreground first:mt-0">{children}</h3>,
+          h4: ({ children }) => <h4 className="mt-3 mb-1 text-[14px] font-semibold text-foreground first:mt-0">{children}</h4>,
+          ul: ({ children }) => <ul className="my-2 list-disc space-y-1 pl-5 marker:text-primary/70">{children}</ul>,
+          ol: ({ children }) => <ol className="my-2 list-decimal space-y-1 pl-5 marker:text-primary/70">{children}</ol>,
+          li: ({ children }) => <li className="pl-1 leading-relaxed">{children}</li>,
+          blockquote: ({ children }) => (
+            <blockquote className="my-2 border-l-2 border-primary/60 pl-3 italic text-foreground/85">
+              {children}
+            </blockquote>
+          ),
+          a: ({ children, href }) => (
+            <a href={href} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80">
+              {children}
+            </a>
+          ),
+          code: ({ children, className }) => {
+            const isBlock = /language-/.test(className ?? "");
+            if (isBlock) {
+              return (
+                <code className="block overflow-x-auto rounded-lg border border-panel-border bg-surface/70 p-3 text-[12.5px] font-mono text-foreground/90">
+                  {children}
+                </code>
+              );
+            }
+            return (
+              <code className="rounded bg-surface/70 px-1.5 py-0.5 text-[12.5px] font-mono text-foreground/90">
+                {children}
+              </code>
+            );
+          },
+          pre: ({ children }) => <pre className="my-2">{children}</pre>,
+          hr: () => <hr className="my-3 border-panel-border/60" />,
+          table: ({ children }) => (
+            <div className="my-3 overflow-x-auto">
+              <table className="w-full border-collapse text-[13px]">{children}</table>
+            </div>
+          ),
+          th: ({ children }) => <th className="border-b border-panel-border px-2 py-1 text-left font-semibold">{children}</th>,
+          td: ({ children }) => <td className="border-b border-panel-border/50 px-2 py-1 align-top">{children}</td>,
+        }}
+      >
+        {text}
+      </ReactMarkdown>
     </div>
   );
 }
