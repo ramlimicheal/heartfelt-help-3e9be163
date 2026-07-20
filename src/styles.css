@@ -180,12 +180,17 @@ body {
   background: var(--panel);
 }
 
-@keyframes shine {
-  0% { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
+@property --shine-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
 }
-.animate-shine {
-  animation: shine var(--duration, 14s) linear infinite;
+@keyframes shine-spin {
+  0% { --shine-angle: 0deg; }
+  100% { --shine-angle: 360deg; }
+}
+.animate-shine-spin {
+  animation: shine-spin var(--duration, 6s) linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
