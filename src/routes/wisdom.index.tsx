@@ -93,6 +93,10 @@ function WisdomHome() {
 
   const begin = async () => {
     if (!text.trim() || busy) return;
+    if (ready && !user) {
+      navigate({ to: "/auth", search: { redirect: "/wisdom" } });
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -111,6 +115,7 @@ function WisdomHome() {
       setBusy(false);
     }
   };
+
 
 
 
