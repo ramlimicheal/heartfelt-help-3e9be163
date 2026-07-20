@@ -6,6 +6,7 @@ import {
   LogIn,
   LogOut,
   Moon,
+  Orbit,
   Plus,
   Settings,
   ShieldAlert,
@@ -26,6 +27,7 @@ type NavItem = { to: string; label: string; Icon: typeof Compass };
 const NAV: NavItem[] = [
   { to: "/wisdom", label: "Wisdom", Icon: Sparkles },
   { to: "/wisdom/curse-breaker", label: "Curse Breaker", Icon: ShieldAlert },
+  { to: "/wisdom/map", label: "Constellation", Icon: Orbit },
   { to: "/patterns", label: "Patterns", Icon: Compass },
   { to: "/prayers", label: "Prayer", Icon: Hand },
   { to: "/journey", label: "Journey", Icon: BookOpen },
