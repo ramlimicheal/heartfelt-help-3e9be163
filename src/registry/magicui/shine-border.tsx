@@ -16,7 +16,7 @@ interface ShineBorderProps {
  */
 export function ShineBorder({
   borderWidth = 1,
-  duration = 6,
+  duration = 4,
   shineColor = "#E8DFC8",
   className,
   style,
@@ -27,7 +27,6 @@ export function ShineBorder({
       style={{
         "--border-width": `${borderWidth}px`,
         "--duration": `${duration}s`,
-        backgroundImage: `conic-gradient(from var(--shine-angle, 0deg), transparent 0%, transparent 60%, ${colors} 75%, transparent 90%, transparent 100%)`,
         mask: `linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)`,
         WebkitMask: `linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)`,
         WebkitMaskComposite: "xor",
@@ -36,9 +35,16 @@ export function ShineBorder({
         ...style,
       } as React.CSSProperties}
       className={cn(
-        "pointer-events-none absolute inset-0 size-full rounded-[inherit] motion-safe:animate-shine-spin",
+        "pointer-events-none absolute inset-0 size-full overflow-hidden rounded-[inherit]",
         className,
       )}
-    />
+    >
+      <div
+        className="animate-shine-orbit absolute left-1/2 top-1/2 aspect-square w-[180%] -translate-x-1/2 -translate-y-1/2"
+        style={{
+          backgroundImage: `conic-gradient(from 0deg, transparent 0%, transparent 58%, ${colors} 69%, rgba(255,255,255,0.95) 72%, ${colors} 76%, transparent 88%, transparent 100%)`,
+        }}
+      />
+    </div>
   );
 }
