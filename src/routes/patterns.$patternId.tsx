@@ -2,8 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { getPatternDetail, transitionPatternLifecycle } from "@/lib/wisdom/patterns.functions";
+import {
+  getPatternDetail,
+  setPracticeAssignment,
+  transitionPatternLifecycle,
+  type PatternPracticeItem,
+  type PracticeAssignmentStatus,
+} from "@/lib/wisdom/patterns.functions";
 import { Card } from "@/components/wisdom/primitives";
+
 
 
 export const Route = createFileRoute("/patterns/$patternId")({
@@ -158,27 +165,44 @@ function PatternDetail() {
       )}
 
       {data.practices.length > 0 && (
-        <Card eyebrow="Practices" title="One next act, plus optional.">
+        <Card eyebrow="Practices" title="Commit to one next act.">
           <div className="space-y-2">
             {data.practices.map((p) => (
-              <div
-                key={p.id}
-                className="rounded-lg border border-surface-border bg-surface/40 px-4 py-3"
-              >
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium">{p.title}</p>
-                  {p.isPrimary && (
-                    <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-primary">
-                      primary
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{p.rationale}</p>
-              </div>
+              <PracticeRow key={p.id} patternId={patternId} practice={p} />
             ))}
           </div>
         </Card>
       )}
+
+      <Card eyebrow="Take it deeper" title="Bring this pattern into Wisdom.">
+        <p className="text-[13px] text-muted-foreground">
+          Open a new turn pre-filled with this pattern so diagnosis flows straight into
+          prayer and practice.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            to="/wisdom"
+            search={{
+              mode: "deep",
+              prompt: `Help me discern the pattern: "${data.title}". ${data.description ?? ""}`.trim(),
+            }}
+            className="rounded-full bg-primary px-3 py-1.5 text-[12px] font-medium text-primary-foreground transition hover:opacity-90"
+          >
+            Take to Wisdom · Deep
+          </Link>
+          <Link
+            to="/wisdom"
+            search={{
+              mode: "companion",
+              prompt: `Pray with me over this pattern in my life: "${data.title}".`,
+            }}
+            className="rounded-full border border-panel-border bg-background/60 px-3 py-1.5 text-[12px] text-foreground/80 transition hover:bg-surface"
+          >
+            Pray it through · Companion
+          </Link>
+        </div>
+      </Card>
+
 
       {data.evidence.length === 0 && data.practices.length === 0 && !data.acceptanceFeedback && !data.rejectedReason && (
         <p className="rounded-xl border border-panel-border bg-panel px-5 py-4 text-sm text-muted-foreground">
@@ -188,3 +212,85 @@ function PatternDetail() {
     </div>
   );
 }
+
+const STATUS_LABEL: Record<PracticeAssignmentStatus, string> = {
+  pending: "pending",
+  committed: "committed",
+  completed: "completed",
+  skipped: "skipped",
+  abandoned: "abandoned",
+};
+
+function PracticeRow({
+  patternId,
+  practice,
+}: {
+  patternId: string;
+  practice: PatternPracticeItem;
+}) {
+  const setFn = useServerFn(setPracticeAssignment);
+  const qc = useQueryClient();
+  const mutate = useMutation({
+    mutationFn: (status: "committed" | "completed" | "skipped") =>
+      setFn({ data: { practiceId: practice.id, status } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pattern", patternId] });
+      qc.invalidateQueries({ queryKey: ["journey"] });
+    },
+  });
+  const status = practice.assignmentStatus;
+  const isCompleted = status === "completed";
+  return (
+    <div className="rounded-lg border border-surface-border bg-surface/40 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-sm font-medium">{practice.title}</p>
+        {practice.isPrimary && (
+          <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-primary">
+            primary
+          </span>
+        )}
+        {status && (
+          <span className="ml-auto rounded-full border border-panel-border px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+            {STATUS_LABEL[status]}
+          </span>
+        )}
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">{practice.rationale}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {!isCompleted && status !== "committed" && (
+          <button
+            onClick={() => mutate.mutate("committed")}
+            disabled={mutate.isPending}
+            className="rounded-full bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+          >
+            Commit
+          </button>
+        )}
+        {!isCompleted && (
+          <button
+            onClick={() => mutate.mutate("completed")}
+            disabled={mutate.isPending}
+            className="rounded-full border border-panel-border bg-background/60 px-3 py-1.5 text-[11px] text-foreground/80 transition hover:bg-surface disabled:opacity-50"
+          >
+            Mark done
+          </button>
+        )}
+        {!isCompleted && (
+          <button
+            onClick={() => mutate.mutate("skipped")}
+            disabled={mutate.isPending}
+            className="rounded-full border border-panel-border bg-background/60 px-3 py-1.5 text-[11px] text-muted-foreground transition hover:bg-surface disabled:opacity-50"
+          >
+            Skip
+          </button>
+        )}
+        {mutate.error && (
+          <span className="text-[11px] text-destructive">
+            {(mutate.error as Error).message}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+

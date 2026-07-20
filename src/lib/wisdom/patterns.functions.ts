@@ -102,13 +102,25 @@ export type PatternEvidenceItem = {
   createdAt: string;
 };
 
+export type PracticeAssignmentStatus =
+  | "pending"
+  | "committed"
+  | "completed"
+  | "skipped"
+  | "abandoned";
+
 export type PatternPracticeItem = {
   id: string;
   kind: string;
   title: string;
   rationale: string;
   isPrimary: boolean;
+  assignmentId: string | null;
+  assignmentStatus: PracticeAssignmentStatus | null;
+  completedAt: string | null;
 };
+
+
 
 export type PatternDetail = {
   id: string;
@@ -157,6 +169,30 @@ export const getPatternDetail = createServerFn({ method: "GET" })
     if (evRes.error) throw new Error(evRes.error.message);
     if (prRes.error) throw new Error(prRes.error.message);
 
+    const practiceIds = (prRes.data ?? []).map((r) => r.id);
+    const assignmentByPractice = new Map<
+      string,
+      { id: string; status: PracticeAssignmentStatus; completedAt: string | null }
+    >();
+    if (practiceIds.length > 0) {
+      const { data: assignments, error: aErr } = await context.supabase
+        .from("practice_assignments")
+        .select("id, practice_id, status, completed_at, updated_at")
+        .in("practice_id", practiceIds)
+        .eq("user_id", context.userId)
+        .order("updated_at", { ascending: false });
+      if (aErr) throw new Error(aErr.message);
+      for (const a of assignments ?? []) {
+        if (!assignmentByPractice.has(a.practice_id)) {
+          assignmentByPractice.set(a.practice_id, {
+            id: a.id,
+            status: a.status as PracticeAssignmentStatus,
+            completedAt: a.completed_at,
+          });
+        }
+      }
+    }
+
     return {
       id: p.id,
       title: p.title,
@@ -175,12 +211,96 @@ export const getPatternDetail = createServerFn({ method: "GET" })
         confidence: e.confidence !== null ? Number(e.confidence) : null,
         createdAt: e.created_at,
       })),
-      practices: (prRes.data ?? []).map((r) => ({
-        id: r.id,
-        kind: r.kind,
-        title: r.title,
-        rationale: r.rationale,
-        isPrimary: r.is_primary,
-      })),
+      practices: (prRes.data ?? []).map((r) => {
+        const a = assignmentByPractice.get(r.id) ?? null;
+        return {
+          id: r.id,
+          kind: r.kind,
+          title: r.title,
+          rationale: r.rationale,
+          isPrimary: r.is_primary,
+          assignmentId: a?.id ?? null,
+          assignmentStatus: a?.status ?? null,
+          completedAt: a?.completedAt ?? null,
+        };
+      }),
     };
   });
+
+const assignmentInput = z.object({
+  practiceId: z.string().uuid(),
+  status: z.enum(["committed", "completed", "skipped", "abandoned"]),
+});
+
+export const setPracticeAssignment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: z.infer<typeof assignmentInput>) => assignmentInput.parse(d))
+  .handler(async ({ data, context }) => {
+    // Verify the caller owns the practice (RLS also enforces).
+    const { data: pr, error: prErr } = await context.supabase
+      .from("practices")
+      .select("id, user_id, pattern_id, title")
+      .eq("id", data.practiceId)
+      .maybeSingle();
+    if (prErr) throw new Error(prErr.message);
+    if (!pr || pr.user_id !== context.userId) throw new Error("Practice not found");
+
+    // Find latest assignment (if any) for upsert semantics.
+    const { data: existing, error: exErr } = await context.supabase
+      .from("practice_assignments")
+      .select("id")
+      .eq("practice_id", data.practiceId)
+      .eq("user_id", context.userId)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (exErr) throw new Error(exErr.message);
+
+    const now = new Date().toISOString();
+    const patch = {
+      status: data.status,
+      completed_at: data.status === "completed" ? now : null,
+    };
+
+    let assignmentId: string;
+    if (existing?.id) {
+      const { error: upErr } = await context.supabase
+        .from("practice_assignments")
+        .update(patch)
+        .eq("id", existing.id);
+      if (upErr) throw new Error(upErr.message);
+      assignmentId = existing.id;
+    } else {
+      const { data: ins, error: inErr } = await context.supabase
+        .from("practice_assignments")
+        .insert({
+          user_id: context.userId,
+          practice_id: data.practiceId,
+          status: data.status,
+          completed_at: patch.completed_at,
+        })
+        .select("id")
+        .single();
+      if (inErr) throw new Error(inErr.message);
+      assignmentId = ins.id;
+    }
+
+    // Emit a formation event so /journey reflects the commitment/completion.
+    if (data.status === "committed" || data.status === "completed") {
+      await context.supabase.from("formation_events").insert({
+        user_id: context.userId,
+        event_type: "practice_assigned",
+        pattern_id: pr.pattern_id,
+        practice_id: pr.id,
+        note:
+          data.status === "completed"
+            ? `Completed practice: ${pr.title}`
+            : `Committed to practice: ${pr.title}`,
+        fruit: [],
+      });
+    }
+
+
+    return { ok: true, assignmentId, status: data.status };
+  });
+
