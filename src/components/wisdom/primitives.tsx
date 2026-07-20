@@ -82,3 +82,51 @@ export function ConfidenceBar({ value }: { value: number }) {
     </div>
   );
 }
+
+/**
+ * Derivation legend — explains the three ways a prayer line or CB claim can
+ * be tied to a passage. Every citation renders exactly one of these values.
+ */
+export const DERIVATION_EXPLANATIONS: Record<
+  "direct" | "inferred" | "pattern_matched",
+  { label: string; blurb: string }
+> = {
+  direct: {
+    label: "Direct",
+    blurb:
+      "The passage says the thing being prayed. Language, verbs, or imagery in the prayer line come straight from this text.",
+  },
+  inferred: {
+    label: "Inferred",
+    blurb:
+      "The prayer line is a reasonable pastoral inference from the passage: a next step, an implication, or an application the text supports without stating verbatim.",
+  },
+  pattern_matched: {
+    label: "Pattern-matched",
+    blurb:
+      "The passage describes a structurally similar situation (a biblical archetype) and the prayer line borrows that pattern — same shape, different specifics.",
+  },
+};
+
+export function DerivationLegend() {
+  return (
+    <div className="rounded-xl border border-panel-border bg-surface/40 px-4 py-3">
+      <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-primary">
+        How citations are derived
+      </p>
+      <dl className="mt-2 grid gap-2 md:grid-cols-3">
+        {(Object.entries(DERIVATION_EXPLANATIONS) as Array<[
+          keyof typeof DERIVATION_EXPLANATIONS,
+          (typeof DERIVATION_EXPLANATIONS)[keyof typeof DERIVATION_EXPLANATIONS],
+        ]>).map(([k, v]) => (
+          <div key={k} className="rounded-lg border border-panel-border/60 bg-background/40 p-3">
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-foreground">
+              {v.label}
+            </dt>
+            <dd className="mt-1 text-xs leading-snug text-muted-foreground">{v.blurb}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}

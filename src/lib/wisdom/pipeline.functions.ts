@@ -40,6 +40,7 @@ async function logRun(
     stage: string; status: "ok" | "error" | "skipped"; latencyMs: number;
     promptKey?: string; promptVersion?: number; model?: string;
     error?: string; idempotencyKey?: string;
+    tokensIn?: number; tokensOut?: number;
   },
 ) {
   await db.from("pipeline_runs").insert({
@@ -48,6 +49,7 @@ async function logRun(
     prompt_key: args.promptKey ?? null, prompt_version: args.promptVersion ?? null,
     model: args.model ?? null, error: args.error ?? null,
     idempotency_key: args.idempotencyKey ?? null,
+    tokens_in: args.tokensIn ?? null, tokens_out: args.tokensOut ?? null,
   });
 }
 
@@ -83,16 +85,17 @@ export const runWisdomPipeline = createServerFn({ method: "POST" })
     {
       const t0 = Date.now();
       try {
-        const { output } = await generateText({
+        const r = await generateText({
           model: gateway(exModel.model),
           output: Output.object({ schema: zExtractionResult }),
           system: exPrompt.body,
           prompt: userTurns,
         });
-        extraction = output;
+        extraction = r.output;
         await logRun(db, { userId, sessionId: data.sessionId, mode: "wisdom", stage: "extraction",
           status: "ok", latencyMs: Date.now() - t0, promptKey: "wisdom.extraction",
-          promptVersion: exPrompt.version, model: exModel.model });
+          promptVersion: exPrompt.version, model: exModel.model,
+          tokensIn: r.usage?.inputTokens, tokensOut: r.usage?.outputTokens });
       } catch (e) {
         await logRun(db, { userId, sessionId: data.sessionId, mode: "wisdom", stage: "extraction",
           status: "error", latencyMs: Date.now() - t0, promptKey: "wisdom.extraction",
@@ -138,16 +141,17 @@ export const runWisdomPipeline = createServerFn({ method: "POST" })
     {
       const t0 = Date.now();
       try {
-        const { output } = await generateText({
+        const r = await generateText({
           model: gateway(coModel.model),
           output: Output.object({ schema: zComposition }),
           system: coPrompt.body,
           prompt: userPrompt,
         });
-        composition = output;
+        composition = r.output;
         await logRun(db, { userId, sessionId: data.sessionId, mode: "wisdom", stage: "composition",
           status: "ok", latencyMs: Date.now() - t0, promptKey: "wisdom.composition",
-          promptVersion: coPrompt.version, model: coModel.model, idempotencyKey: data.idempotencyKey });
+          promptVersion: coPrompt.version, model: coModel.model, idempotencyKey: data.idempotencyKey,
+          tokensIn: r.usage?.inputTokens, tokensOut: r.usage?.outputTokens });
       } catch (e) {
         await logRun(db, { userId, sessionId: data.sessionId, mode: "wisdom", stage: "composition",
           status: "error", latencyMs: Date.now() - t0, promptKey: "wisdom.composition",
@@ -156,10 +160,20 @@ export const runWisdomPipeline = createServerFn({ method: "POST" })
       }
     }
 
-    // Grounding gate: every prayer line must cite a passage_id from retrieval set.
+    // Grounding gate: each prayer line must (a) cite passages from retrieval,
+    // (b) supply a substantive per-citation explanation that connects the
+    // passage to the line, and (c) not duplicate citations.
     for (const [i, line] of composition.prayer.lines.entries()) {
-      const bad = line.citations.find((c) => !retrievalIds.has(c.passage_id));
-      if (bad) throw new Error(`prayer line ${i}: fabricated passage_id ${bad.passage_id}`);
+      const seen = new Set<string>();
+      for (const c of line.citations) {
+        if (!retrievalIds.has(c.passage_id))
+          throw new Error(`prayer line ${i}: fabricated passage_id ${c.passage_id}`);
+        if (seen.has(c.passage_id))
+          throw new Error(`prayer line ${i}: duplicate citation ${c.passage_id}`);
+        seen.add(c.passage_id);
+        if (!c.explanation || c.explanation.trim().length < 40)
+          throw new Error(`prayer line ${i}: citation ${c.passage_id} lacks a supporting explanation (≥40 chars) tying the passage to the prayer line`);
+      }
     }
 
     // ── Stage 4: persistence ─────────────────────────────────────────
@@ -240,3 +254,40 @@ export const getSessionSlice = createServerFn({ method: "GET" })
       practices: practices.data ?? [],
     };
   });
+
+// ── Session bootstrap: create session + first user message ──────────────
+const startInput = z.object({
+  mode: z.enum(["companion", "pattern", "deep_wisdom", "curse_breaker"]),
+  text: z.string().min(1).max(8000),
+});
+
+export const startWisdomSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: z.infer<typeof startInput>) => startInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const s = context.supabase;
+    const { data: sess, error: sErr } = await s.from("sessions")
+      .insert({ user_id: context.userId, mode: data.mode, title: data.text.slice(0, 80) })
+      .select("id").single();
+    if (sErr || !sess) throw new Error(sErr?.message ?? "session insert failed");
+    const { error: mErr } = await s.from("messages").insert({
+      user_id: context.userId, session_id: sess.id, role: "user",
+      content: data.text, memory_directive: "normal",
+    });
+    if (mErr) throw new Error(mErr.message);
+    return { sessionId: sess.id };
+  });
+
+// ── Telemetry: pipeline_runs for a session (owner-scoped by RLS) ────────
+export const getSessionTelemetry = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { sessionId: string }) => z.object({ sessionId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: runs } = await context.supabase
+      .from("pipeline_runs")
+      .select("stage,status,latency_ms,model,prompt_key,prompt_version,tokens_in,tokens_out,error,created_at")
+      .eq("session_id", data.sessionId)
+      .order("created_at", { ascending: true });
+    return { runs: runs ?? [] };
+  });
+

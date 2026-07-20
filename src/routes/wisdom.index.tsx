@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import {
   ArrowRight,
@@ -7,11 +8,14 @@ import {
   Compass,
   HandHelping,
   Hand,
+  Loader2,
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
 import { SESSIONS } from "@/lib/wisdom/mock/seed";
 import { COPY } from "@/lib/wisdom/copy/v1";
+import { startWisdomSession, runWisdomPipeline } from "@/lib/wisdom/pipeline.functions";
+import { runCurseBreakerPipeline } from "@/lib/wisdom/curseBreaker.functions";
 
 export const Route = createFileRoute("/wisdom/")({
   head: () => ({ meta: [{ title: "Wisdom — begin a session" }] }),
@@ -60,18 +64,49 @@ const MODES = [
 
 type ModeId = (typeof MODES)[number]["id"];
 
+const MODE_TO_DB: Record<ModeId, "companion" | "pattern" | "deep_wisdom" | "curse_breaker"> = {
+  companion: "companion",
+  pattern: "pattern",
+  deep: "deep_wisdom",
+  curse_breaker: "curse_breaker",
+};
+
 function WisdomHome() {
   const navigate = useNavigate();
   const [text, setText] = useState("");
   const [mode, setMode] = useState<ModeId>("pattern");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const startFn = useServerFn(startWisdomSession);
+  const runWisdom = useServerFn(runWisdomPipeline);
+  const runCb = useServerFn(runCurseBreakerPipeline);
 
   const openSeed = () => {
-    if (mode === "curse_breaker") {
-      navigate({ to: "/wisdom/curse-breaker" });
-      return;
-    }
     navigate({ to: "/wisdom/$sessionId", params: { sessionId: SESSIONS[0].id } });
   };
+
+  const begin = async () => {
+    if (!text.trim() || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { sessionId } = await startFn({
+        data: { mode: MODE_TO_DB[mode], text: text.trim() },
+      });
+      if (mode === "curse_breaker") {
+        await runCb({ data: { sessionId } });
+        navigate({ to: "/wisdom/curse-breaker" });
+      } else {
+        await runWisdom({ data: { sessionId } });
+        navigate({ to: "/wisdom/live/$sessionId", params: { sessionId } });
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setBusy(false);
+    }
+  };
+
 
 
   return (
@@ -162,16 +197,31 @@ function WisdomHome() {
               Seeded example
             </button>
             <button
-              onClick={openSeed}
-              disabled={text.trim().length === 0}
+              onClick={begin}
+              disabled={text.trim().length === 0 || busy}
               className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Begin session
-              <ArrowUp className="size-3.5" strokeWidth={2} />
+              {busy ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" strokeWidth={2} />
+                  Composing…
+                </>
+              ) : (
+                <>
+                  Begin session
+                  <ArrowUp className="size-3.5" strokeWidth={2} />
+                </>
+              )}
             </button>
           </div>
         </div>
+        {error && (
+          <p className="mt-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            {error}
+          </p>
+        )}
       </section>
+
 
       {/* Recent */}
       <section className="mt-10 space-y-3">
