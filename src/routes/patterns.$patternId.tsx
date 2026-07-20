@@ -2,8 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { getPatternDetail, transitionPatternLifecycle } from "@/lib/wisdom/patterns.functions";
+import {
+  getPatternDetail,
+  setPracticeAssignment,
+  transitionPatternLifecycle,
+  type PatternPracticeItem,
+  type PracticeAssignmentStatus,
+} from "@/lib/wisdom/patterns.functions";
 import { Card } from "@/components/wisdom/primitives";
+
 
 
 export const Route = createFileRoute("/patterns/$patternId")({
