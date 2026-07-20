@@ -274,6 +274,16 @@ export async function runPipelineForSession(userId: string, sessionId: string, i
         fruit: [], at: nowIso },
     ]);
 
+    // ── Stage 6: pattern candidate detection (non-blocking) ──────────
+    // Cross-session sweep. Failures are swallowed — the primary artifacts
+    // (interpretation/prayer/practice) have already persisted.
+    try {
+      const { runPatternDetectionForUser } = await import("./patternDetection.functions");
+      await runPatternDetectionForUser(userId, data.sessionId);
+    } catch (e) {
+      console.error("pattern detection failed", e);
+    }
+
     return {
       ok: true,
       interpretationId: interp.id,
@@ -281,6 +291,7 @@ export async function runPipelineForSession(userId: string, sessionId: string, i
       practiceId: practice.id,
     };
 }
+
 
 export const runWisdomPipeline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
