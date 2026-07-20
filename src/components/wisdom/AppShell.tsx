@@ -66,8 +66,18 @@ function isActive(pathname: string, to: string) {
 export function AppShell({ children }: { children?: ReactNode }) {
   const { theme, toggle } = useTheme();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user, ready } = useSession();
   const isFullBleed =
     pathname === "/welcome" || pathname === "/onboarding" || pathname === "/auth";
+
+  async function signOut() {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  }
 
   if (isFullBleed) {
     return (
@@ -76,6 +86,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-background text-foreground">
