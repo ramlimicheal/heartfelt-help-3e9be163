@@ -90,42 +90,54 @@ export const runCurseBreakerPipeline = createServerFn({ method: "POST" })
     await db.from("stronghold_categories")
       .upsert(cheapRows, { onConflict: "session_id,category" });
 
-    // ── Pass 2: deep analysis in parallel for scores ≥ threshold ────
+    // ── Pass 2: deep analysis for scores ≥ threshold, capped concurrency ──
     const { prompt: deepPrompt, model: deepModel } = await loadActive(db, "cb.deep_analysis", "cb_deep");
     const retrievalBlock = retrieval.map((r) =>
       `passage_id=${r.id} tier=${r.tier} ${r.reference}\n${r.text}`).join("\n\n---\n\n");
     const toDeep = cheap.scores.filter((s) => s.score >= DEEP_THRESHOLD);
 
-    const deepResults = await Promise.all(toDeep.map(async (s) => {
-      const dt0 = Date.now();
-      try {
-        const { output } = await generateText({
-          model: gateway(deepModel.model),
-          output: Output.object({ schema: zCbDeep }),
-          system: deepPrompt.body,
-          prompt:
-            `CATEGORY: ${s.category}\n\nUSER STORY:\n${userStory}\n\n` +
-            `RETRIEVAL SET (cite passage_id verbatim, ≥1 required):\n${retrievalBlock}`,
-        });
-        // Grounding gate
-        const bad = output.citations.find((c) => !retrievalIds.has(c.passage_id));
-        if (bad) throw new Error(`fabricated passage_id ${bad.passage_id}`);
-        await db.from("pipeline_runs").insert({
-          user_id: userId, session_id: data.sessionId, mode: "curse_breaker",
-          stage: `cb_deep:${s.category}`, status: "ok", latency_ms: Date.now() - dt0,
-          prompt_key: "cb.deep_analysis", prompt_version: deepPrompt.version, model: deepModel.model,
-        });
-        return { category: s.category, output };
-      } catch (e) {
-        await db.from("pipeline_runs").insert({
-          user_id: userId, session_id: data.sessionId, mode: "curse_breaker",
-          stage: `cb_deep:${s.category}`, status: "error", latency_ms: Date.now() - dt0,
-          prompt_key: "cb.deep_analysis", prompt_version: deepPrompt.version, model: deepModel.model,
-          error: String(e),
-        });
-        return null;
-      }
-    }));
+    const CB_DEEP_CONCURRENCY = 3; // cap parallel model calls (rate/cost/backpressure)
+    const deepResults: Array<{ category: string; output: z.infer<typeof zCbDeep> } | null> = [];
+    for (let i = 0; i < toDeep.length; i += CB_DEEP_CONCURRENCY) {
+      const batch = toDeep.slice(i, i + CB_DEEP_CONCURRENCY);
+      const chunk = await Promise.all(batch.map(async (s) => {
+        const dt0 = Date.now();
+        try {
+          const { output } = await generateText({
+            model: gateway(deepModel.model),
+            output: Output.object({ schema: zCbDeep }),
+            system: deepPrompt.body,
+            prompt:
+              `CATEGORY: ${s.category}\n\nUSER STORY:\n${userStory}\n\n` +
+              `RETRIEVAL SET (cite passage_id verbatim, ≥1 required; each citation MUST include a "note" of ≥40 characters that quotes or paraphrases the passage and connects it to the category):\n${retrievalBlock}`,
+          });
+          // Grounding gate: id exists, no duplicates, note substantively supports the claim.
+          const seen = new Set<string>();
+          for (const c of output.citations) {
+            if (!retrievalIds.has(c.passage_id)) throw new Error(`fabricated passage_id ${c.passage_id}`);
+            if (seen.has(c.passage_id)) throw new Error(`duplicate citation ${c.passage_id}`);
+            seen.add(c.passage_id);
+            if (!c.note || c.note.trim().length < 40)
+              throw new Error(`citation ${c.passage_id} note lacks substantive support (≥40 chars)`);
+          }
+          await db.from("pipeline_runs").insert({
+            user_id: userId, session_id: data.sessionId, mode: "curse_breaker",
+            stage: `cb_deep:${s.category}`, status: "ok", latency_ms: Date.now() - dt0,
+            prompt_key: "cb.deep_analysis", prompt_version: deepPrompt.version, model: deepModel.model,
+          });
+          return { category: s.category, output };
+        } catch (e) {
+          await db.from("pipeline_runs").insert({
+            user_id: userId, session_id: data.sessionId, mode: "curse_breaker",
+            stage: `cb_deep:${s.category}`, status: "error", latency_ms: Date.now() - dt0,
+            prompt_key: "cb.deep_analysis", prompt_version: deepPrompt.version, model: deepModel.model,
+            error: String(e),
+          });
+          return null;
+        }
+      }));
+      deepResults.push(...chunk);
+    }
 
     for (const r of deepResults) {
       if (!r) continue;
