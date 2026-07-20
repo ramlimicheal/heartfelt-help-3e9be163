@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as YouRouteImport } from './routes/you'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as MirrorsRouteImport } from './routes/mirrors'
 import { Route as JourneyRouteImport } from './routes/journey'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -44,11 +43,6 @@ const WelcomeRoute = WelcomeRouteImport.update({
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MirrorsRoute = MirrorsRouteImport.update({
-  id: '/mirrors',
-  path: '/mirrors',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JourneyRoute = JourneyRouteImport.update({
@@ -141,7 +135,6 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/journey': typeof JourneyRoute
-  '/mirrors': typeof MirrorsRoute
   '/onboarding': typeof OnboardingRoute
   '/welcome': typeof WelcomeRoute
   '/you': typeof YouRoute
@@ -163,7 +156,6 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/journey': typeof JourneyRoute
-  '/mirrors': typeof MirrorsRoute
   '/onboarding': typeof OnboardingRoute
   '/welcome': typeof WelcomeRoute
   '/you': typeof YouRoute
@@ -187,7 +179,6 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/journey': typeof JourneyRoute
-  '/mirrors': typeof MirrorsRoute
   '/onboarding': typeof OnboardingRoute
   '/welcome': typeof WelcomeRoute
   '/you': typeof YouRoute
@@ -211,7 +202,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/journey'
-    | '/mirrors'
     | '/onboarding'
     | '/welcome'
     | '/you'
@@ -233,7 +223,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/journey'
-    | '/mirrors'
     | '/onboarding'
     | '/welcome'
     | '/you'
@@ -256,7 +245,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/journey'
-    | '/mirrors'
     | '/onboarding'
     | '/welcome'
     | '/you'
@@ -280,7 +268,6 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   DashboardRoute: typeof DashboardRoute
   JourneyRoute: typeof JourneyRoute
-  MirrorsRoute: typeof MirrorsRoute
   OnboardingRoute: typeof OnboardingRoute
   WelcomeRoute: typeof WelcomeRoute
   YouRoute: typeof YouRoute
@@ -318,13 +305,6 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mirrors': {
-      id: '/mirrors'
-      path: '/mirrors'
-      fullPath: '/mirrors'
-      preLoaderRoute: typeof MirrorsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/journey': {
@@ -466,7 +446,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   DashboardRoute: DashboardRoute,
   JourneyRoute: JourneyRoute,
-  MirrorsRoute: MirrorsRoute,
   OnboardingRoute: OnboardingRoute,
   WelcomeRoute: WelcomeRoute,
   YouRoute: YouRoute,

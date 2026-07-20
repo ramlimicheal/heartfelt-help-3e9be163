@@ -40,12 +40,9 @@ const runInput = z.object({ sessionId: z.string().uuid() });
 export const runCurseBreakerPipeline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: z.infer<typeof runInput>) => runInput.parse(d))
-  .handler(async ({ data, context }) => runCurseBreakerForSession(context.userId, data.sessionId));
-
-/** Direct server-side invocation (e.g. from /api/chat onFinish). */
-export async function runCurseBreakerForSession(userId: string, sessionId: string) {
+  .handler(async ({ data, context }) => {
     const db = await admin();
-    const data = { sessionId };
+    const userId = context.userId;
 
     const { data: session } = await db.from("sessions")
       .select("id,user_id").eq("id", data.sessionId).maybeSingle();
@@ -159,7 +156,7 @@ export async function runCurseBreakerForSession(userId: string, sessionId: strin
     }
 
     return { ok: true, deepAnalyzedCount: deepResults.filter(Boolean).length };
-}
+  });
 
 export const getCurseBreakerSlice = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -170,90 +167,3 @@ export const getCurseBreakerSlice = createServerFn({ method: "GET" })
       .eq("session_id", data.sessionId).order("cheap_score", { ascending: false });
     return { categories: cats ?? [] };
   });
-
-/** Latest Curse Breaker session for the current user, with its category slice + verdicts. */
-export const getLatestCurseBreakerReading = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const s = context.supabase;
-    const { data: sess } = await s
-      .from("sessions")
-      .select("id, title, created_at")
-      .eq("user_id", context.userId)
-      .eq("mode", "curse_breaker")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (!sess) return { session: null, categories: [] as CbCategoryRow[], verdicts: {} as Record<string, CbVerdict> };
-    const { data: cats } = await s
-      .from("stronghold_categories")
-      .select("id, category, cheap_score, confidence, deep_analyzed, pastoral_note, supporting_evidence, counter_evidence, alternative_explanations, citations, updated_at")
-      .eq("session_id", sess.id)
-      .order("cheap_score", { ascending: false });
-    const ids = (cats ?? []).map((c) => c.id);
-    const verdicts: Record<string, CbVerdict> = {};
-    if (ids.length) {
-      const { data: appr } = await s
-        .from("stronghold_category_approvals")
-        .select("category_id, verdict, note, created_at")
-        .in("category_id", ids)
-        .order("created_at", { ascending: false });
-      for (const a of appr ?? []) {
-        if (!verdicts[a.category_id]) {
-          verdicts[a.category_id] = {
-            verdict: a.verdict as CbVerdict["verdict"],
-            note: a.note ?? null,
-            created_at: a.created_at,
-          };
-        }
-      }
-    }
-    return { session: sess, categories: (cats ?? []) as unknown as CbCategoryRow[], verdicts };
-  });
-
-const verdictInput = z.object({
-  categoryId: z.string().uuid(),
-  verdict: z.enum(["accepted", "rejected", "unsure", "deferred"]),
-  note: z.string().max(500).optional(),
-});
-
-/** Record the user's verdict on a stronghold category. Append-only. */
-export const recordCategoryVerdict = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof verdictInput>) => verdictInput.parse(d))
-  .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("stronghold_category_approvals")
-      .insert({
-        user_id: context.userId,
-        category_id: data.categoryId,
-        verdict: data.verdict,
-        note: data.note ?? null,
-      });
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
-export type CbVerdict = {
-  verdict: "accepted" | "rejected" | "unsure" | "deferred";
-  note: string | null;
-  created_at: string;
-};
-
-export type JsonValue =
-  | string | number | boolean | null
-  | { [k: string]: JsonValue } | JsonValue[];
-
-export type CbCategoryRow = {
-  id: string;
-  category: string;
-  cheap_score: number;
-  confidence: number | null;
-  deep_analyzed: boolean;
-  pastoral_note: string | null;
-  supporting_evidence: JsonValue;
-  counter_evidence: JsonValue;
-  alternative_explanations: JsonValue;
-  citations: JsonValue;
-  updated_at: string;
-};
