@@ -830,6 +830,7 @@ function InlineArtifactStrip({
   const primary =
     artifacts?.practices?.find((p) => p.is_primary) ?? artifacts?.practices?.[0] ?? null;
   const signals = artifacts?.signals ?? [];
+  const chain = (it?.event_chain ?? []).filter((l) => l?.text);
 
   return (
     <div className="ml-10 space-y-2">
@@ -838,6 +839,32 @@ function InlineArtifactStrip({
         <span>Discernment artifacts</span>
         <span className="h-px flex-[3] bg-gradient-to-l from-panel-border to-transparent" />
       </div>
+
+      {chain.length > 0 && (
+        <ArtifactCard icon="⟶" label={`Event chain · ${chain.length}`} tone="primary">
+          <ol className="flex flex-wrap items-center gap-1.5">
+            {chain.map((link, i) => (
+              <li key={i} className="flex items-center gap-1.5">
+                <span
+                  className={[
+                    "rounded-full border px-2 py-0.5 text-[10px]",
+                    link.fromUser
+                      ? "border-primary/40 bg-primary/10 text-foreground"
+                      : "border-panel-border/60 bg-background/60 text-muted-foreground",
+                  ].join(" ")}
+                  title={link.kind}
+                >
+                  <span className="mr-1 text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
+                    {link.kind.replace(/_/g, " ")}
+                  </span>
+                  {link.text}
+                </span>
+                {i < chain.length - 1 && <span className="text-muted-foreground/60">›</span>}
+              </li>
+            ))}
+          </ol>
+        </ArtifactCard>
+      )}
 
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
         {signals.length > 0 && (
