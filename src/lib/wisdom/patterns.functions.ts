@@ -46,10 +46,18 @@ export const transitionPatternLifecycle = createServerFn({ method: "POST" })
     const { error: upErr } = await supabaseAdmin
       .from("patterns")
       .update(patch)
-
       .eq("id", data.patternId)
       .eq("user_id", context.userId);
     if (upErr) throw new Error(upErr.message);
+
+    // Emit a formation event so the journey timeline reflects pattern lifecycle changes.
+    await supabaseAdmin.from("formation_events").insert({
+      user_id: context.userId,
+      event_type: "pattern_update",
+      pattern_id: data.patternId,
+      note: `Pattern ${data.lifecycle}${data.feedback ? ` — ${data.feedback}` : ""}`,
+      fruit: [],
+    });
 
     return { ok: true, lifecycle: data.lifecycle };
   });
