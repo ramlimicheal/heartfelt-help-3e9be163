@@ -21,6 +21,15 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        // Legacy split-brain chat path — disabled by default in 3B.
+        // The unified turn at /api/wisdom/turn is now authoritative.
+        const legacy = process.env.WISDOM_LEGACY_CHAT;
+        if (!(legacy === "on" || legacy === "1" || legacy === "true")) {
+          return new Response(
+            JSON.stringify({ error: "legacy_chat_disabled", message: "Use /api/wisdom/turn." }),
+            { status: 410, headers: { "content-type": "application/json" } },
+          );
+        }
         const { messages, mode } = (await request.json()) as {
           messages: UIMessage[];
           mode?: "companion" | "pattern" | "deep" | "curse_breaker";
