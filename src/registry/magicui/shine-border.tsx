@@ -26,10 +26,11 @@ export function ShineBorder({
       style={{
         "--border-width": `${borderWidth}px`,
         "--duration": `${duration}s`,
-        backgroundImage: `radial-gradient(transparent, transparent, ${
+        backgroundImage: `radial-gradient(circle at 0% 50%, transparent, ${
           Array.isArray(shineColor) ? shineColor.join(",") : shineColor
-        }, transparent, transparent)`,
+        }, transparent 60%)`,
         backgroundSize: "300% 300%",
+        backgroundRepeat: "no-repeat",
         mask: `linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)`,
         WebkitMask: `linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)`,
         WebkitMaskComposite: "xor",
