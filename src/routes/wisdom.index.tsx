@@ -117,13 +117,14 @@ function WisdomChat() {
         }}
       >
         <FlickeringGrid
-          className="h-full w-full"
+          className="h-full w-full [&_canvas]:!h-full [&_canvas]:!w-full"
           squareSize={3}
           gridGap={6}
-          flickerChance={0.25}
-          color="currentColor"
-          maxOpacity={0.35}
+          flickerChance={0.35}
+          color="#E8DFC8"
+          maxOpacity={0.55}
         />
+
       </div>
       {/* Conversation column */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
