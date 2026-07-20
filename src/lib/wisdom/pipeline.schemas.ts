@@ -76,11 +76,12 @@ export const zComposition = z.object({
 });
 export type Composition = z.infer<typeof zComposition>;
 
+// Matches DB enum public.interpretation_category (Batch 3).
 export const INTERPRETATION_CATEGORIES = [
-  "chosen_behavior","habit","appetite","belief","shame","hidden_agreement",
-  "relationship_pressure","social_normalization","family_learning",
-  "generational_repetition","material_conditions","spiritual_practice_absence",
-  "user_reported_spiritual_conflict","direct_biblical_curse_or_stronghold",
+  "biblical_curse","stronghold","chosen_behavior","trauma_wound",
+  "systemic_injustice","physiological","spiritual_attack","generational_sin",
+  "identity_lie","vow_or_agreement","unforgiveness","idolatry",
+  "fear_bondage","ignorance",
 ] as const;
 
 export const zCbCheap = z.object({
