@@ -7,7 +7,6 @@ import {
   Scale,
   Send,
   Sparkles,
-  ThumbsUp,
   Layers,
   Bot,
   Search,
@@ -17,6 +16,7 @@ import {
   ArrowUpDown,
   Share2,
   Image as ImageIcon,
+  Menu,
 } from "lucide-react";
 import {
   ARCHETYPE_INDEX,
@@ -24,7 +24,6 @@ import {
   PASSAGE_INDEX,
   PERSONA_FACTS,
   PRAYERS,
-  seededResponse,
   seededSession,
 } from "@/lib/wisdom/mock/seed";
 
@@ -33,7 +32,15 @@ export const Route = createFileRoute("/wisdom/map")({
   component: MapPage,
 });
 
-/* ── Domain → categories → nodes ─────────────────────────────── */
+/* ── Palette (restrained, monochrome + teal + gold) ─────────────── */
+const TEAL = "rgba(120, 220, 210, 1)";
+const TEAL_SOFT = "rgba(120, 220, 210, 0.35)";
+const TEAL_DIM = "rgba(120, 220, 210, 0.12)";
+const GOLD = "rgba(230, 190, 120, 1)";
+const GOLD_SOFT = "rgba(230, 190, 120, 0.35)";
+const DIM = "rgba(180, 220, 210, 0.18)";
+
+/* ── Types ───────────────────────────────────────────────────── */
 
 type Health = "green" | "amber" | "red";
 type LeafNode = {
@@ -63,7 +70,9 @@ function useGraph() {
   return useMemo(() => {
     const hyps = Object.values(HYPOTHESES);
     const archetypes = Object.values(ARCHETYPE_INDEX);
-    const facts = PERSONA_FACTS.filter((f) => f.status !== "rejected" && f.status !== "deleted").slice(0, 12);
+    const facts = PERSONA_FACTS
+      .filter((f) => f.status !== "rejected" && f.status !== "deleted")
+      .slice(0, 12);
     const prayers = Object.values(PRAYERS);
 
     const patterns: LeafNode[] = hyps.map((h) => ({
@@ -75,11 +84,11 @@ function useGraph() {
       refId: h.archetypes[0]?.archetypeId ?? "archetype_moses_overload",
     }));
 
-    const archetypeNodes: LeafNode[] = archetypes.map((a) => ({
+    const archetypeNodes: LeafNode[] = archetypes.map((a, i) => ({
       id: `arch_${a.id}`,
       label: a.person,
-      gaps: 4 + Math.floor(Math.random() * 6),
-      health: healthFor(0.7),
+      gaps: 4 + ((i * 3) % 12),
+      health: healthFor(0.65 + ((i % 3) * 0.1)),
       kind: "archetype",
       refId: a.id,
     }));
@@ -103,49 +112,58 @@ function useGraph() {
     }));
 
     const categories: Category[] = [
-      { id: "services", label: "Patterns", icon: Scale, count: patterns.length, nodes: patterns },
-      { id: "entities", label: "Archetypes", icon: Building2, count: archetypeNodes.length, nodes: archetypeNodes },
-      { id: "laws", label: "Beliefs", icon: Layers, count: factNodes.length, nodes: factNodes },
-      { id: "kpis", label: "Prayers", icon: Activity, count: prayerNodes.length, nodes: prayerNodes },
+      { id: "patterns", label: "Patterns", icon: Scale, count: patterns.length, nodes: patterns },
+      { id: "archetypes", label: "Archetypes", icon: Building2, count: archetypeNodes.length, nodes: archetypeNodes },
+      { id: "beliefs", label: "Beliefs", icon: Layers, count: factNodes.length, nodes: factNodes },
+      { id: "prayers", label: "Prayers", icon: Activity, count: prayerNodes.length, nodes: prayerNodes },
     ];
 
     return { categories };
   }, []);
 }
 
-/* ── Page ─────────────────────────────────────────────────────── */
+/* ── Page ────────────────────────────────────────────────────── */
 
 function MapPage() {
   const { categories } = useGraph();
   const [activeCat, setActiveCat] = useState(categories[0].id);
-  const [activeNodeId, setActiveNodeId] = useState<string | null>(categories[0].nodes[0]?.id ?? null);
+  const [activeNodeId, setActiveNodeId] = useState<string | null>(
+    categories[0].nodes[0]?.id ?? null,
+  );
 
   const currentCat = categories.find((c) => c.id === activeCat)!;
   const activeNode =
     currentCat.nodes.find((n) => n.id === activeNodeId) ?? currentCat.nodes[0] ?? null;
 
   return (
-    <div className="fixed inset-0 bg-background text-foreground overflow-hidden">
+    <div className="fixed inset-0 overflow-hidden text-foreground" style={{ background: "#050807" }}>
+      {/* Layered radial backdrop */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(ellipse 80% 60% at 30% 40%, rgba(45,100,100,0.22), transparent 55%),
+            radial-gradient(ellipse 60% 50% at 15% 65%, rgba(50,80,90,0.14), transparent 50%),
+            radial-gradient(ellipse 40% 40% at 85% 20%, rgba(230,190,120,0.06), transparent 60%)
+          `,
+        }}
+      />
+      <StarField />
+
       <TopBar />
 
-      <div className="absolute inset-0 pt-14 grid grid-cols-[1fr_460px]">
-        {/* Graph canvas */}
-        <div className="relative overflow-hidden">
-          <StarField />
-          <GraphCanvas
-            categories={categories}
-            activeCat={activeCat}
-            setActiveCat={(id) => {
-              setActiveCat(id);
-              const first = categories.find((c) => c.id === id)?.nodes[0]?.id ?? null;
-              setActiveNodeId(first);
-            }}
-            activeNodeId={activeNodeId}
-            setActiveNodeId={setActiveNodeId}
-          />
-        </div>
-
-        {/* Right rail */}
+      <div className="absolute inset-0 pt-14 grid grid-cols-[1fr_440px] z-10">
+        <GraphCanvas
+          categories={categories}
+          activeCat={activeCat}
+          setActiveCat={(id) => {
+            setActiveCat(id);
+            const first = categories.find((c) => c.id === id)?.nodes[0]?.id ?? null;
+            setActiveNodeId(first);
+          }}
+          activeNodeId={activeNodeId}
+          setActiveNodeId={setActiveNodeId}
+        />
         <DetailRail node={activeNode} categoryLabel={currentCat.label} />
       </div>
 
@@ -158,14 +176,29 @@ function MapPage() {
 
 function TopBar() {
   return (
-    <div className="absolute top-0 left-0 right-0 h-14 z-30 border-b border-border/40 bg-background/70 backdrop-blur-xl flex items-center px-4 gap-3">
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg grid place-items-center bg-accent/15 text-accent">
+    <div
+      className="absolute top-0 left-0 right-0 h-14 z-30 flex items-center px-4 gap-3"
+      style={{
+        background: "rgba(8,14,14,0.55)",
+        backdropFilter: "blur(20px)",
+        borderBottom: `1px solid ${DIM}`,
+      }}
+    >
+      <button className="w-9 h-9 rounded-md grid place-items-center text-white/50 hover:text-white/90 hover:bg-white/5">
+        <Menu className="w-4 h-4" />
+      </button>
+      <div className="flex items-center gap-2 pl-1">
+        <div
+          className="w-8 h-8 rounded-lg grid place-items-center"
+          style={{ background: TEAL_DIM, color: TEAL, border: `1px solid ${TEAL_SOFT}` }}
+        >
           <Sparkles className="w-4 h-4" />
         </div>
         <div className="leading-tight">
-          <div className="text-sm font-semibold">Wisdom</div>
-          <div className="text-[10px] text-muted-foreground">Constellation</div>
+          <div className="text-sm font-medium tracking-wide" style={{ color: TEAL }}>
+            Wisdom
+          </div>
+          <div className="text-[10px] text-white/40">Constellation</div>
         </div>
       </div>
 
@@ -173,7 +206,7 @@ function TopBar() {
         {[Share2, Plus, Minus, Filter, ArrowUpDown, ImageIcon].map((Icon, i) => (
           <button
             key={i}
-            className="w-9 h-9 rounded-md hover:bg-muted/60 grid place-items-center text-muted-foreground hover:text-foreground transition-colors"
+            className="w-9 h-9 rounded-md grid place-items-center text-white/40 hover:text-white/90 hover:bg-white/5 transition-colors"
           >
             <Icon className="w-4 h-4" />
           </button>
@@ -181,10 +214,16 @@ function TopBar() {
       </div>
 
       <div className="flex items-center gap-2">
-        <button className="text-xs px-3 py-1.5 rounded-md bg-accent text-accent-foreground font-medium flex items-center gap-1.5">
+        <button
+          className="text-xs px-3 py-1.5 rounded-md font-medium flex items-center gap-1.5"
+          style={{
+            background: TEAL,
+            color: "#062028",
+          }}
+        >
           <Plus className="w-3.5 h-3.5" /> New session
         </button>
-        <button className="w-9 h-9 rounded-md hover:bg-muted/60 grid place-items-center text-muted-foreground">
+        <button className="w-9 h-9 rounded-md grid place-items-center text-white/40 hover:text-white/90 hover:bg-white/5">
           <Search className="w-4 h-4" />
         </button>
       </div>
@@ -197,16 +236,16 @@ function TopBar() {
 function StarField() {
   const stars = useMemo(
     () =>
-      Array.from({ length: 60 }).map(() => ({
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        s: Math.random() * 1.4 + 0.3,
-        o: Math.random() * 0.5 + 0.15,
+      Array.from({ length: 80 }).map((_, i) => ({
+        x: ((i * 137.5) % 100),
+        y: ((i * 89.3) % 100),
+        s: (i % 5) * 0.3 + 0.4,
+        o: ((i % 7) * 0.08) + 0.12,
       })),
     [],
   );
   return (
-    <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-70">
+    <svg className="absolute inset-0 w-full h-full pointer-events-none">
       {stars.map((s, i) => (
         <circle key={i} cx={`${s.x}%`} cy={`${s.y}%`} r={s.s} fill="white" opacity={s.o} />
       ))}
@@ -214,7 +253,7 @@ function StarField() {
   );
 }
 
-/* ── Graph canvas: orb → categories → node list ──────────────── */
+/* ── Graph canvas ────────────────────────────────────────────── */
 
 function GraphCanvas({
   categories,
@@ -231,69 +270,148 @@ function GraphCanvas({
 }) {
   const current = categories.find((c) => c.id === activeCat)!;
 
-  return (
-    <div className="absolute inset-0 grid grid-cols-[280px_240px_1fr] items-center">
-      {/* Column 1: orb */}
-      <div className="relative h-full flex items-center justify-center">
-        <OrbNode label={(seededSession.title ?? "Session").slice(0, 22) + "…"} sub="Session · today" />
-      </div>
+  // fixed layout coordinates (percent of canvas)
+  const ORB = { x: 18, y: 50 };
+  const CAT_X = 42;
+  const NODE_X = 66;
 
-      {/* Connectors 1 → 2 */}
-      <svg className="absolute left-[220px] top-0 h-full w-[120px] pointer-events-none">
-        {categories.map((_, i) => {
-          const y = 20 + i * 25; // percent
+  const catCount = categories.length;
+  const catYs = categories.map((_, i) => 22 + (i * 56) / Math.max(1, catCount - 1));
+
+  const nodeCount = current.nodes.length;
+  const nodeYs = current.nodes.map(
+    (_, i) => 8 + (i * 84) / Math.max(1, nodeCount - 1),
+  );
+
+  return (
+    <div className="relative h-full">
+      {/* SVG layer with connectors */}
+      <svg
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        preserveAspectRatio="none"
+        viewBox="0 0 100 100"
+      >
+        <defs>
+          <radialGradient id="orbHalo" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor={GOLD} stopOpacity="0.15" />
+            <stop offset="60%" stopColor={TEAL} stopOpacity="0.05" />
+            <stop offset="100%" stopColor="transparent" />
+          </radialGradient>
+        </defs>
+
+        {/* Halo behind orb */}
+        <circle cx={ORB.x} cy={ORB.y} r="18" fill="url(#orbHalo)" />
+
+        {/* Orb → categories */}
+        {categories.map((cat, i) => {
+          const isActive = cat.id === activeCat;
+          const y = catYs[i];
+          const c1x = ORB.x + (CAT_X - ORB.x) * 0.55;
+          const d = `M ${ORB.x + 4} ${ORB.y} C ${c1x} ${ORB.y}, ${c1x} ${y}, ${CAT_X - 4} ${y}`;
           return (
             <path
-              key={i}
-              d={`M 0 ${window.innerHeight / 2 - 28} C 60 ${window.innerHeight / 2 - 28}, 60 ${(window.innerHeight * y) / 100}, 120 ${(window.innerHeight * y) / 100}`}
-              stroke="hsl(var(--accent) / 0.35)"
-              strokeWidth="1"
+              key={cat.id}
+              d={d}
+              stroke={isActive ? GOLD_SOFT : TEAL_DIM}
+              strokeWidth={isActive ? 0.25 : 0.15}
               fill="none"
+              vectorEffect="non-scaling-stroke"
+              style={{ transition: "stroke 400ms ease, stroke-width 400ms ease" }}
             />
           );
         })}
+
+        {/* Categories → nodes (only from active category) */}
+        {current.nodes.map((n, i) => {
+          const isActive = n.id === activeNodeId;
+          const y1 = catYs[categories.findIndex((c) => c.id === activeCat)];
+          const y2 = nodeYs[i];
+          const c1x = CAT_X + (NODE_X - CAT_X) * 0.5;
+          const d = `M ${CAT_X + 4} ${y1} C ${c1x} ${y1}, ${c1x} ${y2}, ${NODE_X - 2} ${y2}`;
+          return (
+            <path
+              key={n.id}
+              d={d}
+              stroke={isActive ? GOLD : TEAL_SOFT}
+              strokeWidth={isActive ? 0.3 : 0.1}
+              opacity={isActive ? 1 : 0.6}
+              fill="none"
+              vectorEffect="non-scaling-stroke"
+              style={{ transition: "all 400ms cubic-bezier(0.22, 1, 0.36, 1)" }}
+            />
+          );
+        })}
+
+        {/* Node endpoint dots */}
+        {current.nodes.map((n, i) => (
+          <circle
+            key={`dot_${n.id}`}
+            cx={NODE_X - 2}
+            cy={nodeYs[i]}
+            r={n.id === activeNodeId ? 0.4 : 0.25}
+            fill={n.id === activeNodeId ? GOLD : TEAL_SOFT}
+            style={{ transition: "all 400ms ease" }}
+          />
+        ))}
       </svg>
 
-      {/* Column 2: category cards */}
-      <div className="flex flex-col gap-3 py-8 pr-2 relative z-10">
-        {categories.map((cat) => (
+      {/* Orb */}
+      <div
+        className="absolute"
+        style={{
+          left: `${ORB.x}%`,
+          top: `${ORB.y}%`,
+          transform: "translate(-50%, -50%)",
+        }}
+      >
+        <OrbNode label={(seededSession.title ?? "Session").slice(0, 26)} sub="Session · today" />
+      </div>
+
+      {/* Category cards */}
+      {categories.map((cat, i) => (
+        <div
+          key={cat.id}
+          className="absolute"
+          style={{
+            left: `${CAT_X}%`,
+            top: `${catYs[i]}%`,
+            transform: "translate(-50%, -50%)",
+            width: 180,
+          }}
+        >
           <CategoryCard
-            key={cat.id}
             cat={cat}
             active={cat.id === activeCat}
             onClick={() => setActiveCat(cat.id)}
           />
-        ))}
-      </div>
+        </div>
+      ))}
 
-      {/* Connectors 2 → 3 */}
-      <svg className="absolute left-[520px] top-0 h-full w-[120px] pointer-events-none">
-        {current.nodes.map((_, i) => {
-          const total = current.nodes.length;
-          const startY = window.innerHeight / 2;
-          const endY = 90 + (i * (window.innerHeight - 180)) / Math.max(1, total - 1);
-          return (
-            <path
-              key={i}
-              d={`M 0 ${startY} C 60 ${startY}, 60 ${endY}, 120 ${endY}`}
-              stroke="hsl(var(--accent) / 0.2)"
-              strokeWidth="1"
-              fill="none"
-            />
-          );
-        })}
-      </svg>
-
-      {/* Column 3: scrollable node list */}
-      <div className="h-full overflow-y-auto py-6 pl-4 pr-6 relative z-10 [scrollbar-width:thin]">
-        <div className="space-y-1.5">
-          {current.nodes.map((n) => (
-            <NodeRow
+      {/* Node rows */}
+      <div
+        className="absolute overflow-y-auto pr-2"
+        style={{
+          left: `${NODE_X}%`,
+          top: "4%",
+          bottom: "4%",
+          right: "1%",
+          scrollbarWidth: "thin",
+        }}
+      >
+        <div className="space-y-1">
+          {current.nodes.map((n, i) => (
+            <div
               key={n.id}
-              node={n}
-              active={n.id === activeNodeId}
-              onClick={() => setActiveNodeId(n.id)}
-            />
+              style={{
+                marginTop: i === 0 ? `calc(${nodeYs[0]}% - 22px)` : `calc(${nodeYs[i] - nodeYs[i - 1]}% - 44px)`,
+              }}
+            >
+              <NodeRow
+                node={n}
+                active={n.id === activeNodeId}
+                onClick={() => setActiveNodeId(n.id)}
+              />
+            </div>
           ))}
         </div>
       </div>
@@ -305,27 +423,46 @@ function GraphCanvas({
 
 function OrbNode({ label, sub }: { label: string; sub: string }) {
   return (
-    <div className="relative flex flex-col items-center">
-      {/* Orbit rings */}
-      <div className="absolute inset-0 -m-16 rounded-full border border-border/30" />
-      <div className="absolute inset-0 -m-28 rounded-full border border-border/20" />
-
-      <div className="text-center mb-4">
-        <div className="text-sm font-medium text-foreground">{label}</div>
-        <div className="text-[10px] text-muted-foreground">{sub}</div>
+    <div className="relative flex flex-col items-center animate-fade-in">
+      <div className="text-center mb-3">
+        <div className="text-sm font-medium text-white/85">{label}</div>
+        <div className="text-[10px] text-white/40 mt-0.5">{sub}</div>
       </div>
 
-      <div className="relative w-32 h-32">
-        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-accent/30 via-primary/20 to-transparent blur-2xl" />
-        <div className="absolute inset-2 rounded-full bg-gradient-to-br from-white/10 via-accent/40 to-primary/60 shadow-[0_0_60px_rgba(163,230,53,0.35)] backdrop-blur-sm border border-white/10" />
-        <div className="absolute inset-6 rounded-full bg-gradient-to-tr from-white/40 to-transparent opacity-60" />
-        <div className="absolute -inset-4 rounded-full border border-accent/20 animate-pulse" />
+      <div className="relative w-36 h-36">
+        {/* Outer halo */}
+        <div
+          className="absolute -inset-8 rounded-full pointer-events-none"
+          style={{
+            background: `radial-gradient(circle, ${GOLD_SOFT} 0%, transparent 60%)`,
+            filter: "blur(20px)",
+          }}
+        />
+        {/* Core */}
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: `radial-gradient(circle at 35% 30%, rgba(255,255,255,0.6) 0%, ${TEAL} 20%, rgba(20,60,60,0.9) 55%, #050807 100%)`,
+            boxShadow: `0 0 60px ${TEAL_SOFT}, inset 0 0 40px rgba(0,0,0,0.6)`,
+          }}
+        />
+        {/* Highlight */}
+        <div
+          className="absolute inset-4 rounded-full pointer-events-none"
+          style={{
+            background: "radial-gradient(circle at 30% 25%, rgba(255,255,255,0.35) 0%, transparent 40%)",
+          }}
+        />
+        {/* Slow ring */}
+        <div
+          className="absolute -inset-3 rounded-full pointer-events-none animate-pulse"
+          style={{ border: `1px solid ${TEAL_DIM}` }}
+        />
       </div>
 
-      <div className="mt-4 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-        <span className="text-muted-foreground/60">GAPS</span>
+      <div className="mt-3 flex items-center gap-1.5 text-[10px] text-white/50">
+        <span className="text-white/30">GAPS</span>
         <span>12</span>
-        <ThumbsUp className="w-3 h-3 ml-1" />
         <HealthPips values={["green", "amber", "red"]} />
       </div>
     </div>
@@ -347,24 +484,30 @@ function CategoryCard({
   return (
     <button
       onClick={onClick}
-      className={`group relative text-left rounded-xl border transition-all ${
-        active
-          ? "border-accent/60 bg-accent/[0.06] shadow-[0_0_0_1px_hsl(var(--accent)/0.4),0_8px_24px_-12px_hsl(var(--accent)/0.5)]"
-          : "border-border/50 bg-card/40 hover:border-border hover:bg-card/70"
-      } backdrop-blur-md px-4 py-3 flex items-center gap-3`}
+      className="w-full text-left rounded-xl px-3.5 py-3 flex items-center gap-3 transition-all duration-300"
+      style={{
+        background: active ? "rgba(20,45,45,0.7)" : "rgba(15,28,28,0.55)",
+        backdropFilter: "blur(16px)",
+        border: `1px solid ${active ? TEAL_SOFT : DIM}`,
+        boxShadow: active
+          ? `0 0 0 1px ${TEAL_DIM}, 0 12px 32px -12px rgba(120,220,210,0.35), inset 0 1px rgba(255,255,255,0.04)`
+          : "inset 0 1px rgba(255,255,255,0.03), 0 12px 32px -18px rgba(0,0,0,0.5)",
+      }}
     >
       <div
-        className={`w-8 h-8 rounded-md grid place-items-center ${
-          active ? "bg-accent/20 text-accent" : "bg-muted/60 text-muted-foreground"
-        }`}
+        className="w-8 h-8 rounded-md grid place-items-center transition-colors"
+        style={{
+          background: active ? TEAL_DIM : "rgba(255,255,255,0.04)",
+          color: active ? TEAL : "rgba(255,255,255,0.5)",
+        }}
       >
         <Icon className="w-4 h-4" />
       </div>
       <div className="flex-1">
-        <div className="text-lg font-semibold leading-none">{cat.count}</div>
-        <div className="text-[11px] text-muted-foreground mt-1">{cat.label}</div>
+        <div className="text-lg font-semibold leading-none text-white/90">{cat.count}</div>
+        <div className="text-[11px] text-white/50 mt-1">{cat.label}</div>
       </div>
-      {active && <ChevronRight className="w-4 h-4 text-accent" />}
+      {active && <ChevronRight className="w-4 h-4" style={{ color: GOLD }} />}
     </button>
   );
 }
@@ -383,17 +526,21 @@ function NodeRow({
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left rounded-md px-3 py-2 border transition-colors ${
-        active
-          ? "border-accent/50 bg-accent/[0.05]"
-          : "border-transparent hover:border-border/50 hover:bg-muted/30"
-      }`}
+      className="w-full text-left rounded-md pl-3 pr-2 py-1.5 transition-all duration-300 group"
+      style={{
+        background: active ? "rgba(230,190,120,0.06)" : "transparent",
+        borderLeft: active ? `2px solid ${GOLD}` : "2px solid transparent",
+      }}
     >
-      <div className="text-[13px] text-foreground truncate">{node.label}</div>
-      <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
-        <span className="text-muted-foreground/60">GAPS</span>
+      <div
+        className="text-[12px] truncate transition-colors"
+        style={{ color: active ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.6)" }}
+      >
+        {node.label}
+      </div>
+      <div className="mt-0.5 flex items-center gap-1.5 text-[9.5px] text-white/35">
+        <span>GAPS</span>
         <span>{node.gaps}</span>
-        <ThumbsUp className="w-3 h-3 ml-0.5" />
         <HealthPips values={node.health} />
       </div>
     </button>
@@ -402,14 +549,18 @@ function NodeRow({
 
 function HealthPips({ values }: { values: [Health, Health, Health] }) {
   const map: Record<Health, string> = {
-    green: "bg-emerald-500",
-    amber: "bg-amber-400",
-    red: "bg-red-500",
+    green: "rgba(80,200,140,0.9)",
+    amber: "rgba(230,180,90,0.9)",
+    red: "rgba(220,90,90,0.9)",
   };
   return (
     <div className="flex gap-0.5 ml-1">
       {values.map((v, i) => (
-        <span key={i} className={`w-3 h-2 rounded-[2px] ${map[v]}`} />
+        <span
+          key={i}
+          className="rounded-[1.5px]"
+          style={{ width: 10, height: 6, background: map[v] }}
+        />
       ))}
     </div>
   );
@@ -426,110 +577,152 @@ function DetailRail({
 }) {
   if (!node) {
     return (
-      <div className="border-l border-border/40 bg-card/30 backdrop-blur-xl p-6 text-sm text-muted-foreground">
+      <div
+        className="p-6 text-sm text-white/50"
+        style={{ borderLeft: `1px solid ${DIM}`, background: "rgba(8,14,14,0.55)" }}
+      >
         Select a node.
       </div>
     );
   }
 
   const detail = resolveDetail(node);
-  const scores = detail.scores;
 
   return (
-    <aside className="border-l border-border/40 bg-card/40 backdrop-blur-xl overflow-y-auto">
-      <div className="p-5 space-y-5">
+    <aside
+      className="overflow-y-auto animate-fade-in"
+      style={{
+        borderLeft: `1px solid ${DIM}`,
+        background: "rgba(10,20,20,0.72)",
+        backdropFilter: "blur(24px)",
+      }}
+      key={node.id}
+    >
+      <div className="p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Activity className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-2 text-xs text-white/50">
+            <Activity className="w-3.5 h-3.5" style={{ color: TEAL }} />
             <span>{categoryLabel}</span>
           </div>
-          <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400">
+          <span
+            className="text-[10px] px-2 py-0.5 rounded"
+            style={{ background: "rgba(80,200,140,0.12)", color: "rgba(120,220,170,0.9)" }}
+          >
             Active
           </span>
         </div>
 
-        <h2 className="text-xl font-semibold leading-snug">{detail.title}</h2>
+        <h2 className="text-[22px] font-medium leading-snug text-white/95 tracking-tight">
+          {detail.title}
+        </h2>
 
-        <div className="rounded-lg border border-border/40 bg-background/50 p-4">
+        <Panel>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground">
-              Last updated on{" "}
-              <span className="text-foreground">Jul 20, 2026</span>
+            <span className="text-[11px] text-white/45">
+              Last updated <span className="text-white/75">Jul 20, 2026</span>
             </span>
-            <button className="text-[10px] text-accent flex items-center gap-1">
+            <button
+              className="text-[10px] flex items-center gap-1 transition-colors hover:opacity-80"
+              style={{ color: GOLD }}
+            >
               Explore details <ChevronRight className="w-3 h-3" />
             </button>
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            {detail.summary}
-          </p>
-        </div>
+          <p className="text-[12px] text-white/60 leading-relaxed">{detail.summary}</p>
+        </Panel>
 
-        <div className="rounded-lg border border-border/40 bg-background/50 p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-xs text-muted-foreground">Confidence</div>
-            <span className="text-[10px] text-muted-foreground">
-              {scores.label}
+        <Panel>
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[11px] text-white/45">Confidence</div>
+            <span
+              className="text-[10px] px-1.5 py-0.5 rounded"
+              style={{ background: TEAL_DIM, color: TEAL }}
+            >
+              {detail.scores.label}
             </span>
           </div>
           <div className="flex items-end gap-3">
-            <div className="text-4xl font-semibold tracking-tight">
-              {scores.percent}%
+            <div className="text-[40px] font-light leading-none tracking-tight text-white/95">
+              {detail.scores.percent}
+              <span className="text-[20px] text-white/40">%</span>
             </div>
-            <div className="text-[11px] text-red-400 mb-1.5">
-              {scores.delta} last cycle
-            </div>
-            <div className="ml-auto flex items-end gap-0.5 h-10">
-              {Array.from({ length: 32 }).map((_, i) => (
+            <div className="text-[11px] text-white/40 mb-2">{detail.scores.delta} last cycle</div>
+            <div className="ml-auto flex items-end gap-[2px] h-9">
+              {Array.from({ length: 34 }).map((_, i) => (
                 <span
                   key={i}
-                  className="w-1 bg-accent/40 rounded-sm"
-                  style={{ height: `${20 + Math.random() * 80}%` }}
+                  className="w-[3px] rounded-sm"
+                  style={{
+                    height: `${25 + ((i * 37) % 70)}%`,
+                    background: i > 26 ? GOLD_SOFT : TEAL_DIM,
+                  }}
                 />
               ))}
             </div>
           </div>
-        </div>
+        </Panel>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2.5">
           {detail.metrics.map((m) => {
             const Icon = m.icon;
             return (
-              <div
-                key={m.label}
-                className="rounded-lg border border-border/40 bg-background/50 p-3"
-              >
-                <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                <div className="text-xl font-semibold mt-2">{m.value}</div>
-                <div className="text-[10px] text-muted-foreground leading-tight">
-                  {m.label}
+              <Panel key={m.label} padding="tight">
+                <Icon className="w-3.5 h-3.5 text-white/40" />
+                <div className="text-[20px] font-light mt-2 text-white/90 tracking-tight">
+                  {m.value}
                 </div>
-              </div>
+                <div className="text-[10px] text-white/45 leading-tight mt-0.5">{m.label}</div>
+              </Panel>
             );
           })}
         </div>
 
         <div>
-          <div className="flex items-center gap-2 mb-2 text-xs text-accent">
+          <div className="flex items-center gap-2 mb-2 text-[11px]" style={{ color: GOLD }}>
             <Sparkles className="w-3.5 h-3.5" />
             <span>Wisdom analysis</span>
           </div>
-          <div className="rounded-lg border border-border/40 bg-background/50 p-4 space-y-2">
-            <div className="text-sm font-medium">{detail.recommendation.title}</div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
+          <Panel>
+            <div className="text-[13px] font-medium text-white/90 mb-1.5">
+              {detail.recommendation.title}
+            </div>
+            <p className="text-[12px] text-white/60 leading-relaxed">
               {detail.recommendation.body}
             </p>
-          </div>
+          </Panel>
         </div>
       </div>
     </aside>
   );
 }
 
+function Panel({
+  children,
+  padding = "normal",
+}: {
+  children: React.ReactNode;
+  padding?: "normal" | "tight";
+}) {
+  return (
+    <div
+      className={`rounded-lg ${padding === "tight" ? "p-3" : "p-3.5"}`}
+      style={{
+        background: "rgba(15,28,28,0.65)",
+        border: `1px solid ${DIM}`,
+        boxShadow: "inset 0 1px rgba(255,255,255,0.03)",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 function resolveDetail(node: LeafNode) {
   if (node.kind === "archetype") {
     const a = ARCHETYPE_INDEX[node.refId];
-    const passage = a ? PASSAGE_INDEX[a.primaryPassages[0]?.id] : undefined;
+    const passage = a?.primaryPassages[0]
+      ? PASSAGE_INDEX[a.primaryPassages[0].id]
+      : undefined;
     return {
       title: a ? `${a.person} — ${a.headline}` : node.label,
       summary:
@@ -609,25 +802,45 @@ function resolveDetail(node: LeafNode) {
 function ChatDock() {
   const [open, setOpen] = useState(false);
   return (
-    <div className="fixed bottom-4 right-[476px] z-40">
+    <div className="fixed bottom-4 z-40" style={{ right: 456 }}>
       {open && (
-        <div className="mb-2 w-[360px] rounded-xl border border-border/50 bg-card/90 backdrop-blur-xl shadow-2xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-accent/15 grid place-items-center">
-              <Bot className="w-3.5 h-3.5 text-accent" />
+        <div
+          className="mb-2 w-[360px] rounded-xl overflow-hidden animate-scale-in"
+          style={{
+            background: "rgba(15,28,28,0.85)",
+            backdropFilter: "blur(24px)",
+            border: `1px solid ${DIM}`,
+            boxShadow: "0 24px 64px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.04)",
+          }}
+        >
+          <div
+            className="px-4 py-3 flex items-center gap-2"
+            style={{ borderBottom: `1px solid ${DIM}` }}
+          >
+            <div
+              className="w-6 h-6 rounded-md grid place-items-center"
+              style={{ background: TEAL_DIM, color: TEAL }}
+            >
+              <Bot className="w-3.5 h-3.5" />
             </div>
-            <div className="text-sm font-medium">Wisdom agent</div>
+            <div className="text-sm font-medium text-white/85">Wisdom agent</div>
           </div>
-          <div className="p-4 text-xs text-muted-foreground min-h-[120px]">
-            Ask about any node — a pattern, an archetype, a prayer. I'll ground the answer
+          <div className="p-4 text-xs text-white/55 min-h-[100px] leading-relaxed">
+            Ask about any node — a pattern, an archetype, a prayer. Answers ground
             in your graph and Scripture.
           </div>
-          <div className="p-2 border-t border-border/40 flex items-center gap-2">
+          <div
+            className="p-2 flex items-center gap-2"
+            style={{ borderTop: `1px solid ${DIM}` }}
+          >
             <input
-              className="flex-1 bg-transparent text-xs px-2 py-1.5 outline-none placeholder:text-muted-foreground/60"
+              className="flex-1 bg-transparent text-xs px-2 py-1.5 outline-none text-white/85 placeholder:text-white/35"
               placeholder="Ask a question..."
             />
-            <button className="w-8 h-8 rounded-md bg-accent text-accent-foreground grid place-items-center">
+            <button
+              className="w-8 h-8 rounded-md grid place-items-center"
+              style={{ background: TEAL, color: "#062028" }}
+            >
               <Send className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -635,17 +848,26 @@ function ChatDock() {
       )}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 px-3 py-2 rounded-full border border-border/50 bg-card/90 backdrop-blur-xl shadow-lg text-xs hover:border-accent/50 transition-colors"
+        className="flex items-center gap-2 px-3 py-2 rounded-full text-xs transition-all hover:scale-[1.02]"
+        style={{
+          background: "rgba(15,28,28,0.85)",
+          backdropFilter: "blur(20px)",
+          border: `1px solid ${DIM}`,
+          boxShadow: "0 12px 32px rgba(0,0,0,0.4)",
+          color: "rgba(255,255,255,0.85)",
+        }}
       >
-        <div className="w-5 h-5 rounded-full bg-accent/15 grid place-items-center">
-          <Bot className="w-3 h-3 text-accent" />
+        <div
+          className="w-5 h-5 rounded-full grid place-items-center"
+          style={{ background: TEAL_DIM, color: TEAL }}
+        >
+          <Bot className="w-3 h-3" />
         </div>
         <span>My agent</span>
-        <ChevronRight className={`w-3 h-3 transition-transform ${open ? "rotate-90" : ""}`} />
+        <ChevronRight
+          className={`w-3 h-3 transition-transform duration-300 ${open ? "rotate-90" : ""}`}
+        />
       </button>
     </div>
   );
 }
-
-/* seededResponse kept as intentional named-import reference for future connect */
-void seededResponse;
