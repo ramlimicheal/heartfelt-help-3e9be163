@@ -216,6 +216,11 @@ function WisdomHome() {
                   <Loader2 className="size-3.5 animate-spin" strokeWidth={2} />
                   Composing…
                 </>
+              ) : ready && !user ? (
+                <>
+                  <LogIn className="size-3.5" strokeWidth={2} />
+                  Sign in to begin
+                </>
               ) : (
                 <>
                   Begin session
@@ -223,6 +228,7 @@ function WisdomHome() {
                 </>
               )}
             </button>
+
           </div>
         </div>
         {error && (
