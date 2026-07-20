@@ -159,7 +159,7 @@ export async function runCurseBreakerForSession(userId: string, sessionId: strin
     }
 
     return { ok: true, deepAnalyzedCount: deepResults.filter(Boolean).length };
-  });
+}
 
 export const getCurseBreakerSlice = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
