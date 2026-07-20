@@ -125,29 +125,31 @@ function LiveSessionView() {
                   tier: string;
                 }>;
               }) => (
-                <div key={line.id} className="rounded-lg border border-panel-border/60 bg-surface/30 p-3">
-                  <div className="flex items-center gap-2">
-                    <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-primary">
-                      {line.movement}
-                    </span>
-                    <p className="text-[15px] leading-snug text-foreground/95">{line.text}</p>
+                <div key={line.id} className="relative overflow-hidden rounded-xl border border-panel-border/60 bg-gradient-to-br from-surface/60 via-surface/30 to-transparent p-4">
+                  <span aria-hidden className="absolute inset-y-3 left-0 w-[2px] rounded-full bg-primary/40" />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <MovementBadge movement={line.movement} />
                   </div>
-                  <div className="mt-2 space-y-1.5">
+                  <p className="mt-2 font-serif text-[17px] leading-relaxed text-foreground/95">
+                    {line.text}
+                  </p>
+                  <div className="mt-3 space-y-1.5">
                     {line.prayer_line_sources.map((s, i) => (
-                      <div key={i} className="rounded border border-panel-border/50 bg-background/40 px-3 py-1.5 text-xs">
+                      <div key={i} className="rounded-lg border border-panel-border/50 bg-background/50 px-3 py-2 text-xs">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                          <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
                             {s.tier}
                           </span>
-                          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                          <span className="rounded-full border border-panel-border/60 bg-surface/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                             {DERIVATION_EXPLANATIONS[s.derivation]?.label ?? s.derivation}
                           </span>
                         </div>
-                        <p className="mt-1 text-muted-foreground">{s.explanation}</p>
+                        <p className="mt-1.5 leading-snug text-muted-foreground">{s.explanation}</p>
                       </div>
                     ))}
                   </div>
                 </div>
+
               ),
             )}
           </div>
