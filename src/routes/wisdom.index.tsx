@@ -156,7 +156,7 @@ function WisdomChat() {
         {/* Sticky composer */}
         <div className="mx-auto w-full max-w-3xl">
           <div className="relative overflow-hidden rounded-2xl border border-panel-border bg-surface/70 p-3 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur">
-            <ShineBorder borderWidth={1.5} duration={12} shineColor={["#E8DFC8", "#B8A470", "#E8DFC8"]} />
+            <ShineBorder borderWidth={1.5} duration={3.2} shineColor={["#E8DFC8", "#FFFFFF", "#B8A470"]} />
             <textarea
               ref={textareaRef}
               value={input}
