@@ -180,12 +180,7 @@ body {
   background: var(--panel);
 }
 
-@keyframes shine-dash {
-  from { stroke-dashoffset: 0; }
-  to { stroke-dashoffset: -100; }
-}
-.animate-shine-dash {
-  animation: shine-dash var(--duration, 4s) linear infinite;
+.shine-laser-beam {
   filter: drop-shadow(0 0 8px currentColor);
   stroke-dasharray: 18 82;
 }
