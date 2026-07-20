@@ -108,12 +108,14 @@ function WisdomChat() {
       {/* Diagonal flickering grid band across the top */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-[200px] overflow-hidden text-primary"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-[220px] overflow-hidden"
         style={{
           maskImage:
-            "linear-gradient(115deg, black 0%, rgba(0,0,0,0.55) 45%, transparent 80%)",
+            "linear-gradient(115deg, black 0%, rgba(0,0,0,0.6) 40%, transparent 78%), linear-gradient(to bottom, black 0%, black 35%, transparent 100%)",
           WebkitMaskImage:
-            "linear-gradient(115deg, black 0%, rgba(0,0,0,0.55) 45%, transparent 80%)",
+            "linear-gradient(115deg, black 0%, rgba(0,0,0,0.6) 40%, transparent 78%), linear-gradient(to bottom, black 0%, black 35%, transparent 100%)",
+          maskComposite: "intersect",
+          WebkitMaskComposite: "source-in",
         }}
       >
         <FlickeringGrid
