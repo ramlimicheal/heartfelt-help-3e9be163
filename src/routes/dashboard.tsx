@@ -33,7 +33,7 @@ import { startWisdomSession, runWisdomPipeline } from "@/lib/wisdom/pipeline.fun
 import { runCurseBreakerPipeline } from "@/lib/wisdom/curseBreaker.functions";
 import { useSession } from "@/hooks/useSession";
 
-export const Route = createFileRoute("/wisdom/")({
+export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Wisdom — dashboard" }] }),
   component: WisdomHome,
 });
