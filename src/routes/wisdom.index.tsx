@@ -197,16 +197,31 @@ function WisdomHome() {
               Seeded example
             </button>
             <button
-              onClick={openSeed}
-              disabled={text.trim().length === 0}
+              onClick={begin}
+              disabled={text.trim().length === 0 || busy}
               className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Begin session
-              <ArrowUp className="size-3.5" strokeWidth={2} />
+              {busy ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" strokeWidth={2} />
+                  Composing…
+                </>
+              ) : (
+                <>
+                  Begin session
+                  <ArrowUp className="size-3.5" strokeWidth={2} />
+                </>
+              )}
             </button>
           </div>
         </div>
+        {error && (
+          <p className="mt-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            {error}
+          </p>
+        )}
       </section>
+
 
       {/* Recent */}
       <section className="mt-10 space-y-3">
