@@ -16,7 +16,7 @@ import {
   Sparkles,
   Sun,
   User,
-  // Users removed with Mirrors nav
+  Users,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
