@@ -65,7 +65,7 @@
 
 /* Dark — default */
 :root {
-  --radius: 0.85rem;
+  --radius: 0.4rem;
 
   --background: oklch(0.16 0.01 260);
   --foreground: oklch(0.98 0.005 260);
