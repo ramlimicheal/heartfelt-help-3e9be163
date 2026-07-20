@@ -171,7 +171,7 @@ export const getCurseBreakerSlice = createServerFn({ method: "GET" })
     return { categories: cats ?? [] };
   });
 
-/** Latest Curse Breaker session for the current user, with its category slice. */
+/** Latest Curse Breaker session for the current user, with its category slice + verdicts. */
 export const getLatestCurseBreakerReading = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -184,14 +184,61 @@ export const getLatestCurseBreakerReading = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (!sess) return { session: null, categories: [] as CbCategoryRow[] };
+    if (!sess) return { session: null, categories: [] as CbCategoryRow[], verdicts: {} as Record<string, CbVerdict> };
     const { data: cats } = await s
       .from("stronghold_categories")
       .select("id, category, cheap_score, confidence, deep_analyzed, pastoral_note, supporting_evidence, counter_evidence, alternative_explanations, citations, updated_at")
       .eq("session_id", sess.id)
       .order("cheap_score", { ascending: false });
-    return { session: sess, categories: (cats ?? []) as unknown as CbCategoryRow[] };
+    const ids = (cats ?? []).map((c) => c.id);
+    const verdicts: Record<string, CbVerdict> = {};
+    if (ids.length) {
+      const { data: appr } = await s
+        .from("stronghold_category_approvals")
+        .select("category_id, verdict, note, created_at")
+        .in("category_id", ids)
+        .order("created_at", { ascending: false });
+      for (const a of appr ?? []) {
+        if (!verdicts[a.category_id]) {
+          verdicts[a.category_id] = {
+            verdict: a.verdict as CbVerdict["verdict"],
+            note: a.note ?? null,
+            created_at: a.created_at,
+          };
+        }
+      }
+    }
+    return { session: sess, categories: (cats ?? []) as unknown as CbCategoryRow[], verdicts };
   });
+
+const verdictInput = z.object({
+  categoryId: z.string().uuid(),
+  verdict: z.enum(["accepted", "rejected", "unsure", "deferred"]),
+  note: z.string().max(500).optional(),
+});
+
+/** Record the user's verdict on a stronghold category. Append-only. */
+export const recordCategoryVerdict = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: z.infer<typeof verdictInput>) => verdictInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("stronghold_category_approvals")
+      .insert({
+        user_id: context.userId,
+        category_id: data.categoryId,
+        verdict: data.verdict,
+        note: data.note ?? null,
+      });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export type CbVerdict = {
+  verdict: "accepted" | "rejected" | "unsure" | "deferred";
+  note: string | null;
+  created_at: string;
+};
 
 export type JsonValue =
   | string | number | boolean | null
