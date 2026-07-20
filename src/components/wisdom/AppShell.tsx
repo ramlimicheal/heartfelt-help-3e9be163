@@ -16,7 +16,7 @@ import {
   Sparkles,
   Sun,
   User,
-  // Users removed with Mirrors nav
+  Users,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -52,6 +52,7 @@ const GROUPS: NavGroup[] = [
     caption: "What you carry forward.",
     items: [
       { to: "/prayers", label: "Prayer", Icon: Hand },
+      { to: "/mirrors", label: "Mirrors", Icon: Users },
       { to: "/journey", label: "Journey", Icon: BookOpen },
       { to: "/you", label: "You", Icon: User },
     ],

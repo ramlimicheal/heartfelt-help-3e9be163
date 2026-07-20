@@ -21,7 +21,8 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
-import { getSessionSlice } from "@/lib/wisdom/pipeline.functions";
+import { getSessionSlice, getSessionTelemetry } from "@/lib/wisdom/pipeline.functions";
+import { toast } from "sonner";
 import { listRecentSessions, getSessionDetail } from "@/lib/wisdom/session.functions";
 import { useSession } from "@/hooks/useSession";
 import { FlickeringGrid } from "@/registry/magicui/flickering-grid";
@@ -103,7 +104,16 @@ function WisdomChat() {
 
   const { messages, sendMessage, setMessages, status, error } = useChat({
     transport,
-    onError: (e) => console.error("chat error", e),
+    onError: (e) => {
+      console.error("chat error", e);
+      // Try to parse structured rate-limit payload from the server route.
+      let msg = e.message || "Wisdom couldn't reach the model. Try again in a moment.";
+      try {
+        const parsed = JSON.parse(msg) as { error?: string; message?: string };
+        if (parsed?.message) msg = parsed.message;
+      } catch { /* not JSON */ }
+      toast.error(msg);
+    },
   });
 
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -188,6 +198,21 @@ function WisdomChat() {
     staleTime: 1000,
   });
   const artifacts = sessionSlice.data;
+
+  // Pipeline telemetry — surface last failed stage as a banner in the rail.
+  const fetchTelemetry = useServerFn(getSessionTelemetry);
+  const telemetry = useQuery({
+    queryKey: ["session-telemetry", sessionId ?? "none"],
+    queryFn: () => fetchTelemetry({ data: { sessionId: sessionId! } }),
+    enabled: !!sessionId && !!user,
+    refetchInterval: busy ? 3000 : 20000,
+  });
+  const latestRuns = telemetry.data?.runs ?? [];
+  const lastErrorRun = [...latestRuns].reverse().find((r) => r.status === "error") as
+    | { stage: string; error: string | null; created_at: string }
+    | undefined;
+
+
 
 
 
@@ -312,7 +337,7 @@ function WisdomChat() {
                       <MessageBubble message={m} />
                       {isLastAssistant && mode !== "companion" && (
                         <InlineArtifactStrip
-                          artifacts={artifacts}
+                          artifacts={artifacts as unknown as SessionArtifacts}
                           busy={busy}
                           hasSession={!!sessionId}
                         />
@@ -413,6 +438,17 @@ function WisdomChat() {
             </div>
           )}
         </RailCard>
+
+        {lastErrorRun && (
+          <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-[11px] leading-relaxed text-destructive">
+            <div className="flex items-center gap-1.5 font-medium uppercase tracking-[0.14em]">
+              <ShieldAlert className="size-3" /> Pipeline · {lastErrorRun.stage} failed
+            </div>
+            <p className="mt-1 text-destructive/90">
+              {lastErrorRun.error?.slice(0, 220) || "Discernment stage errored. Retry the last message or try a shorter turn."}
+            </p>
+          </div>
+        )}
 
         {/* Live interpretation from the pipeline */}
         {artifacts?.interpretation ? (
@@ -733,12 +769,21 @@ function ConfidenceBar({ value }: { value: number }) {
   );
 }
 
+type EventChainLink = {
+  kind:
+    | "context" | "trigger" | "interpretation" | "need" | "choice"
+    | "immediate_reward" | "cost" | "afterthought" | "re_entry";
+  text: string;
+  fromUser?: boolean;
+};
+
 type SessionArtifacts = {
   interpretation?: {
     hypothesis_name?: string | null;
     hypothesis_description?: string | null;
     confidence?: number | null;
     distinguishing_question?: string | null;
+    event_chain?: EventChainLink[] | null;
   } | null;
   prayer?: {
     id: string;
@@ -785,6 +830,7 @@ function InlineArtifactStrip({
   const primary =
     artifacts?.practices?.find((p) => p.is_primary) ?? artifacts?.practices?.[0] ?? null;
   const signals = artifacts?.signals ?? [];
+  const chain = (it?.event_chain ?? []).filter((l) => l?.text);
 
   return (
     <div className="ml-10 space-y-2">
@@ -793,6 +839,32 @@ function InlineArtifactStrip({
         <span>Discernment artifacts</span>
         <span className="h-px flex-[3] bg-gradient-to-l from-panel-border to-transparent" />
       </div>
+
+      {chain.length > 0 && (
+        <ArtifactCard icon="⟶" label={`Event chain · ${chain.length}`} tone="primary">
+          <ol className="flex flex-wrap items-center gap-1.5">
+            {chain.map((link, i) => (
+              <li key={i} className="flex items-center gap-1.5">
+                <span
+                  className={[
+                    "rounded-full border px-2 py-0.5 text-[10px]",
+                    link.fromUser
+                      ? "border-primary/40 bg-primary/10 text-foreground"
+                      : "border-panel-border/60 bg-background/60 text-muted-foreground",
+                  ].join(" ")}
+                  title={link.kind}
+                >
+                  <span className="mr-1 text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
+                    {link.kind.replace(/_/g, " ")}
+                  </span>
+                  {link.text}
+                </span>
+                {i < chain.length - 1 && <span className="text-muted-foreground/60">›</span>}
+              </li>
+            ))}
+          </ol>
+        </ArtifactCard>
+      )}
 
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
         {signals.length > 0 && (

@@ -157,6 +157,24 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_rate_limits: {
+        Row: {
+          count: number
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          user_id: string
+          window_start: string
+        }
+        Update: {
+          count?: number
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       check_ins: {
         Row: {
           at: string
@@ -314,6 +332,7 @@ export type Database = {
           body: string
           confidence: number
           created_at: string
+          event_chain: Json
           headline: string
           id: string
           min_source_tier: Database["public"]["Enums"]["source_tier"] | null
@@ -326,6 +345,7 @@ export type Database = {
           body: string
           confidence: number
           created_at?: string
+          event_chain?: Json
           headline: string
           id?: string
           min_source_tier?: Database["public"]["Enums"]["source_tier"] | null
@@ -338,6 +358,7 @@ export type Database = {
           body?: string
           confidence?: number
           created_at?: string
+          event_chain?: Json
           headline?: string
           id?: string
           min_source_tier?: Database["public"]["Enums"]["source_tier"] | null

@@ -124,6 +124,41 @@ export const Route = createFileRoute("/api/chat")({
         if (user && lastUserText) {
           try {
             const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+            // ── Rate limit: 20 chat turns per rolling 5-minute bucket per user ──
+            const WINDOW_MS = 5 * 60 * 1000;
+            const LIMIT = 20;
+            const windowStart = new Date(Math.floor(Date.now() / WINDOW_MS) * WINDOW_MS).toISOString();
+            const { data: rlRow } = await supabaseAdmin
+              .from("chat_rate_limits")
+              .select("count")
+              .eq("user_id", user.id)
+              .eq("window_start", windowStart)
+              .maybeSingle();
+            const nextCount = (rlRow?.count ?? 0) + 1;
+            if (nextCount > LIMIT) {
+              const retryAfterSec = Math.ceil(
+                (Math.floor(Date.now() / WINDOW_MS + 1) * WINDOW_MS - Date.now()) / 1000,
+              );
+              return new Response(
+                JSON.stringify({
+                  error: "rate_limited",
+                  message: `You've sent ${LIMIT} messages in the last few minutes. Take a breath — Wisdom will be here in about ${retryAfterSec}s.`,
+                }),
+                {
+                  status: 429,
+                  headers: {
+                    "content-type": "application/json",
+                    "retry-after": String(retryAfterSec),
+                  },
+                },
+              );
+            }
+            await supabaseAdmin.from("chat_rate_limits").upsert(
+              { user_id: user.id, window_start: windowStart, count: nextCount },
+              { onConflict: "user_id,window_start" },
+            );
+
             if (!sessionId) {
               const { data: sess, error: sErr } = await supabaseAdmin.from("sessions")
                 .insert({
