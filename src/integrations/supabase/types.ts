@@ -1185,29 +1185,56 @@ export type Database = {
       sessions: {
         Row: {
           created_at: string
+          first_user_message_id: string | null
           id: string
+          lock_reason: string | null
           mode: Database["public"]["Enums"]["session_mode"]
+          mode_locked_at: string | null
+          parent_session_id: string | null
           title: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          first_user_message_id?: string | null
           id?: string
+          lock_reason?: string | null
           mode: Database["public"]["Enums"]["session_mode"]
+          mode_locked_at?: string | null
+          parent_session_id?: string | null
           title?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          first_user_message_id?: string | null
           id?: string
+          lock_reason?: string | null
           mode?: Database["public"]["Enums"]["session_mode"]
+          mode_locked_at?: string | null
+          parent_session_id?: string | null
           title?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sessions_first_user_message_id_fkey"
+            columns: ["first_user_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_parent_session_id_fkey"
+            columns: ["parent_session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       signals: {
         Row: {
