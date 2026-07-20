@@ -72,17 +72,10 @@ export const getDashboardSlice = createServerFn({ method: "GET" })
         }
       : null;
 
-    let runningPipeline = false;
-    if (currentSession) {
-      const { data: runs } = await supabase
-        .from("pipeline_runs")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("session_id", currentSession.id)
-        .eq("status", "running")
-        .limit(1);
-      runningPipeline = (runs?.length ?? 0) > 0;
-    }
+    // pipeline_runs only records terminal states (ok/error/skipped); there is
+    // no persisted "running" row. Treat "Live" as false until we add a live
+    // channel. Never surface a fake Live badge.
+    const runningPipeline = false;
 
     const patternsRaw = patternsRes.data ?? [];
     const counts = {
@@ -143,10 +136,10 @@ export const getDashboardSlice = createServerFn({ method: "GET" })
       if (!lastEventAt || at > lastEventAt) {
         lastEventAt = at;
         const t = formEvent.event_type;
-        if (t === "practice_selected") formationState = "one_next_act_selected";
-        else if (t === "checkin_completed") formationState = "check_in_scheduled";
-        else if (t === "setback_recorded") formationState = "setback_recorded";
-        else if (t === "fruit_observed") formationState = "fruit_observed";
+        if (t === "practice_assigned") formationState = "one_next_act_selected";
+        else if (t === "check_in") formationState = "check_in_scheduled";
+        else if (t === "prayer" && Array.isArray(formEvent.fruit) && formEvent.fruit.length > 0)
+          formationState = "fruit_observed";
       }
     }
 
