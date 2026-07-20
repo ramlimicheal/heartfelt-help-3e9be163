@@ -29,6 +29,7 @@ import { Route as PatternsPatternIdRouteImport } from './routes/patterns.$patter
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as WisdomLiveSessionIdRouteImport } from './routes/wisdom.live.$sessionId'
+import { Route as ApiWisdomTurnRouteImport } from './routes/api/wisdom/turn'
 
 const YouRoute = YouRouteImport.update({
   id: '/you',
@@ -129,6 +130,11 @@ const WisdomLiveSessionIdRoute = WisdomLiveSessionIdRouteImport.update({
   path: '/wisdom/live/$sessionId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWisdomTurnRoute = ApiWisdomTurnRouteImport.update({
+  id: '/api/wisdom/turn',
+  path: '/api/wisdom/turn',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -149,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/patterns/': typeof PatternsIndexRoute
   '/prayers/': typeof PrayersIndexRoute
   '/wisdom/': typeof WisdomIndexRoute
+  '/api/wisdom/turn': typeof ApiWisdomTurnRoute
   '/wisdom/live/$sessionId': typeof WisdomLiveSessionIdRoute
 }
 export interface FileRoutesByTo {
@@ -170,6 +177,7 @@ export interface FileRoutesByTo {
   '/patterns': typeof PatternsIndexRoute
   '/prayers': typeof PrayersIndexRoute
   '/wisdom': typeof WisdomIndexRoute
+  '/api/wisdom/turn': typeof ApiWisdomTurnRoute
   '/wisdom/live/$sessionId': typeof WisdomLiveSessionIdRoute
 }
 export interface FileRoutesById {
@@ -193,6 +201,7 @@ export interface FileRoutesById {
   '/patterns/': typeof PatternsIndexRoute
   '/prayers/': typeof PrayersIndexRoute
   '/wisdom/': typeof WisdomIndexRoute
+  '/api/wisdom/turn': typeof ApiWisdomTurnRoute
   '/wisdom/live/$sessionId': typeof WisdomLiveSessionIdRoute
 }
 export interface FileRouteTypes {
@@ -216,6 +225,7 @@ export interface FileRouteTypes {
     | '/patterns/'
     | '/prayers/'
     | '/wisdom/'
+    | '/api/wisdom/turn'
     | '/wisdom/live/$sessionId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -237,6 +247,7 @@ export interface FileRouteTypes {
     | '/patterns'
     | '/prayers'
     | '/wisdom'
+    | '/api/wisdom/turn'
     | '/wisdom/live/$sessionId'
   id:
     | '__root__'
@@ -259,6 +270,7 @@ export interface FileRouteTypes {
     | '/patterns/'
     | '/prayers/'
     | '/wisdom/'
+    | '/api/wisdom/turn'
     | '/wisdom/live/$sessionId'
   fileRoutesById: FileRoutesById
 }
@@ -281,6 +293,7 @@ export interface RootRouteChildren {
   PatternsIndexRoute: typeof PatternsIndexRoute
   PrayersIndexRoute: typeof PrayersIndexRoute
   WisdomIndexRoute: typeof WisdomIndexRoute
+  ApiWisdomTurnRoute: typeof ApiWisdomTurnRoute
   WisdomLiveSessionIdRoute: typeof WisdomLiveSessionIdRoute
 }
 
@@ -426,6 +439,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WisdomLiveSessionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/wisdom/turn': {
+      id: '/api/wisdom/turn'
+      path: '/api/wisdom/turn'
+      fullPath: '/api/wisdom/turn'
+      preLoaderRoute: typeof ApiWisdomTurnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -459,6 +479,7 @@ const rootRouteChildren: RootRouteChildren = {
   PatternsIndexRoute: PatternsIndexRoute,
   PrayersIndexRoute: PrayersIndexRoute,
   WisdomIndexRoute: WisdomIndexRoute,
+  ApiWisdomTurnRoute: ApiWisdomTurnRoute,
   WisdomLiveSessionIdRoute: WisdomLiveSessionIdRoute,
 }
 export const routeTree = rootRouteImport

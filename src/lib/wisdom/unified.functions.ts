@@ -1,10 +1,12 @@
 /**
- * Checkpoint 3A — Flag-gated Unified Wisdom Turn server function.
+ * Checkpoint 3B — Unified Wisdom turn: server-side pipeline wired to the
+ * atomic `persist_unified_turn` / `fail_unified_turn` RPCs.
  *
- * Split-brain preservation: `runWisdomPipeline` and `/api/chat` remain the
- * production paths until Checkpoint 3B. This function is only reachable
- * when the server-side flag WISDOM_UNIFIED_TURN=on is set. It never writes
- * durable artifacts unless enabled.
+ * The orchestrator (unified.orchestrator.ts) stays pure. Its dependency
+ * shape (createTurn/persistArtifacts/finalizeTurn) is retained for the
+ * existing 15 unit tests; in production we route ALL durable writes through
+ * the RPC by making `persistArtifacts` a no-op and doing the atomic write
+ * inside `finalizeTurn(ok)`. Failure paths go through `fail_unified_turn`.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -28,6 +30,11 @@ export function isUnifiedTurnEnabled(): boolean {
   return v === "on" || v === "1" || v === "true";
 }
 
+export function isLegacyChatEnabled(): boolean {
+  const v = process.env.WISDOM_LEGACY_CHAT;
+  return v === "on" || v === "1" || v === "true";
+}
+
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   return supabaseAdmin;
@@ -40,12 +47,52 @@ async function getGateway() {
   return createLovableAiGatewayProvider(key);
 }
 
+// ── Core runner (used by both the server fn and the SSE route) ────────
+export type UnifiedRunContext = {
+  userId: string;
+  sessionId: string;
+  triggeringUserMessageId: string;
+  storedSessionMode: UnifiedMode | "curse_breaker";
+  memoryDirective: "normal" | "session_only" | "do_not_remember";
+  userText: string;
+  clientRequestedMode?: string;
+  inputPayload: unknown;
+  payloadHash: string;
+  resultSchemaVersion?: number;
+};
+
+export async function runUnifiedTurnCore(ctx: UnifiedRunContext) {
+  if (!isUnifiedTurnEnabled()) {
+    throw new Error("unified turn disabled");
+  }
+  const db = await admin();
+  const deps = buildProductionDeps(db, {
+    inputPayload: ctx.inputPayload,
+    payloadHash: ctx.payloadHash,
+    resultSchemaVersion: ctx.resultSchemaVersion ?? 1,
+    expectedUserId: ctx.userId,
+  });
+  return runUnifiedTurn(
+    {
+      userId: ctx.userId,
+      sessionId: ctx.sessionId,
+      triggeringUserMessageId: ctx.triggeringUserMessageId,
+      storedSessionMode: ctx.storedSessionMode,
+      memoryDirective: ctx.memoryDirective,
+      userText: ctx.userText,
+      clientRequestedMode: ctx.clientRequestedMode,
+    },
+    deps,
+  );
+}
+
 const input = z.object({
   sessionId: z.string().uuid(),
   triggeringUserMessageId: z.string().uuid(),
   clientRequestedMode: z.string().optional(),
 });
 
+// Kept for internal callers / tests. Route callers should hit the SSE endpoint.
 export const runUnifiedWisdomTurn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: z.infer<typeof input>) => input.parse(d))
@@ -54,8 +101,6 @@ export const runUnifiedWisdomTurn = createServerFn({ method: "POST" })
       return { ok: false as const, disabled: true as const, error: "unified turn disabled" };
     }
     const db = await admin();
-
-    // Load session (stored mode is authoritative) and message ownership.
     const { data: sess } = await db.from("sessions")
       .select("id,user_id,mode").eq("id", data.sessionId).maybeSingle();
     if (!sess || sess.user_id !== context.userId) throw new Error("session not found");
@@ -65,24 +110,45 @@ export const runUnifiedWisdomTurn = createServerFn({ method: "POST" })
     if (!msg || msg.user_id !== context.userId || msg.session_id !== data.sessionId)
       throw new Error("triggering message not found");
 
-    const deps = buildProductionDeps(db);
-    const turnInput: UnifiedTurnInput = {
+    const inputPayload = {
+      sessionId: data.sessionId,
+      triggeringUserMessageId: data.triggeringUserMessageId,
+      clientRequestedMode: data.clientRequestedMode,
+    };
+    const payloadHash = await sha256Hex(JSON.stringify(inputPayload));
+    const outcome = await runUnifiedTurnCore({
       userId: context.userId,
       sessionId: data.sessionId,
       triggeringUserMessageId: data.triggeringUserMessageId,
       storedSessionMode: sess.mode as UnifiedMode | "curse_breaker",
-      memoryDirective: msg.memory_directive as UnifiedTurnInput["memoryDirective"],
+      memoryDirective: msg.memory_directive as UnifiedRunContext["memoryDirective"],
       userText: msg.content as string,
       clientRequestedMode: data.clientRequestedMode,
-    };
-    const outcome = await runUnifiedTurn(turnInput, deps);
+      inputPayload,
+      payloadHash,
+    });
     return { ok: true as const, outcome };
   });
+
+// ── Utility ─────────────────────────────────────────────────────────
+export async function sha256Hex(s: string): Promise<string> {
+  const bytes = new TextEncoder().encode(s);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 // ── Production dependency wiring ─────────────────────────────────────
 type Db = Awaited<ReturnType<typeof admin>>;
 
-export function buildProductionDeps(db: Db): OrchestratorDeps {
+type ProductionExtras = {
+  inputPayload: unknown;
+  payloadHash: string;
+  resultSchemaVersion: number;
+  expectedUserId: string;
+};
+
+export function buildProductionDeps(db: Db, extras: ProductionExtras): OrchestratorDeps {
   return {
     loadPrompt: async (key) => {
       const { data } = await db.from("prompt_versions")
@@ -116,8 +182,6 @@ export function buildProductionDeps(db: Db): OrchestratorDeps {
       const gateway = await getGateway();
       const r = await generateText({
         model: gateway(model),
-        // Cast: Output.object infers a single schema type; our per-mode union
-        // is narrowed above and validated again by the orchestrator.
         output: Output.object({ schema: schema as unknown as typeof zCompanionResult }),
         system,
         prompt: userPrompt,
@@ -128,9 +192,16 @@ export function buildProductionDeps(db: Db): OrchestratorDeps {
       const { data } = await db.from("wisdom_turns")
         .select("id,status,result").eq("triggering_user_message_id", msgId).maybeSingle();
       if (!data) return null;
+      // Map DB canonical states (3B) back to the orchestrator's status enum.
+      const s = data.status as string;
+      const mapped: "pending"|"ok"|"validation_error"|"model_error" =
+        s === "completed" ? "ok" :
+        s === "failed" ? "model_error" :
+        s === "processing" ? "pending" :
+        (s as "pending"|"ok"|"validation_error"|"model_error");
       return {
         id: data.id as string,
-        status: data.status as "pending"|"ok"|"validation_error"|"model_error",
+        status: mapped,
         result: (data.result as UnifiedResult | null) ?? null,
       };
     },
@@ -146,89 +217,37 @@ export function buildProductionDeps(db: Db): OrchestratorDeps {
         prompt_version: row.promptVersion,
         model: row.model,
         model_version: row.modelVersion,
-        status: "pending",
+        status: "processing",
+        payload_hash: extras.payloadHash,
+        input_payload: extras.inputPayload as never,
+        result_schema_version: extras.resultSchemaVersion,
       }).select("id").single();
       if (error || !data) throw new Error(`wisdom_turns insert: ${error?.message}`);
       return { id: data.id as string };
     },
+    // Production: no-op. Atomic write happens in finalizeTurn via RPC.
+    persistArtifacts: async () => { /* handled by persist_unified_turn */ },
     finalizeTurn: async (id, patch) => {
-      await db.from("wisdom_turns").update({
-        status: patch.status,
-        result: patch.result ?? null,
-        error: patch.error ?? null,
-        latency_ms: patch.latencyMs ?? null,
-        tokens_in: patch.tokensIn ?? null,
-        tokens_out: patch.tokensOut ?? null,
-      }).eq("id", id);
-    },
-    persistArtifacts: async (turnId, userId, sessionId, result) => {
-      if (result.mode === "companion") return; // no durable inference
-      const draft = result.mode === "pattern" ? result.prayer_draft : result.prayer_lineage_draft;
-      const practice = result.primary_practice;
-      const hypothesis =
-        result.mode === "pattern"
-          ? result.competing_hypotheses[0]
-          : result.hypothesis_under_test;
-
-      // Interpretation (one per turn — enforced by unique index).
-      const { data: interp, error: iErr } = await db.from("interpretations").insert({
-        user_id: userId, session_id: sessionId, wisdom_turn_id: turnId,
-        headline: hypothesis.name,
-        body: hypothesis.description,
-        confidence: hypothesis.confidence,
-      }).select("id").single();
-      if (iErr) throw new Error(`interp: ${iErr.message}`);
-
-      // Prayer + lines + sources — passage_ids are the SAME ones shown to the user.
-      const { data: prayer, error: pErr } = await db.from("prayers").insert({
-        user_id: userId, session_id: sessionId, wisdom_turn_id: turnId,
-        title: draft.title, mode: "full",
-      }).select("id").single();
-      if (pErr) throw new Error(`prayer: ${pErr.message}`);
-      const passageTiers = new Map(result.source_passages.map((p) => [p.passage_id, p.source_tier]));
-      for (const [ordering, line] of draft.lines.entries()) {
-        const { data: lineRow, error: lErr } = await db.from("prayer_lines").insert({
-          prayer_id: prayer.id, user_id: userId, ordering,
-          movement: line.movement, text: line.text,
-        }).select("id").single();
-        if (lErr) throw new Error(`prayer_line: ${lErr.message}`);
-        const srcRows = line.citations.map((c) => ({
-          prayer_line_id: lineRow.id, user_id: userId, passage_id: c.passage_id,
-          derivation: c.derivation, explanation: c.explanation,
-          tier: passageTiers.get(c.passage_id) ?? "S3",
-        }));
-        await db.from("prayer_line_sources").insert(srcRows);
-      }
-      await db.from("prayers").update({ finalized_at: new Date().toISOString() }).eq("id", prayer.id);
-
-      await db.from("practices").insert({
-        user_id: userId, session_id: sessionId, wisdom_turn_id: turnId,
-        kind: practice.kind, title: practice.title, rationale: practice.rationale,
-        is_primary: true,
-      });
-
-      // Discernments — deep_wisdom includes counter_evidence + contextual_limits;
-      // pattern uses the distinguishing_question.
-      if (result.mode === "pattern") {
-        await db.from("discernments").insert({
-          user_id: userId, session_id: sessionId, wisdom_turn_id: turnId,
-          kind: "distinguishing_question", text: result.distinguishing_question,
+      if (patch.status === "ok" && patch.result) {
+        const { error } = await db.rpc("persist_unified_turn", {
+          p_turn_id: id,
+          p_expected_user: extras.expectedUserId,
+          p_result: patch.result as unknown as never,
+          p_input_payload: extras.inputPayload as never,
+          p_payload_hash: extras.payloadHash,
+          p_result_schema_version: extras.resultSchemaVersion,
+          p_latency_ms: patch.latencyMs ?? 0,
+          p_tokens_in: patch.tokensIn ?? 0,
+          p_tokens_out: patch.tokensOut ?? 0,
         });
+        if (error) throw new Error(`persist_unified_turn: ${error.message}`);
       } else {
-        const rows = [
-          ...result.counter_evidence.map((t) => ({
-            user_id: userId, session_id: sessionId, wisdom_turn_id: turnId,
-            kind: "counter_evidence" as const, text: t,
-          })),
-          ...result.contextual_limits.map((t) => ({
-            user_id: userId, session_id: sessionId, wisdom_turn_id: turnId,
-            kind: "context_note" as const, text: t,
-          })),
-        ];
-        if (rows.length) await db.from("discernments").insert(rows);
+        await db.rpc("fail_unified_turn", {
+          p_turn_id: id,
+          p_expected_user: extras.expectedUserId,
+          p_error: patch.error ?? patch.status,
+        });
       }
-      // Interpretation id returned but no downstream use here.
-      return void interp;
     },
     logRun: async (row) => {
       await db.from("pipeline_runs").insert({

@@ -1677,20 +1677,42 @@ export type Database = {
         }
         Relationships: []
       }
+      wisdom_turn_rate_limits: {
+        Row: {
+          count: number
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          user_id: string
+          window_start: string
+        }
+        Update: {
+          count?: number
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       wisdom_turns: {
         Row: {
+          artifact_ids: Json
           created_at: string
           error: string | null
           id: string
           idempotency_key: string
+          input_payload: Json | null
           latency_ms: number | null
           memory_directive: Database["public"]["Enums"]["memory_directive"]
           mode: Database["public"]["Enums"]["session_mode"]
           model: string
           model_version: number
+          payload_hash: string | null
           prompt_key: string
           prompt_version: number
           result: Json | null
+          result_schema_version: number
           session_id: string
           status: Database["public"]["Enums"]["wisdom_turn_status"]
           tokens_in: number | null
@@ -1698,20 +1720,25 @@ export type Database = {
           triggering_user_message_id: string
           updated_at: string
           user_id: string
+          user_text_hash: string | null
         }
         Insert: {
+          artifact_ids?: Json
           created_at?: string
           error?: string | null
           id?: string
           idempotency_key: string
+          input_payload?: Json | null
           latency_ms?: number | null
           memory_directive: Database["public"]["Enums"]["memory_directive"]
           mode: Database["public"]["Enums"]["session_mode"]
           model: string
           model_version: number
+          payload_hash?: string | null
           prompt_key: string
           prompt_version: number
           result?: Json | null
+          result_schema_version?: number
           session_id: string
           status?: Database["public"]["Enums"]["wisdom_turn_status"]
           tokens_in?: number | null
@@ -1719,20 +1746,25 @@ export type Database = {
           triggering_user_message_id: string
           updated_at?: string
           user_id: string
+          user_text_hash?: string | null
         }
         Update: {
+          artifact_ids?: Json
           created_at?: string
           error?: string | null
           id?: string
           idempotency_key?: string
+          input_payload?: Json | null
           latency_ms?: number | null
           memory_directive?: Database["public"]["Enums"]["memory_directive"]
           mode?: Database["public"]["Enums"]["session_mode"]
           model?: string
           model_version?: number
+          payload_hash?: string | null
           prompt_key?: string
           prompt_version?: number
           result?: Json | null
+          result_schema_version?: number
           session_id?: string
           status?: Database["public"]["Enums"]["wisdom_turn_status"]
           tokens_in?: number | null
@@ -1740,6 +1772,7 @@ export type Database = {
           triggering_user_message_id?: string
           updated_at?: string
           user_id?: string
+          user_text_hash?: string | null
         }
         Relationships: [
           {
@@ -1767,11 +1800,33 @@ export type Database = {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
       }
+      fail_unified_turn: {
+        Args: { p_error: string; p_expected_user: string; p_turn_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      persist_unified_turn: {
+        Args: {
+          p_expected_user: string
+          p_input_payload: Json
+          p_latency_ms: number
+          p_payload_hash: string
+          p_result: Json
+          p_result_schema_version: number
+          p_tokens_in: number
+          p_tokens_out: number
+          p_turn_id: string
+        }
+        Returns: Json
+      }
+      wisdom_turn_rate_limit_check: {
+        Args: { p_limit: number; p_user: string; p_window_seconds: number }
         Returns: boolean
       }
     }
@@ -1865,6 +1920,7 @@ export type Database = {
         | "completed"
         | "skipped"
         | "abandoned"
+        | "proposed"
       practice_kind:
         | "boundary"
         | "confession"
@@ -1903,7 +1959,14 @@ export type Database = {
         | "superseded"
         | "retired"
       source_tier: "S1" | "S2" | "S3" | "S4" | "S5" | "S6" | "S7" | "S8"
-      wisdom_turn_status: "pending" | "ok" | "validation_error" | "model_error"
+      wisdom_turn_status:
+        | "pending"
+        | "ok"
+        | "validation_error"
+        | "model_error"
+        | "processing"
+        | "completed"
+        | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2128,6 +2191,7 @@ export const Constants = {
         "completed",
         "skipped",
         "abandoned",
+        "proposed",
       ],
       practice_kind: [
         "boundary",
@@ -2170,7 +2234,15 @@ export const Constants = {
         "retired",
       ],
       source_tier: ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8"],
-      wisdom_turn_status: ["pending", "ok", "validation_error", "model_error"],
+      wisdom_turn_status: [
+        "pending",
+        "ok",
+        "validation_error",
+        "model_error",
+        "processing",
+        "completed",
+        "failed",
+      ],
     },
   },
 } as const
