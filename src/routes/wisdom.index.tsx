@@ -9,6 +9,7 @@ import {
   HandHelping,
   Hand,
   Loader2,
+  LogIn,
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
@@ -16,6 +17,8 @@ import { SESSIONS } from "@/lib/wisdom/mock/seed";
 import { COPY } from "@/lib/wisdom/copy/v1";
 import { startWisdomSession, runWisdomPipeline } from "@/lib/wisdom/pipeline.functions";
 import { runCurseBreakerPipeline } from "@/lib/wisdom/curseBreaker.functions";
+import { useSession } from "@/hooks/useSession";
+
 
 export const Route = createFileRoute("/wisdom/")({
   head: () => ({ meta: [{ title: "Wisdom — begin a session" }] }),
