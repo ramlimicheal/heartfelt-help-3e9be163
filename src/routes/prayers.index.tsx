@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PRAYERS } from "@/lib/wisdom/mock/seed";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { listPrayers } from "@/lib/wisdom/prayers.functions";
 
 export const Route = createFileRoute("/prayers/")({
   head: () => ({ meta: [{ title: "Prayers — Wisdom" }] }),
@@ -7,7 +9,12 @@ export const Route = createFileRoute("/prayers/")({
 });
 
 function PrayersList() {
-  const list = Object.values(PRAYERS);
+  const fn = useServerFn(listPrayers);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["prayers"],
+    queryFn: () => fn(),
+  });
+
   return (
     <div className="space-y-8">
       <header className="space-y-2">
@@ -19,21 +26,33 @@ function PrayersList() {
         </p>
       </header>
 
-      <section className="space-y-3">
-        {list.map((p) => (
-          <Link
-            key={p.id}
-            to="/prayers/$prayerId"
-            params={{ prayerId: p.id }}
-            className="block rounded-xl border border-panel-border bg-panel px-5 py-4 transition hover:bg-surface"
-          >
-            <p className="text-lg leading-snug">{p.title}</p>
-            <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
-              {p.mode} · {p.lines.length} lines · every line has sources
-            </p>
-          </Link>
-        ))}
-      </section>
+      {isLoading && <p className="text-sm text-muted-foreground">Loading prayers…</p>}
+      {error && (
+        <p className="text-sm text-destructive">Your prayers could not be loaded.</p>
+      )}
+      {!isLoading && !error && (data?.length ?? 0) === 0 && (
+        <p className="rounded-xl border border-panel-border bg-panel px-5 py-4 text-sm text-muted-foreground">
+          No prayers yet. A prayer is created when you finish a Wisdom session.
+        </p>
+      )}
+
+      {data && data.length > 0 && (
+        <section className="space-y-3">
+          {data.map((p) => (
+            <Link
+              key={p.id}
+              to="/prayers/$prayerId"
+              params={{ prayerId: p.id }}
+              className="block rounded-xl border border-panel-border bg-panel px-5 py-4 transition hover:bg-surface"
+            >
+              <p className="text-lg leading-snug">{p.title}</p>
+              <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
+                {p.mode} · {p.lineCount} lines · every line has sources
+              </p>
+            </Link>
+          ))}
+        </section>
+      )}
     </div>
   );
 }

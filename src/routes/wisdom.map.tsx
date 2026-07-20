@@ -20,14 +20,9 @@ import {
   X,
   Check,
 } from "lucide-react";
-import {
-  ARCHETYPE_INDEX,
-  HYPOTHESES,
-  PASSAGE_INDEX,
-  PERSONA_FACTS,
-  PRAYERS,
-  seededSession,
-} from "@/lib/wisdom/mock/seed";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getConstellation, type ConstellationCategory } from "@/lib/wisdom/constellation.functions";
 
 export const Route = createFileRoute("/wisdom/map")({
   head: () => ({ meta: [{ title: "Constellation — Wisdom" }] }),
@@ -62,67 +57,61 @@ type Category = {
   nodes: LeafNode[];
 };
 
-function healthFor(conf: number): [Health, Health, Health] {
-  if (conf >= 0.75) return ["green", "green", "green"];
-  if (conf >= 0.55) return ["green", "green", "amber"];
-  if (conf >= 0.4) return ["green", "amber", "red"];
-  return ["red", "red", "red"];
+function healthFor(_conf: number): [Health, Health, Health] {
+  // Health signal isn't backed by real data yet — render a neutral triple.
+  return ["green", "green", "green"];
 }
 
+const ICONS: Record<ConstellationCategory["id"], typeof Scale> = {
+  patterns: Scale,
+  archetypes: Building2,
+  beliefs: Layers,
+  prayers: Activity,
+};
+
+const KINDS: Record<ConstellationCategory["id"], LeafNode["kind"]> = {
+  patterns: "archetype",
+  archetypes: "archetype",
+  beliefs: "fact",
+  prayers: "prayer",
+};
+
 function useGraph() {
-  return useMemo(() => {
-    const hyps = Object.values(HYPOTHESES);
-    const archetypes = Object.values(ARCHETYPE_INDEX);
-    const facts = PERSONA_FACTS
-      .filter((f) => f.status !== "rejected" && f.status !== "deleted")
-      .slice(0, 12);
-    const prayers = Object.values(PRAYERS);
-
-    const patterns: LeafNode[] = hyps.map((h) => ({
-      id: `pat_${h.id}`,
-      label: h.name,
-      gaps: Math.round((1 - h.confidence) * 20),
-      health: healthFor(h.confidence),
-      kind: "archetype",
-      refId: h.archetypes[0]?.archetypeId ?? "archetype_moses_overload",
-    }));
-
-    const archetypeNodes: LeafNode[] = archetypes.map((a, i) => ({
-      id: `arch_${a.id}`,
-      label: a.person,
-      gaps: 4 + ((i * 3) % 12),
-      health: healthFor(0.65 + ((i % 3) * 0.1)),
-      kind: "archetype",
-      refId: a.id,
-    }));
-
-    const factNodes: LeafNode[] = facts.map((f) => ({
-      id: `fact_${f.id}`,
-      label: f.value,
-      gaps: Math.round((1 - f.confidence) * 18),
-      health: healthFor(f.confidence),
-      kind: "fact",
-      refId: f.id,
-    }));
-
-    const prayerNodes: LeafNode[] = prayers.map((p) => ({
-      id: `pr_${p.id}`,
-      label: p.title ?? p.lines[0]?.text.slice(0, 40) ?? "Prayer",
-      gaps: 6,
-      health: healthFor(0.65),
-      kind: "prayer",
-      refId: p.id,
-    }));
-
-    const categories: Category[] = [
-      { id: "patterns", label: "Patterns", icon: Scale, count: patterns.length, nodes: patterns },
-      { id: "archetypes", label: "Archetypes", icon: Building2, count: archetypeNodes.length, nodes: archetypeNodes },
-      { id: "beliefs", label: "Beliefs", icon: Layers, count: factNodes.length, nodes: factNodes },
-      { id: "prayers", label: "Prayers", icon: Activity, count: prayerNodes.length, nodes: prayerNodes },
-    ];
-
+  const fn = useServerFn(getConstellation);
+  const { data } = useQuery({ queryKey: ["constellation"], queryFn: () => fn() });
+  return useMemo<{ categories: Category[] }>(() => {
+    const src = data?.categories ?? [];
+    const categories: Category[] = src.map((c) => {
+      const nodes: LeafNode[] = c.nodes.map((n) => ({
+        id: n.id,
+        label: n.label,
+        gaps: 0,
+        health: healthFor(0.65),
+        kind: KINDS[c.id],
+        refId: n.refId,
+      }));
+      return {
+        id: c.id,
+        label: c.label,
+        icon: ICONS[c.id],
+        count: nodes.length,
+        nodes,
+      };
+    });
+    if (categories.length === 0) {
+      // Preserve category slots so the UI shell renders while empty.
+      return {
+        categories: (["patterns", "archetypes", "beliefs", "prayers"] as const).map((id) => ({
+          id,
+          label: id[0].toUpperCase() + id.slice(1),
+          icon: ICONS[id],
+          count: 0,
+          nodes: [],
+        })),
+      };
+    }
     return { categories };
-  }, []);
+  }, [data]);
 }
 
 /* ── Page ────────────────────────────────────────────────────── */
@@ -704,7 +693,7 @@ function GraphCanvas({
           transform: "translate(-50%, -50%)",
         }}
       >
-        <OrbNode label={(seededSession.title ?? "Session").slice(0, 26)} sub="Session · today" />
+        <OrbNode label="Constellation" sub="Your graph" />
       </div>
 
       {/* Category cards */}
@@ -971,36 +960,38 @@ function DetailRail({
           <p className="text-[12px] text-white/60 leading-relaxed">{detail.summary}</p>
         </Panel>
 
-        <Panel>
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-[11px] text-white/45">Confidence</div>
-            <span
-              className="text-[10px] px-1.5 py-0.5 rounded"
-              style={{ background: TEAL_DIM, color: TEAL }}
-            >
-              {detail.scores.label}
-            </span>
-          </div>
-          <div className="flex items-end gap-3">
-            <div className="text-[40px] font-light leading-none tracking-tight text-white/95">
-              {detail.scores.percent}
-              <span className="text-[20px] text-white/40">%</span>
+        {detail.scores && (
+          <Panel>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[11px] text-white/45">Confidence</div>
+              <span
+                className="text-[10px] px-1.5 py-0.5 rounded"
+                style={{ background: TEAL_DIM, color: TEAL }}
+              >
+                {detail.scores.label}
+              </span>
             </div>
-            <div className="text-[11px] text-white/40 mb-2">{detail.scores.delta} last cycle</div>
-            <div className="ml-auto flex items-end gap-[2px] h-9">
-              {Array.from({ length: 34 }).map((_, i) => (
-                <span
-                  key={i}
-                  className="w-[3px] rounded-sm"
-                  style={{
-                    height: `${25 + ((i * 37) % 70)}%`,
-                    background: i > 26 ? GOLD_SOFT : TEAL_DIM,
-                  }}
-                />
-              ))}
+            <div className="flex items-end gap-3">
+              <div className="text-[40px] font-light leading-none tracking-tight text-white/95">
+                {detail.scores.percent}
+                <span className="text-[20px] text-white/40">%</span>
+              </div>
+              <div className="text-[11px] text-white/40 mb-2">{detail.scores.delta} last cycle</div>
+              <div className="ml-auto flex items-end gap-[2px] h-9">
+                {Array.from({ length: 34 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className="w-[3px] rounded-sm"
+                    style={{
+                      height: `${25 + ((i * 37) % 70)}%`,
+                      background: i > 26 ? GOLD_SOFT : TEAL_DIM,
+                    }}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        </Panel>
+          </Panel>
+        )}
 
         <div className="grid grid-cols-2 gap-2.5">
           {detail.metrics.map((m) => {
@@ -1058,82 +1049,41 @@ function Panel({
 }
 
 function resolveDetail(node: LeafNode) {
-  if (node.kind === "archetype") {
-    const a = ARCHETYPE_INDEX[node.refId];
-    const passage = a?.primaryPassages[0]
-      ? PASSAGE_INDEX[a.primaryPassages[0].id]
-      : undefined;
-    return {
-      title: a ? `${a.person} — ${a.headline}` : node.label,
-      summary:
-        passage?.curatorSummary ??
-        a?.narrativeSummary ??
-        "A biblical mirror surfaced from your pattern graph. Names the shape, not the person.",
-      scores: { percent: 72, delta: "-4%", label: "Moderate" },
-      metrics: [
-        { label: "Passages", value: a?.primaryPassages.length ?? 0, icon: Layers },
-        { label: "Related patterns", value: 3, icon: Scale },
-        { label: "Prayers linked", value: 2, icon: Sparkles },
-        { label: "Practices", value: a?.practiceMovements.length ?? 0, icon: Activity },
-      ],
-      recommendation: {
-        title: "Sit with the mirror",
-        body:
-          "Read the passage slowly. Ask where the archetype's tension lives in your week — not to imitate, but to notice.",
-      },
-    };
-  }
-  if (node.kind === "fact") {
-    const f = PERSONA_FACTS.find((x) => x.id === node.refId);
-    return {
-      title: f?.value ?? node.label,
-      summary:
-        "A remembered belief in your persona graph. Editable, contestable, always yours to revise.",
-      scores: {
-        percent: Math.round((f?.confidence ?? 0.6) * 100),
-        delta: "+2%",
-        label: (f?.confidence ?? 0.6) > 0.7 ? "Strong" : "Moderate",
-      },
-      metrics: [
-        { label: "Sources", value: f?.evidenceMessageIds.length ?? 1, icon: Layers },
-        { label: "Sensitivity", value: f?.sensitivity ?? "normal", icon: Scale },
-        { label: "Status", value: f?.status ?? "proposed", icon: Sparkles },
-        { label: "Domain", value: f?.domain ?? "—", icon: Activity },
-      ],
-      recommendation: {
-        title: "Test the belief",
-        body:
-          "Write one sentence you'd tell a friend who held this belief. Does the compassion match what you offer yourself?",
-      },
-    };
-  }
-  if (node.kind === "prayer") {
-    const p = PRAYERS[node.refId];
-    return {
-      title: p?.title ?? node.label,
-      summary:
-        (p?.lines.map((l) => l.text).join(" ").slice(0, 220)) ??
-        "A prayer scaffold rooted in Scripture. Not a script — a starting point.",
-      scores: { percent: 65, delta: "0%", label: "Steady" },
-      metrics: [
-        { label: "Lines", value: p?.lines.length ?? 3, icon: Layers },
-        { label: "Sources", value: p?.lines[0]?.sources.length ?? 1, icon: Scale },
-        { label: "Tier", value: "S1", icon: Sparkles },
-        { label: "Mode", value: p?.mode ?? "concise", icon: Activity },
-      ],
-      recommendation: {
-        title: "Pray slowly",
-        body:
-          "Read one movement, pause, breathe. If a phrase catches, stay there. The scaffold serves you, not the other way.",
-      },
-    };
-  }
+  const genericSummary =
+    node.kind === "archetype"
+      ? "A pattern or archetype from your graph. Names the shape, not the person."
+      : node.kind === "fact"
+        ? "A remembered belief in your persona graph. Editable, contestable, always yours to revise."
+        : node.kind === "prayer"
+          ? "A prayer scaffold rooted in Scripture. Not a script — a starting point."
+          : "Detail unavailable.";
+  const rec =
+    node.kind === "archetype"
+      ? {
+          title: "Sit with the mirror",
+          body:
+            "Read the passage slowly. Ask where the archetype's tension lives in your week — not to imitate, but to notice.",
+        }
+      : node.kind === "fact"
+        ? {
+            title: "Test the belief",
+            body:
+              "Write one sentence you'd tell a friend who held this belief. Does the compassion match what you offer yourself?",
+          }
+        : node.kind === "prayer"
+          ? {
+              title: "Pray slowly",
+              body:
+                "Read one movement, pause, breathe. If a phrase catches, stay there. The scaffold serves you, not the other way.",
+            }
+          : { title: "", body: "" };
   return {
     title: node.label,
-    summary: "Detail unavailable.",
-    scores: { percent: 50, delta: "0%", label: "—" },
-    metrics: [],
-    recommendation: { title: "", body: "" },
+    summary: genericSummary,
+    // Numeric health/score isn't backed by real data yet — omit rather than fabricate.
+    scores: null as null | { percent: number; delta: string; label: string },
+    metrics: [] as Array<{ label: string; value: string | number; icon: typeof Layers }>,
+    recommendation: rec,
   };
 }
 

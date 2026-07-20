@@ -1,62 +1,46 @@
-# Dashboard Wiring — Real Data, No Seed Leakage
+# Sync remaining 8 routes to real data
 
-## Goal
-Replace all seed/mock reads in production Wisdom routes with a single authenticated server function backed by RLS-scoped queries. Every tile gets loading / empty / populated / error states. Enforce the "user confirms, not Wisdom" copy contract.
+Same pattern as `dashboard` / `wisdom/index`: routes stay top-level, data is fetched via `useServerFn` + `useQuery` in the component (never in a loader), all queries scoped by `requireSupabaseAuth`. Every route gets loading / error / empty states and drops its `mock/seed` import.
 
-## 1. Server contract — `getDashboardSlice`
-New file `src/lib/wisdom/dashboard.functions.ts`:
+## Fidelity policy (important)
 
-- `createServerFn({ method: "GET" }).middleware([requireSupabaseAuth])`
-- Runs ~7 parallel `context.supabase` queries scoped to `userId` (RLS re-enforces):
-  - `sessions` — most recent by `updated_at`, plus 5 recent
-  - `patterns` — counts by `lifecycle` (proposed / accepted / improving / recurring), most-recently-updated row (id, name, lifecycle, confidence, updated_at)
-  - `persona_facts` — counts by `status` (`accepted`, `proposed`); **no text, no sensitive rows**
-  - `prayers` — latest finalized (id, title, created_at) + `count(prayer_lines)`
-  - `formation_events` — last 5 (type, at, note — no fruit scores)
-  - `check_ins` — last 1 (state only)
-  - `pipeline_runs` — any `status='running'` for the latest session → drives "Live" flag
-- Returns a Zod-validated `DashboardSlice` DTO with `emptyFlags` and a `suggestedNext: "start_wisdom" | "review_pattern" | "confirm_memory" | "open_prayer"`.
+Some mock structures don't have a full DB counterpart yet (composite `WisdomResponse`, hypothesis→archetype linkage graph, per-line prayer roots, "confidence" per pattern). Rules:
 
-Contract lives in `src/lib/wisdom/dashboard.schemas.ts` (client-safe).
+- Fetch every field the schema actually stores.
+- For fields with no backing table/column, **omit that UI block** rather than fabricate. No mock values injected as fallbacks. No fake confidence / fake health colours.
+- Keep the copy contract intact ("never as a verdict", "recorded, never identity", etc.).
 
-## 2. Dashboard route rewrite
-`src/routes/dashboard.tsx`:
-- Remove all imports from `@/lib/wisdom/mock/seed`.
-- `useQuery(['dashboard-slice'], useServerFn(getDashboardSlice))`.
-- One skeleton grid while loading; per-tile error boundary with retry (`refetch`).
-- Tiles rewritten against DTO:
-  - **Session** — real title + updated_at; "Live" chip only when `runningPipeline === true`. Empty copy: *No conversation yet — Bring a real situation when you're ready.*
-  - **Pattern activity** — real counts + most-recent row; confidence bar only if `confidence != null`. Line: *This remains a candidate until you confirm or refine it.*
-  - **Persona Graph** — `"{n} things you've confirmed · {m} proposed memories awaiting review"`; link to `/you`. No fact text.
-  - **Prayer scaffold** — latest prayer title + movement count. Empty: *No prayer has been formed yet. A prayer will appear after Wisdom understands the situation and verifies its biblical roots.*
-  - **Recent** — real sessions only; empty state points to `/wisdom`.
-  - **Fruit** — enum state pill from last formation_event / check_in; no scores, no streaks.
+## Files added
 
-## 3. Wisdom chat route cleanup
-`src/routes/wisdom.index.tsx`:
-- Delete the right-rail cards that read from `HYPOTHESES / ARCHETYPE_INDEX / PRAYERS`. Replace with a live rail that reads the same slice (lightweight) and shows real "Emerging pattern" only when one exists; otherwise a quiet placeholder.
-- Copy fix: `"mirrors it through Scripture—never as a verdict"` (search all routes).
-- Remove any wording that says Wisdom "confirms" a pattern.
+Client-safe server-fn modules under `src/lib/wisdom/`:
 
-## 4. Navigation trim
-`src/components/wisdom/AppShell.tsx`:
-- Keep: Wisdom, Curse Breaker, Dashboard, Patterns, Prayer, Journey, You.
-- Remove Constellation (`/wisdom/map`) and Mirrors from the sidebar (files stay, just unlinked).
+- `journey.functions.ts` — `getJourneyTimeline` → `formation_events` for user (asc/desc, limit).
+- `you.functions.ts` — `listPersonaFacts`, `setPersonaFactStatus` (mutation goes through service role after ownership check, same shape as existing persona fns).
+- `prayers.functions.ts` — `listPrayers`, `getPrayerDetail` (join `prayer_lines` + `prayer_line_sources` + `source_passages`).
+- `patterns.functions.ts` — `listPatterns`, `getPatternDetail` (pattern + `pattern_evidence` + `practices` via `practice_assignments`; hypothesis-graph fields left out).
+- `session.functions.ts` — `getSessionDetail` (session + `messages` + latest `interpretations` row + `discernments` + linked `prayers`/`practices`).
+- `constellation.functions.ts` — `getConstellation` for `/wisdom/map`: user's patterns, persona facts (non-rejected), prayers, and archetype references pulled from `pattern_evidence`/`interpretations`.
 
-## 5. Copy sweep
-Grep for `never as advice`, `Wisdom confirms`, `Wisdom will confirm` → replace with approved wording. Central strings in `src/lib/wisdom/copy/v1.ts` where possible.
+## Files changed
 
-## 6. Responsive + a11y
-- Verify grid at 375 / 768 / 1280 / 1600 via Playwright screenshots.
-- Re-run axe in dark + light.
+- `src/routes/journey.tsx` — swap `seededTimeline` for `getJourneyTimeline`; keep the timeline UI and TYPE_LABEL map.
+- `src/routes/you.tsx` — swap `PERSONA_FACTS` for `listPersonaFacts`; buttons call `setPersonaFactStatus` and invalidate the query. No local `useState` seed.
+- `src/routes/prayers.index.tsx` — swap `PRAYERS` for `listPrayers`.
+- `src/routes/prayers.$prayerId.tsx` — swap loader-side mock lookup for a `useQuery` on `getPrayerDetail(prayerId)`; keep expandable Prayer Roots.
+- `src/routes/patterns.index.tsx` — swap `HYPOTHESES` for `listPatterns`.
+- `src/routes/patterns.$patternId.tsx` — swap `ARCHETYPE_INDEX / HYPOTHESES / PRACTICES / RESPONSES` for `getPatternDetail`; render only sections backed by real data.
+- `src/routes/wisdom.$sessionId.tsx` — swap `SESSIONS / RESPONSES / …` for `getSessionDetail`; render messages + interpretation + discernment + linked prayer/practices. Sections without backing data (hypothesis alternatives, per-line roots when absent) are hidden, not faked.
+- `src/routes/wisdom.map.tsx` — swap the seed graph for `getConstellation`; keep the visual shell (categories, sort, filter, chat dock). Empty categories render an empty state instead of seed nodes.
 
-## 7. RLS check
-Confirm existing policies on `sessions`, `patterns`, `persona_facts`, `prayers`, `prayer_lines`, `formation_events`, `check_ins`, `pipeline_runs` scope to `auth.uid()`. No migration expected; if a gap is found I'll surface a migration for approval before shipping.
+Zero routes move under `_authenticated/`. Data fetching lives in the component via `useServerFn` — matches the existing dashboard/wisdom-index pattern and avoids the SSR-bearer-token pitfall.
 
-## 8. Evidence returned
-Changed files list, removed mock imports, DTO shape, table/RLS map, Playwright screenshots (empty + populated, mobile + desktop, dark + light), axe results, confirmation no seed reaches production.
+## Verification
 
-## Out of scope
-- No schema changes unless RLS gap discovered.
-- Constellation/Mirrors routes untouched (just unlinked).
-- Curse Breaker page untouched this pass.
+- `bun run tsgo` (typecheck), `bun run build` (production build).
+- Preview-side spot check on `/journey`, `/you`, `/prayers`, `/patterns`, and `/wisdom/map` while signed in to confirm no console errors and empty states render before real data exists.
+
+## Technical notes
+
+- All new server fns follow the existing `pattern.functions.ts` shape: `.middleware([requireSupabaseAuth])`, per-request `context.supabase` for reads, `await import('@/integrations/supabase/client.server')` only when a write needs to bypass RLS (`setPersonaFactStatus`).
+- No new tables or migrations. If a section legitimately needs new tables (e.g. persistent `WisdomResponse` composite), that's called out as follow-up and not silently modelled here.
+- Query keys: `["journey"]`, `["persona-facts"]`, `["prayers"]`, `["prayer", id]`, `["patterns"]`, `["pattern", id]`, `["session", id]`, `["constellation"]`. Invalidated on relevant mutations.
