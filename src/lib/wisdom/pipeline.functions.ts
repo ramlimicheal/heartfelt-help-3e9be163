@@ -345,6 +345,7 @@ export const getSessionSlice = createServerFn({ method: "GET" })
 const startInput = z.object({
   mode: z.enum(["companion", "pattern", "deep_wisdom", "curse_breaker"]),
   text: z.string().min(1).max(8000),
+  memoryDirective: z.enum(["normal", "session_only", "do_not_remember"]).default("normal"),
 });
 
 export const startWisdomSession = createServerFn({ method: "POST" })
@@ -358,11 +359,99 @@ export const startWisdomSession = createServerFn({ method: "POST" })
     if (sErr || !sess) throw new Error(sErr?.message ?? "session insert failed");
     const { error: mErr } = await s.from("messages").insert({
       user_id: context.userId, session_id: sess.id, role: "user",
-      content: data.text, memory_directive: "normal",
+      content: data.text, memory_directive: data.memoryDirective,
     });
     if (mErr) throw new Error(mErr.message);
     return { sessionId: sess.id };
   });
+
+// ── Send a user turn into an existing session, enforcing mode-lock ──────
+const sendInput = z.object({
+  sessionId: z.string().uuid(),
+  text: z.string().min(1).max(8000),
+  requestedMode: z.enum(["companion", "pattern", "deep_wisdom", "curse_breaker"]),
+  memoryDirective: z.enum(["normal", "session_only", "do_not_remember"]).default("normal"),
+});
+
+export const sendUserMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: z.infer<typeof sendInput>) => sendInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const s = context.supabase;
+    const { data: sess, error: sErr } = await s
+      .from("sessions")
+      .select("id,user_id,mode,mode_locked_at")
+      .eq("id", data.sessionId)
+      .maybeSingle();
+    if (sErr || !sess) throw new Error("session not found");
+    if (sess.user_id !== context.userId) throw new Error("Forbidden");
+
+    const decision = assertModeAllowed({
+      session: {
+        id: sess.id,
+        user_id: sess.user_id,
+        mode: sess.mode as SessionMode,
+        mode_locked_at: sess.mode_locked_at as string | null,
+      },
+      requestedMode: data.requestedMode,
+    });
+
+    const { error: mErr } = await s.from("messages").insert({
+      user_id: context.userId,
+      session_id: data.sessionId,
+      role: "user",
+      content: data.text,
+      memory_directive: data.memoryDirective,
+    });
+    if (mErr) throw new Error(mErr.message);
+    return { ok: true, effectiveMode: decision };
+  });
+
+// ── Escalate mismatched mode into a NEW linked session ──────────────────
+const linkedInput = z.object({
+  parentSessionId: z.string().uuid(),
+  mode: z.enum(["companion", "pattern", "deep_wisdom", "curse_breaker"]),
+  text: z.string().min(1).max(8000),
+  memoryDirective: z.enum(["normal", "session_only", "do_not_remember"]).default("normal"),
+});
+
+export const startLinkedSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: z.infer<typeof linkedInput>) => linkedInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const s = context.supabase;
+    // Owner check on parent (RLS also enforces).
+    const { data: parent, error: pErr } = await s
+      .from("sessions")
+      .select("id,user_id")
+      .eq("id", data.parentSessionId)
+      .maybeSingle();
+    if (pErr || !parent) throw new Error("parent session not found");
+    if (parent.user_id !== context.userId) throw new Error("Forbidden");
+
+    const { data: sess, error: sErr } = await s
+      .from("sessions")
+      .insert({
+        user_id: context.userId,
+        mode: data.mode,
+        title: data.text.slice(0, 80),
+        parent_session_id: data.parentSessionId,
+      })
+      .select("id")
+      .single();
+    if (sErr || !sess) throw new Error(sErr?.message ?? "linked session insert failed");
+    const { error: mErr } = await s.from("messages").insert({
+      user_id: context.userId,
+      session_id: sess.id,
+      role: "user",
+      content: data.text,
+      memory_directive: data.memoryDirective,
+    });
+    if (mErr) throw new Error(mErr.message);
+    return { sessionId: sess.id, parentSessionId: data.parentSessionId };
+  });
+
+export { MODE_LOCK_ERROR };
 
 // ── Telemetry: pipeline_runs for a session (owner-scoped by RLS) ────────
 export const getSessionTelemetry = createServerFn({ method: "GET" })
