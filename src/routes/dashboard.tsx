@@ -109,15 +109,29 @@ function WisdomHome() {
     <div className="min-h-[calc(100vh-6rem)] pb-8">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-4">
         {/* HERO — composer */}
-        <section className="lg:col-span-5 rounded-3xl border border-panel-border bg-surface/60 p-6 md:p-8 flex flex-col">
+        <section
+          className="lg:col-span-5 relative overflow-hidden rounded-3xl border border-panel-border bg-surface/60 p-6 md:p-8 flex flex-col"
+          style={{
+            backgroundImage:
+              "radial-gradient(120% 80% at 0% 0%, color-mix(in oklab, var(--primary) 10%, transparent), transparent 60%), radial-gradient(80% 60% at 100% 100%, color-mix(in oklab, var(--primary) 6%, transparent), transparent 65%)",
+          }}
+        >
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-5xl md:text-6xl font-light tracking-tight leading-none">{timeStr}</div>
+              <div className="text-5xl md:text-6xl font-light tracking-tight leading-none tabular-nums">{timeStr}</div>
               <div className="mt-4 text-[13px] text-muted-foreground">{greeting},</div>
               <div className="mt-0.5 text-lg font-medium capitalize">{displayName}</div>
             </div>
+            {ready && user && slice.data && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-panel-border bg-background/40 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                <span className={`size-1.5 rounded-full ${slice.data.runningPipeline ? "bg-primary animate-pulse" : "bg-muted-foreground/50"}`} />
+                {slice.data.runningPipeline ? "Live" : "Idle"}
+              </span>
+            )}
           </div>
+
 
           <div className="mt-6 flex-1 flex flex-col">
             <h1 className="text-2xl md:text-[28px] leading-snug tracking-tight">
@@ -428,10 +442,14 @@ function Tile({
   return (
     <section
       aria-label={title}
-      className={`rounded-3xl border border-panel-border bg-surface/60 p-5 flex flex-col ${className}`}
+      className={`group/tile relative rounded-3xl border border-panel-border bg-surface/60 p-5 flex flex-col transition-all duration-300 hover:border-primary/30 hover:bg-surface hover:-translate-y-0.5 ${className}`}
     >
+      <div aria-hidden className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent opacity-0 transition-opacity duration-300 group-hover/tile:opacity-100" />
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-[13px] font-medium">{title}</h2>
+        <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+          <span aria-hidden className="size-1 rounded-full bg-primary/60" />
+          {title}
+        </h2>
         {query.isFetching && !query.isLoading && (
           <RefreshCw className="size-3 animate-spin text-muted-foreground" aria-label="Refreshing" />
         )}
