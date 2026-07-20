@@ -102,13 +102,25 @@ export type PatternEvidenceItem = {
   createdAt: string;
 };
 
+export type PracticeAssignmentStatus =
+  | "pending"
+  | "committed"
+  | "completed"
+  | "skipped"
+  | "abandoned";
+
 export type PatternPracticeItem = {
   id: string;
   kind: string;
   title: string;
   rationale: string;
   isPrimary: boolean;
+  assignmentId: string | null;
+  assignmentStatus: PracticeAssignmentStatus | null;
+  completedAt: string | null;
 };
+
+
 
 export type PatternDetail = {
   id: string;
