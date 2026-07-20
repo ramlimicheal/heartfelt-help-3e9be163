@@ -254,3 +254,40 @@ export const getSessionSlice = createServerFn({ method: "GET" })
       practices: practices.data ?? [],
     };
   });
+
+// ── Session bootstrap: create session + first user message ──────────────
+const startInput = z.object({
+  mode: z.enum(["companion", "pattern", "deep", "curse_breaker"]),
+  text: z.string().min(1).max(8000),
+});
+
+export const startWisdomSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: z.infer<typeof startInput>) => startInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const s = context.supabase;
+    const { data: sess, error: sErr } = await s.from("sessions")
+      .insert({ user_id: context.userId, mode: data.mode, title: data.text.slice(0, 80) })
+      .select("id").single();
+    if (sErr || !sess) throw new Error(sErr?.message ?? "session insert failed");
+    const { error: mErr } = await s.from("messages").insert({
+      user_id: context.userId, session_id: sess.id, role: "user",
+      content: data.text, memory_directive: "default",
+    });
+    if (mErr) throw new Error(mErr.message);
+    return { sessionId: sess.id };
+  });
+
+// ── Telemetry: pipeline_runs for a session (owner-scoped by RLS) ────────
+export const getSessionTelemetry = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { sessionId: string }) => z.object({ sessionId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: runs } = await context.supabase
+      .from("pipeline_runs")
+      .select("stage,status,latency_ms,model,prompt_key,prompt_version,tokens_in,tokens_out,error,created_at")
+      .eq("session_id", data.sessionId)
+      .order("created_at", { ascending: true });
+    return { runs: runs ?? [] };
+  });
+
