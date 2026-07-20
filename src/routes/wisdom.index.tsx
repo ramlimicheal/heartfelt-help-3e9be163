@@ -146,86 +146,104 @@ function WisdomChat() {
           color="#E8DFC8"
           maxOpacity={0.55}
         />
-
       </div>
-      {/* Conversation column */}
-      <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-        <div ref={scrollerRef} className="flex-1 overflow-y-auto pr-2">
-          {isEmpty ? (
-            <EmptyState onPick={(p, m) => { setInput(p); setMode(m); textareaRef.current?.focus(); }} />
-          ) : (
-            <div className="mx-auto flex max-w-3xl flex-col gap-6 py-6">
-              {messages.map((m) => (
-                <MessageBubble key={m.id} message={m} />
-              ))}
-              {status === "submitted" && (
-                <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
-                  <Loader2 className="size-3 animate-spin" /> Wisdom is listening…
-                </div>
-              )}
-              {error && (
-                <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
-                  {error.message}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
 
-        {/* Sticky composer */}
-        <div className="mx-auto w-full max-w-3xl">
-          <div className="relative overflow-hidden rounded-2xl border border-panel-border bg-surface/70 p-3 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur">
-            <ShineBorder borderWidth={1.5} duration={3.2} shineColor={["#E8DFC8", "#FFFFFF", "#B8A470"]} />
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
-              }}
-              rows={2}
-              placeholder="Bring a real situation. Wisdom mirrors it through Scripture—never as a verdict."
-              className="w-full resize-none bg-transparent px-2 py-1 text-[14px] leading-relaxed placeholder:text-muted-foreground/60 focus:outline-none"
-            />
-            <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-panel-border/60 pt-2">
-              <div className="flex items-center gap-0.5 rounded-full border border-panel-border bg-background/60 p-0.5">
-                {MODES.map((m) => {
-                  const active = mode === m.id;
-                  return (
-                    <button
-                      key={m.id}
-                      onClick={() => setMode(m.id)}
-                      title={m.hint}
-                      className={[
-                        "rounded-full px-2.5 py-1 text-[11px] transition",
-                        active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-                      ].join(" ")}
-                    >
-                      {m.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <span className="hidden text-[10px] uppercase tracking-[0.14em] text-muted-foreground md:inline">
-                {MODES.find((m) => m.id === mode)?.hint}
+      {/* Conversation column — framed */}
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col pt-6 md:pt-10">
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-panel-border bg-surface/40 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.65)] backdrop-blur-sm">
+          {/* Frame header */}
+          <div className="flex items-center justify-between gap-3 border-b border-panel-border/70 bg-background/40 px-5 py-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="grid size-6 shrink-0 place-items-center rounded-md bg-primary/15 text-primary">
+                <Sparkles className="size-3" strokeWidth={1.75} />
               </span>
-              <button
-                onClick={submit}
-                disabled={busy || input.trim().length === 0}
-                className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {busy ? <><Loader2 className="size-3 animate-spin" /> Composing…</> : <>Begin <ArrowUp className="size-3" /></>}
-              </button>
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Wisdom · {MODES.find((m) => m.id === mode)?.label}</div>
+                <div className="truncate text-[12px] text-foreground/80">{MODES.find((m) => m.id === mode)?.hint}</div>
+              </div>
+            </div>
+            <div className="shrink-0 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+              {isEmpty ? "New session" : `${messages.length} exchange${messages.length === 1 ? "" : "s"}`}
             </div>
           </div>
-          <p className="mt-2 px-2 text-center text-[10px] text-muted-foreground">
-            Scripture citations are checked against curated passages · nothing is remembered without your permission.
-          </p>
+
+          {/* Scroll region */}
+          <div ref={scrollerRef} className="flex-1 overflow-y-auto px-4 md:px-6">
+            {isEmpty ? (
+              <EmptyState onPick={(p, m) => { setInput(p); setMode(m); textareaRef.current?.focus(); }} />
+            ) : (
+              <div className="mx-auto flex max-w-3xl flex-col gap-8 py-8">
+                {messages.map((m) => (
+                  <MessageBubble key={m.id} message={m} />
+                ))}
+                {status === "submitted" && (
+                  <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+                    <Loader2 className="size-3 animate-spin" /> Wisdom is listening…
+                  </div>
+                )}
+                {error && (
+                  <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
+                    {error.message}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Composer, inside the frame */}
+          <div className="border-t border-panel-border/70 bg-background/50 px-4 py-4 md:px-6">
+            <div className="mx-auto w-full max-w-3xl">
+              <div className="relative overflow-hidden rounded-2xl border border-panel-border bg-surface/70 p-3 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)]">
+                <ShineBorder borderWidth={1.5} duration={3.2} shineColor={["#E8DFC8", "#FFFFFF", "#B8A470"]} />
+                <textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
+                  }}
+                  rows={2}
+                  placeholder="Bring a real situation. Wisdom mirrors it through Scripture—never as a verdict."
+                  className="w-full resize-none bg-transparent px-2 py-1 text-[14px] leading-relaxed placeholder:text-muted-foreground/60 focus:outline-none"
+                />
+                <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-panel-border/60 pt-2">
+                  <div className="flex items-center gap-0.5 rounded-full border border-panel-border bg-background/60 p-0.5">
+                    {MODES.map((m) => {
+                      const active = mode === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          onClick={() => setMode(m.id)}
+                          title={m.hint}
+                          className={[
+                            "rounded-full px-2.5 py-1 text-[11px] transition",
+                            active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                          ].join(" ")}
+                        >
+                          {m.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    onClick={submit}
+                    disabled={busy || input.trim().length === 0}
+                    className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {busy ? <><Loader2 className="size-3 animate-spin" /> Composing…</> : <>Begin <ArrowUp className="size-3" /></>}
+                  </button>
+                </div>
+              </div>
+              <p className="mt-2 px-2 text-center text-[10px] text-muted-foreground">
+                Scripture citations are checked against curated passages · nothing is remembered without your permission.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Live surfacing rail */}
-      <aside className="hidden w-[300px] shrink-0 flex-col gap-3 overflow-y-auto lg:flex">
+      <aside className="hidden w-[300px] shrink-0 flex-col gap-3 overflow-y-auto pt-6 md:pt-10 lg:flex">
         <RailCard label="Session" head="Live">
           <div className="text-[12px] text-muted-foreground">
             {isEmpty ? "Waiting for your first message." : `${messages.length} exchange${messages.length === 1 ? "" : "s"} · mode ${mode}`}
@@ -267,11 +285,11 @@ function WisdomChat() {
             </p>
           </RailCard>
         )}
-
       </aside>
     </div>
   );
 }
+
 
 function EmptyState({ onPick }: { onPick: (prompt: string, mode: Mode) => void }) {
   return (
