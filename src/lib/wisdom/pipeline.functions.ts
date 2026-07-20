@@ -85,16 +85,17 @@ export const runWisdomPipeline = createServerFn({ method: "POST" })
     {
       const t0 = Date.now();
       try {
-        const { output } = await generateText({
+        const r = await generateText({
           model: gateway(exModel.model),
           output: Output.object({ schema: zExtractionResult }),
           system: exPrompt.body,
           prompt: userTurns,
         });
-        extraction = output;
+        extraction = r.output;
         await logRun(db, { userId, sessionId: data.sessionId, mode: "wisdom", stage: "extraction",
           status: "ok", latencyMs: Date.now() - t0, promptKey: "wisdom.extraction",
-          promptVersion: exPrompt.version, model: exModel.model });
+          promptVersion: exPrompt.version, model: exModel.model,
+          tokensIn: r.usage?.inputTokens, tokensOut: r.usage?.outputTokens });
       } catch (e) {
         await logRun(db, { userId, sessionId: data.sessionId, mode: "wisdom", stage: "extraction",
           status: "error", latencyMs: Date.now() - t0, promptKey: "wisdom.extraction",
