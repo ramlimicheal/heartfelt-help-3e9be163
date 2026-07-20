@@ -154,3 +154,38 @@ export const getSessionDetail = createServerFn({ method: "GET" })
       })),
     };
   });
+
+export type RecentSession = {
+  id: string;
+  title: string | null;
+  mode: string;
+  createdAt: string;
+  updatedAt: string;
+  messageCount: number;
+  hasPrayer: boolean;
+};
+
+export const listRecentSessions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<RecentSession[]> => {
+    const { data, error } = await context.supabase
+      .from("sessions")
+      .select("id, title, mode, created_at, updated_at, messages(count), prayers(id)")
+      .eq("user_id", context.userId)
+      .order("updated_at", { ascending: false })
+      .limit(30);
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((s) => {
+      const msgAgg = s.messages as unknown as { count: number }[] | null;
+      const prayers = s.prayers as unknown as { id: string }[] | null;
+      return {
+        id: s.id,
+        title: s.title,
+        mode: s.mode,
+        createdAt: s.created_at,
+        updatedAt: s.updated_at,
+        messageCount: msgAgg?.[0]?.count ?? 0,
+        hasPrayer: (prayers?.length ?? 0) > 0,
+      };
+    });
+  });

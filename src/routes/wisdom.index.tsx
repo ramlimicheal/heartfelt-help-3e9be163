@@ -11,13 +11,16 @@ import {
   Compass,
   Hand,
   HandHelping,
+  History,
   Loader2,
+  Plus,
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
 import { getSessionSlice } from "@/lib/wisdom/pipeline.functions";
+import { listRecentSessions, getSessionDetail } from "@/lib/wisdom/session.functions";
 import { useSession } from "@/hooks/useSession";
 import { FlickeringGrid } from "@/registry/magicui/flickering-grid";
 import { ShineBorder } from "@/registry/magicui/shine-border";
@@ -88,10 +91,50 @@ function WisdomChat() {
     [],
   );
 
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, setMessages, status, error } = useChat({
     transport,
     onError: (e) => console.error("chat error", e),
   });
+
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const fetchRecentSessions = useServerFn(listRecentSessions);
+  const fetchSessionDetail = useServerFn(getSessionDetail);
+  const recent = useQuery({
+    queryKey: ["recent-sessions"],
+    queryFn: () => fetchRecentSessions(),
+    enabled: historyOpen,
+    staleTime: 15_000,
+  });
+
+  const resumeSession = async (sid: string, sMode: string) => {
+    setHistoryOpen(false);
+    const detail = await fetchSessionDetail({ data: { sessionId: sid } });
+    if (!detail) return;
+    const modeMap: Record<string, Mode> = {
+      companion: "companion", pattern: "pattern",
+      deep_wisdom: "deep", curse_breaker: "curse_breaker",
+    };
+    setMode(modeMap[sMode] ?? "pattern");
+    sessionIdRef.current = sid;
+    setSessionId(sid);
+    setMessages(
+      detail.messages
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .map((m) => ({
+          id: m.id,
+          role: m.role as "user" | "assistant",
+          parts: [{ type: "text", text: m.content }],
+        })) as UIMessage[],
+    );
+  };
+
+  const newSession = () => {
+    sessionIdRef.current = null;
+    setSessionId(null);
+    setMessages([]);
+    setInput("");
+    textareaRef.current?.focus();
+  };
 
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -177,8 +220,71 @@ function WisdomChat() {
                 <div className="truncate text-[12px] text-foreground/80">{MODES.find((m) => m.id === mode)?.hint}</div>
               </div>
             </div>
-            <div className="shrink-0 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-              {isEmpty ? "New session" : `${messages.length} exchange${messages.length === 1 ? "" : "s"}`}
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                {isEmpty ? "New session" : `${messages.length} exchange${messages.length === 1 ? "" : "s"}`}
+              </span>
+              <button
+                onClick={newSession}
+                title="Start a new session"
+                className="inline-flex items-center gap-1 rounded-full border border-panel-border bg-background/50 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground transition hover:text-foreground"
+              >
+                <Plus className="size-3" /> New
+              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setHistoryOpen((v) => !v)}
+                  title="Resume a past session"
+                  className="inline-flex items-center gap-1 rounded-full border border-panel-border bg-background/50 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground transition hover:text-foreground"
+                >
+                  <History className="size-3" /> History
+                </button>
+                {historyOpen && (
+                  <div className="absolute right-0 top-full z-40 mt-1 w-[320px] max-h-[440px] overflow-y-auto rounded-xl border border-panel-border bg-surface/95 p-2 shadow-2xl backdrop-blur">
+                    <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                      Recent sessions
+                    </div>
+                    {recent.isLoading && (
+                      <div className="flex items-center gap-2 px-2 py-3 text-[11px] text-muted-foreground">
+                        <Loader2 className="size-3 animate-spin" /> Loading…
+                      </div>
+                    )}
+                    {recent.data && recent.data.length === 0 && (
+                      <div className="px-2 py-3 text-[11px] text-muted-foreground">
+                        No prior sessions yet.
+                      </div>
+                    )}
+                    <ul className="flex flex-col">
+                      {recent.data?.map((s) => (
+                        <li key={s.id}>
+                          <button
+                            onClick={() => resumeSession(s.id, s.mode)}
+                            className={[
+                              "flex w-full flex-col gap-0.5 rounded-lg px-2 py-2 text-left transition hover:bg-background/60",
+                              s.id === sessionId ? "bg-primary/10" : "",
+                            ].join(" ")}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="line-clamp-1 text-[12px] text-foreground/90">
+                                {s.title || "Untitled thread"}
+                              </span>
+                              <span className="shrink-0 text-[9.5px] uppercase tracking-[0.14em] text-muted-foreground">
+                                {s.mode.replace(/_/g, " ")}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                              <span>{new Date(s.updatedAt).toLocaleDateString()}</span>
+                              <span>·</span>
+                              <span>{s.messageCount} msg</span>
+                              {s.hasPrayer && <span className="text-primary/80">· prayer</span>}
+                            </div>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
