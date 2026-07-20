@@ -67,7 +67,7 @@ function WisdomChat() {
       new DefaultChatTransport({
         api: "/api/chat",
         body: () => ({ mode: modeRef.current, sessionId: sessionIdRef.current }),
-        headers: async () => {
+        headers: async (): Promise<Record<string, string>> => {
           const { supabase } = await import("@/integrations/supabase/client");
           const { data } = await supabase.auth.getSession();
           const token = data.session?.access_token;
