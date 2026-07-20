@@ -20,10 +20,11 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { SESSIONS } from "@/lib/wisdom/mock/seed";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
 
 
 type NavItem = { to: string; label: string; Icon: typeof Compass };
@@ -44,8 +45,6 @@ const GROUPS: NavGroup[] = [
     items: [
       { to: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
       { to: "/patterns", label: "Patterns", Icon: Compass },
-      { to: "/wisdom/map", label: "Constellation", Icon: Orbit },
-      { to: "/journey", label: "Mirrors", Icon: Users },
     ],
   },
   {
