@@ -17,6 +17,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WisdomIndexRouteImport } from './routes/wisdom.index'
 import { Route as PrayersIndexRouteImport } from './routes/prayers.index'
 import { Route as PatternsIndexRouteImport } from './routes/patterns.index'
 import { Route as WisdomMapRouteImport } from './routes/wisdom.map'
@@ -25,6 +26,7 @@ import { Route as WisdomSessionIdRouteImport } from './routes/wisdom.$sessionId'
 import { Route as SettingsPrivacyRouteImport } from './routes/settings.privacy'
 import { Route as PrayersPrayerIdRouteImport } from './routes/prayers.$prayerId'
 import { Route as PatternsPatternIdRouteImport } from './routes/patterns.$patternId'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as WisdomLiveSessionIdRouteImport } from './routes/wisdom.live.$sessionId'
 
@@ -67,6 +69,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WisdomIndexRoute = WisdomIndexRouteImport.update({
+  id: '/wisdom/',
+  path: '/wisdom/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrayersIndexRoute = PrayersIndexRouteImport.update({
   id: '/prayers/',
   path: '/prayers/',
@@ -107,6 +114,11 @@ const PatternsPatternIdRoute = PatternsPatternIdRouteImport.update({
   path: '/patterns/$patternId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
   id: '/home',
   path: '/home',
@@ -127,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/welcome': typeof WelcomeRoute
   '/you': typeof YouRoute
   '/home': typeof AuthenticatedHomeRoute
+  '/api/chat': typeof ApiChatRoute
   '/patterns/$patternId': typeof PatternsPatternIdRoute
   '/prayers/$prayerId': typeof PrayersPrayerIdRoute
   '/settings/privacy': typeof SettingsPrivacyRoute
@@ -135,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/wisdom/map': typeof WisdomMapRoute
   '/patterns/': typeof PatternsIndexRoute
   '/prayers/': typeof PrayersIndexRoute
+  '/wisdom/': typeof WisdomIndexRoute
   '/wisdom/live/$sessionId': typeof WisdomLiveSessionIdRoute
 }
 export interface FileRoutesByTo {
@@ -146,6 +160,7 @@ export interface FileRoutesByTo {
   '/welcome': typeof WelcomeRoute
   '/you': typeof YouRoute
   '/home': typeof AuthenticatedHomeRoute
+  '/api/chat': typeof ApiChatRoute
   '/patterns/$patternId': typeof PatternsPatternIdRoute
   '/prayers/$prayerId': typeof PrayersPrayerIdRoute
   '/settings/privacy': typeof SettingsPrivacyRoute
@@ -154,6 +169,7 @@ export interface FileRoutesByTo {
   '/wisdom/map': typeof WisdomMapRoute
   '/patterns': typeof PatternsIndexRoute
   '/prayers': typeof PrayersIndexRoute
+  '/wisdom': typeof WisdomIndexRoute
   '/wisdom/live/$sessionId': typeof WisdomLiveSessionIdRoute
 }
 export interface FileRoutesById {
@@ -167,6 +183,7 @@ export interface FileRoutesById {
   '/welcome': typeof WelcomeRoute
   '/you': typeof YouRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
+  '/api/chat': typeof ApiChatRoute
   '/patterns/$patternId': typeof PatternsPatternIdRoute
   '/prayers/$prayerId': typeof PrayersPrayerIdRoute
   '/settings/privacy': typeof SettingsPrivacyRoute
@@ -175,6 +192,7 @@ export interface FileRoutesById {
   '/wisdom/map': typeof WisdomMapRoute
   '/patterns/': typeof PatternsIndexRoute
   '/prayers/': typeof PrayersIndexRoute
+  '/wisdom/': typeof WisdomIndexRoute
   '/wisdom/live/$sessionId': typeof WisdomLiveSessionIdRoute
 }
 export interface FileRouteTypes {
@@ -188,6 +206,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/you'
     | '/home'
+    | '/api/chat'
     | '/patterns/$patternId'
     | '/prayers/$prayerId'
     | '/settings/privacy'
@@ -196,6 +215,7 @@ export interface FileRouteTypes {
     | '/wisdom/map'
     | '/patterns/'
     | '/prayers/'
+    | '/wisdom/'
     | '/wisdom/live/$sessionId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -207,6 +227,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/you'
     | '/home'
+    | '/api/chat'
     | '/patterns/$patternId'
     | '/prayers/$prayerId'
     | '/settings/privacy'
@@ -215,6 +236,7 @@ export interface FileRouteTypes {
     | '/wisdom/map'
     | '/patterns'
     | '/prayers'
+    | '/wisdom'
     | '/wisdom/live/$sessionId'
   id:
     | '__root__'
@@ -227,6 +249,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/you'
     | '/_authenticated/home'
+    | '/api/chat'
     | '/patterns/$patternId'
     | '/prayers/$prayerId'
     | '/settings/privacy'
@@ -235,6 +258,7 @@ export interface FileRouteTypes {
     | '/wisdom/map'
     | '/patterns/'
     | '/prayers/'
+    | '/wisdom/'
     | '/wisdom/live/$sessionId'
   fileRoutesById: FileRoutesById
 }
@@ -247,6 +271,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   WelcomeRoute: typeof WelcomeRoute
   YouRoute: typeof YouRoute
+  ApiChatRoute: typeof ApiChatRoute
   PatternsPatternIdRoute: typeof PatternsPatternIdRoute
   PrayersPrayerIdRoute: typeof PrayersPrayerIdRoute
   SettingsPrivacyRoute: typeof SettingsPrivacyRoute
@@ -255,6 +280,7 @@ export interface RootRouteChildren {
   WisdomMapRoute: typeof WisdomMapRoute
   PatternsIndexRoute: typeof PatternsIndexRoute
   PrayersIndexRoute: typeof PrayersIndexRoute
+  WisdomIndexRoute: typeof WisdomIndexRoute
   WisdomLiveSessionIdRoute: typeof WisdomLiveSessionIdRoute
 }
 
@@ -316,6 +342,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wisdom/': {
+      id: '/wisdom/'
+      path: '/wisdom'
+      fullPath: '/wisdom/'
+      preLoaderRoute: typeof WisdomIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/prayers/': {
       id: '/prayers/'
       path: '/prayers'
@@ -372,6 +405,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatternsPatternIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/home': {
       id: '/_authenticated/home'
       path: '/home'
@@ -409,6 +449,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   WelcomeRoute: WelcomeRoute,
   YouRoute: YouRoute,
+  ApiChatRoute: ApiChatRoute,
   PatternsPatternIdRoute: PatternsPatternIdRoute,
   PrayersPrayerIdRoute: PrayersPrayerIdRoute,
   SettingsPrivacyRoute: SettingsPrivacyRoute,
@@ -417,6 +458,7 @@ const rootRouteChildren: RootRouteChildren = {
   WisdomMapRoute: WisdomMapRoute,
   PatternsIndexRoute: PatternsIndexRoute,
   PrayersIndexRoute: PrayersIndexRoute,
+  WisdomIndexRoute: WisdomIndexRoute,
   WisdomLiveSessionIdRoute: WisdomLiveSessionIdRoute,
 }
 export const routeTree = rootRouteImport
