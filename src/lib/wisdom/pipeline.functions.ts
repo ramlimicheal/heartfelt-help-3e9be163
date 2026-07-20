@@ -114,17 +114,35 @@ export async function runPipelineForSession(userId: string, sessionId: string, i
       if (rows.length) await db.from("signals").insert(rows);
     }
 
-    // ── Stage 2: retrieval (approved passages only, tier-ordered) ────
+    // ── Stage 2: retrieval (approved passages only, keyword-scored) ──
+    // Pull the whole approved corpus, then rank by term overlap with the
+    // user's story + extracted signal paraphrases. Top ~40 go to the
+    // composer so it can actually choose across the breadth of Scripture
+    // rather than a fixed 24-passage window.
     const { data: passages } = await db
       .from("source_passages")
       .select("id,reference,canonical_ref,text,source_id,source_documents!inner(tier,status)")
       .eq("source_documents.status", "approved")
-      .limit(24);
-    const retrieval = (passages ?? []).map((p) => ({
+      .limit(400);
+    const allPassages = (passages ?? []).map((p) => ({
       id: p.id, reference: p.reference,
       tier: (p as { source_documents: { tier: string } }).source_documents.tier, text: p.text,
     }));
-    if (retrieval.length === 0) throw new Error("retrieval empty — no approved passages seeded");
+    if (allPassages.length === 0) throw new Error("retrieval empty — no approved passages seeded");
+    const STOP = new Set("the a an of and or to in for with on at by is are was were be been being it its this that these those i me my we our you your he she they them his her their as but if not so do does did have has had will would could should may might can not no yes from into over under about".split(" "));
+    const queryTerms = new Set(
+      (userTurns + " " + extraction.signals.map((s) => s.paraphrase).join(" "))
+        .toLowerCase().split(/[^a-z]+/)
+        .filter((w) => w.length >= 4 && !STOP.has(w)),
+    );
+    const tierBonus: Record<string, number> = { S1: 0.5, S2: 0.3, S3: 0.2, S4: 0.1 };
+    const scored = allPassages.map((p) => {
+      const words = p.text.toLowerCase().split(/[^a-z]+/);
+      let score = 0;
+      for (const w of words) if (w.length >= 4 && queryTerms.has(w)) score += 1;
+      return { p, score: score + (tierBonus[p.tier] ?? 0) };
+    }).sort((a, b) => b.score - a.score);
+    const retrieval = scored.slice(0, 40).map((s) => s.p);
     const retrievalIds = new Set(retrieval.map((r) => r.id));
 
     // ── Stage 3: composition ─────────────────────────────────────────
