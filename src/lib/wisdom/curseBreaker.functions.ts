@@ -40,9 +40,12 @@ const runInput = z.object({ sessionId: z.string().uuid() });
 export const runCurseBreakerPipeline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: z.infer<typeof runInput>) => runInput.parse(d))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }) => runCurseBreakerForSession(context.userId, data.sessionId));
+
+/** Direct server-side invocation (e.g. from /api/chat onFinish). */
+export async function runCurseBreakerForSession(userId: string, sessionId: string) {
     const db = await admin();
-    const userId = context.userId;
+    const data = { sessionId };
 
     const { data: session } = await db.from("sessions")
       .select("id,user_id").eq("id", data.sessionId).maybeSingle();
