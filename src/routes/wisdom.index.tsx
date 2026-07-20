@@ -13,12 +13,9 @@ import {
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
-import {
-  ARCHETYPE_INDEX,
-  HYPOTHESES,
-  PASSAGE_INDEX,
-  PRAYERS,
-} from "@/lib/wisdom/mock/seed";
+import { useQuery } from "@tanstack/react-query";
+import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
+import { useSession } from "@/hooks/useSession";
 
 export const Route = createFileRoute("/wisdom/")({
   head: () => ({
