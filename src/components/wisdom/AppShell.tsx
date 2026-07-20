@@ -116,7 +116,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
     }
   }, [collapsed]);
   const isFullBleed =
-    pathname === "/welcome" || pathname === "/onboarding" || pathname === "/auth";
+    pathname === "/" || pathname === "/welcome" || pathname === "/onboarding" || pathname === "/auth";
 
   async function signOut() {
     await queryClient.cancelQueries();
