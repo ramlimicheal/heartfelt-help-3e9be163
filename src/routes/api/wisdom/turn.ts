@@ -256,7 +256,14 @@ async function handlePost(request: Request): Promise<Response> {
             result: outcome.result,
           });
         }
-      } catch {
+      } catch (err) {
+        // Server-side diagnostics (never sent to client).
+        console.error("[wisdom.turn] orchestrator failed", {
+          userId,
+          sessionId: body.sessionId,
+          message: (err as Error)?.message,
+          stack: (err as Error)?.stack?.split("\n").slice(0, 5).join(" | "),
+        });
         // Never leak stack traces, prompts, model output, or DNR content.
         send("error", { error: "turn_failed", code: "internal_error" });
       } finally {
