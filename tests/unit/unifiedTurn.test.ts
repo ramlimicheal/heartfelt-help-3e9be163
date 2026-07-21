@@ -358,15 +358,27 @@ describe("Checkpoint 3A — Unified Wisdom Turn orchestrator", () => {
     }
   });
 
-  it("curse_breaker sessions are unsupported in Checkpoint 3A (unified interface pending)", async () => {
-    const { deps, store } = makeDeps({ buildResult: (_, r) => patternResult(r) });
+  it("curse_breaker sessions now run through the unified pipeline (P1)", async () => {
+    // CB reuses the pattern-shaped result. Fake gateway builds a pattern result;
+    // orchestrator promotes it via storedSessionMode=curse_breaker.
+    const { deps, store } = makeDeps({
+      buildResult: (_mode, r) => {
+        const base = patternResult(r) as Record<string, unknown>;
+        return {
+          ...base,
+          mode: "curse_breaker",
+          stronghold_category: "fear of abandonment",
+          renunciations: ["I renounce the lie that I must earn love."],
+        };
+      },
+    });
     const out = await runUnifiedTurn(
       baseInput({ storedSessionMode: "curse_breaker" as UnifiedMode }),
       deps,
     );
-    expect(out.kind).toBe("unsupported");
-    expect(store.turns.length).toBe(0);
-    expect(store.artifactCalls.length).toBe(0);
+    expect(out.kind).toBe("created");
+    expect(store.turns.length).toBe(1);
+    expect(store.artifactCalls.length).toBe(1);
   });
 
   it("pattern-matched citations without a contextual_limit are backfilled (graceful grounding)", async () => {
