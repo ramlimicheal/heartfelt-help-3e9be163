@@ -240,7 +240,7 @@ describe("Checkpoint 3A — Unified Wisdom Turn orchestrator", () => {
     expect(persistedIds).toEqual(visibleIds);
   });
 
-  it("fabricated references fail the turn (validation_error, no artifacts)", async () => {
+  it("fabricated references are gracefully replaced with a real retrieval passage (beta grounding)", async () => {
     const { deps, store } = makeDeps({
       buildResult: (_, r) => {
         const bad = JSON.parse(JSON.stringify(patternResult(r))) as { prayer_draft: { lines: Array<{ citations: Array<{ passage_id: string }> }> } };
@@ -248,9 +248,14 @@ describe("Checkpoint 3A — Unified Wisdom Turn orchestrator", () => {
         return bad;
       },
     });
-    await expect(runUnifiedTurn(baseInput({ storedSessionMode: "pattern" }), deps)).rejects.toThrow(/fabricated/);
-    expect(store.artifactCalls.length).toBe(0);
-    expect(store.turns[0].status).toBe("validation_error");
+    const out = await runUnifiedTurn(baseInput({ storedSessionMode: "pattern" }), deps);
+    expect(out.kind).toBe("created");
+    if (out.kind !== "created" || out.result.mode !== "pattern") throw new Error("unreachable");
+    const retrievalIds = new Set(makeRetrieval().map((r) => r.id));
+    for (const line of out.result.prayer_draft.lines) {
+      for (const c of line.citations) expect(retrievalIds.has(c.passage_id)).toBe(true);
+    }
+    expect(store.artifactCalls.length).toBe(1);
   });
 
   it("Pattern and Deep Wisdom use distinct contracts (deep_wisdom result rejected as pattern)", async () => {
