@@ -150,6 +150,7 @@ async function handlePost(request: Request): Promise<Response> {
   const payloadHash = await sha256Hex(JSON.stringify(inputPayload));
 
   // 5b. Detect existing turn for this triggering message BEFORE inserting the message row.
+  let retryTurnId: string | undefined;
   const { data: existingTurn } = await supabaseAdmin
     .from("wisdom_turns")
     .select("id,status,result,artifact_ids,payload_hash,attempt_count,processing_expires_at,memory_directive")
@@ -190,6 +191,7 @@ async function handlePost(request: Request): Promise<Response> {
         if (claim.reason === "already_completed") return json({ error: "already_completed", turnId: existingTurn.id }, 409);
         return json({ error: "retry_denied", reason: claim.reason ?? "unknown" }, 409);
       }
+      retryTurnId = existingTurn.id as string;
       // Fall through: run the turn again under the same protected turn identity.
     }
   } else {
@@ -219,6 +221,7 @@ async function handlePost(request: Request): Promise<Response> {
           userId,
           sessionId: body.sessionId,
           triggeringUserMessageId: body.triggeringUserMessageId,
+          retryTurnId,
           storedSessionMode: storedMode,
           memoryDirective: body.memoryDirective,
           userText: body.userText,
