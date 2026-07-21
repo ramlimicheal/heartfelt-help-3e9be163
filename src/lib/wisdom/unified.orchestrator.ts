@@ -22,7 +22,7 @@ export type UnifiedTurnInput = {
   userId: string;
   sessionId: string;
   triggeringUserMessageId: string;
-  storedSessionMode: UnifiedMode | "curse_breaker";
+  storedSessionMode: UnifiedMode;
   memoryDirective: "normal" | "session_only" | "do_not_remember";
   userText: string;
   clientRequestedMode?: string;
