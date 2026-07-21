@@ -364,16 +364,16 @@ describe("Checkpoint 3A — Unified Wisdom Turn orchestrator", () => {
     expect(store.artifactCalls.length).toBe(0);
   });
 
-  it("pattern-matched citations without a contextual_limit fail grounding", async () => {
+  it("pattern-matched citations without a contextual_limit are backfilled (graceful grounding)", async () => {
     const { deps, store } = makeDeps({
       buildResult: (_, r) => {
         const bad = JSON.parse(JSON.stringify(patternResult(r))) as { prayer_draft: { lines: Array<{ citations: Array<{ derivation: string; contextual_limit?: string }> }> } };
-        // The 3rd line's pattern_matched citation loses its contextual_limit.
         delete bad.prayer_draft.lines[2].citations[0].contextual_limit;
         return bad;
       },
     });
-    await expect(runUnifiedTurn(baseInput({ storedSessionMode: "pattern" }), deps)).rejects.toThrow(/contextual_limit/);
-    expect(store.artifactCalls.length).toBe(0);
+    const out = await runUnifiedTurn(baseInput({ storedSessionMode: "pattern" }), deps);
+    expect(out.kind).toBe("created");
+    expect(store.artifactCalls.length).toBe(1);
   });
 });
