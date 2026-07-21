@@ -13,6 +13,7 @@ import {
   zCompanionResult,
   zPatternResult,
   zDeepWisdomResult,
+  zCurseBreakerResult,
   type UnifiedMode,
   type UnifiedResult,
 } from "./unified.schemas";
