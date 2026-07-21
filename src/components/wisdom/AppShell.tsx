@@ -60,7 +60,6 @@ const GROUPS: NavGroup[] = [
 
 const MOBILE_NAV: NavItem[] = [
   { to: "/wisdom", label: "Wisdom", Icon: Sparkles },
-  { to: "/wisdom", label: "Wisdom", Icon: Sparkles },
   { to: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { to: "/patterns", label: "Patterns", Icon: Compass },
   { to: "/prayers", label: "Prayer", Icon: Hand },
