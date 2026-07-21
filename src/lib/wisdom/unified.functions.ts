@@ -137,6 +137,45 @@ export async function sha256Hex(s: string): Promise<string> {
     .map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+function extractJsonObject(text: string): unknown | null {
+  const trimmed = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/```$/i, "").trim();
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
+  if (start < 0 || end <= start) return null;
+  try {
+    return JSON.parse(trimmed.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+}
+
+function normalizeModelJson(value: unknown, mode: UnifiedMode): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const record = { ...(value as Record<string, unknown>) };
+
+  if (mode === "pattern") {
+    record.competing_hypotheses = record.competing_hypotheses ?? record.hypotheses ?? [];
+    record.prayer_draft = record.prayer_draft ?? record.prayer ?? record.evolving_prayer;
+  }
+
+  if (mode === "deep_wisdom") {
+    record.hypothesis_under_test = record.hypothesis_under_test ?? record.primary_hypothesis ?? record.hypothesis ?? {
+      name: "Working hypothesis",
+      description: "",
+      confidence: 0.5,
+    };
+    record.competing_explanations = record.competing_explanations ?? record.alternative_explanations ?? [];
+    record.prayer_lineage_draft = record.prayer_lineage_draft ?? record.prayer_draft ?? record.prayer ?? record.evolving_prayer;
+  }
+
+  if (mode === "companion") {
+    const mirrors = record.biblical_mirrors;
+    record.biblical_mirror = record.biblical_mirror ?? (Array.isArray(mirrors) ? mirrors[0] : undefined);
+  }
+
+  return record;
+}
+
 // ── Production dependency wiring ─────────────────────────────────────
 type Db = Awaited<ReturnType<typeof admin>>;
 
@@ -201,8 +240,9 @@ export function buildProductionDeps(db: Db, extras: ProductionExtras): Orchestra
             const preview = (err.text ?? "").slice(0, 4000);
             // Fallback #1: manual parse of the raw text.
             try {
-              const parsed = JSON.parse(err.text ?? "");
-              const validated = schema.parse({ ...parsed, mode });
+              const parsed = extractJsonObject(err.text ?? "");
+              const normalized = normalizeModelJson(parsed, mode);
+              const validated = schema.parse({ ...(normalized as object), mode });
               return { ok: true as const, raw: validated, tokensIn: err.usage?.inputTokens, tokensOut: err.usage?.outputTokens };
             } catch { /* fall through */ }
             return { ok: false as const, textPreview: preview, cause: (err.cause as Error | undefined)?.message ?? err.message };

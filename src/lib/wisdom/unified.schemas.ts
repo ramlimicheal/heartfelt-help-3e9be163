@@ -13,11 +13,26 @@ import { z } from "zod";
 import { zPrayerMovement } from "./pipeline.schemas";
 
 // ── Shared primitives ────────────────────────────────────────────────
-export const zSharedSignal = z.object({
-  kind: z.string().min(1).max(80),
-  paraphrase: z.string().min(1).max(600),
-  confidence: z.number().min(0).max(1).default(0.5),
-});
+const zConfidence = z.coerce.number().catch(0.5).pipe(z.number().min(0).max(1));
+const zTextArray = z.preprocess(
+  (value) => Array.isArray(value) ? value.map((item) => typeof item === "string" ? item : JSON.stringify(item)) : value,
+  z.array(z.string().max(400)).max(12).default([]),
+);
+const prayerMovementValues = zPrayerMovement.options;
+
+export const zSharedSignal = z.preprocess((value) => {
+  if (!value || typeof value !== "object") return value;
+  const record = value as Record<string, unknown>;
+  return {
+    ...record,
+    kind: record.kind ?? record.type ?? "observation",
+    paraphrase: record.paraphrase ?? record.text ?? record.summary ?? "",
+  };
+}, z.object({
+  kind: z.string().min(1).max(80).default("observation"),
+  paraphrase: z.string().max(600).default(""),
+  confidence: zConfidence.default(0.5),
+}));
 
 export const zSourcePassageRef = z.object({
   passage_id: z.string().uuid(),
@@ -63,36 +78,94 @@ export const zCompanionResult = zSharedResultBase.extend({
 export type CompanionResult = z.infer<typeof zCompanionResult>;
 
 // ── Pattern ──────────────────────────────────────────────────────────
-export const zEventChainLink = z.object({
-  kind: z.enum([
-    "context","trigger","interpretation","need","choice",
-    "immediate_reward","cost","afterthought","re_entry",
-  ]),
-  text: z.string().min(1).max(600),
+const eventKinds = [
+  "context","trigger","interpretation","need","choice",
+  "immediate_reward","cost","afterthought","re_entry",
+] as const;
+
+export const zEventChainLink = z.preprocess((value) => {
+  if (!value || typeof value !== "object") return value;
+  const record = value as Record<string, unknown>;
+  const rawKind = String(record.kind ?? record.type ?? "context");
+  const kind = eventKinds.includes(rawKind as typeof eventKinds[number]) ? rawKind : "context";
+  return {
+    ...record,
+    kind,
+    text: record.text ?? record.description ?? record.summary ?? "",
+    fromUser: record.fromUser ?? record.from_user ?? true,
+  };
+}, z.object({
+  kind: z.enum(eventKinds).default("context"),
+  text: z.string().max(600).default(""),
   fromUser: z.boolean().default(true),
-});
+}));
 
-export const zHypothesis = z.object({
-  name: z.string().min(1).max(200),
+export const zHypothesis = z.preprocess((value) => {
+  if (!value || typeof value !== "object") return value;
+  const record = value as Record<string, unknown>;
+  return {
+    ...record,
+    name: record.name ?? record.label ?? record.title ?? "Working hypothesis",
+    description: record.description ?? record.text ?? record.summary ?? "",
+    supporting_evidence: record.supporting_evidence ?? record.supportingEvidence ?? record.evidence ?? [],
+    counter_evidence: record.counter_evidence ?? record.counterEvidence ?? [],
+    missing_evidence: record.missing_evidence ?? record.missingEvidence ?? [],
+  };
+}, z.object({
+  name: z.string().min(1).max(200).default("Working hypothesis"),
   description: z.string().max(1200).default(""),
-  confidence: z.number().min(0).max(1).default(0.5),
-  supporting_evidence: z.array(z.string().max(400)).max(12).default([]),
-  counter_evidence: z.array(z.string().max(400)).max(12).default([]),
-  missing_evidence: z.array(z.string().max(400)).max(12).default([]),
-});
+  confidence: zConfidence.default(0.5),
+  supporting_evidence: zTextArray,
+  counter_evidence: zTextArray,
+  missing_evidence: zTextArray,
+}));
 
-export const zPrayerLine = z.object({
+export const zPrayerLine = z.preprocess((value) => {
+  if (!value || typeof value !== "object") return value;
+  const record = value as Record<string, unknown>;
+  const raw = String(record.movement ?? record.type ?? "blessing").toLowerCase();
+  const movement = prayerMovementValues.includes(raw as typeof prayerMovementValues[number])
+    ? raw
+    : raw.includes("confess") ? "confession"
+    : raw.includes("renounc") ? "renunciation"
+    : raw.includes("forgiv") ? "forgiveness"
+    : raw.includes("deliver") ? "deliverance"
+    : raw.includes("heal") ? "healing"
+    : raw.includes("thank") ? "thanksgiving"
+    : raw.includes("commission") ? "commissioning"
+    : "blessing";
+  return {
+    ...record,
+    movement,
+    text: record.text ?? record.line ?? "",
+  };
+}, z.object({
   movement: zPrayerMovement,
   text: z.string().min(1).max(600),
   citations: z.array(zCitation).max(6).default([]),
-});
+}));
 
 export const zPrayerDraft = z.object({
   title: z.string().min(1).max(200),
   lines: z.array(zPrayerLine).min(1).max(8),
 });
 
-export const zPrimaryPractice = z.object({
+const practiceKinds = [
+  "boundary","confession","forgiveness","restitution","reconciliation",
+  "silence","scripture_meditation","journaling","accountability",
+  "environmental_change","service","waiting","gratitude","fasting_reflection",
+] as const;
+
+export const zPrimaryPractice = z.preprocess((value) => {
+  if (!value || typeof value !== "object") return value;
+  const record = value as Record<string, unknown>;
+  const raw = String(record.kind ?? record.type ?? "scripture_meditation").toLowerCase();
+  return {
+    ...record,
+    kind: practiceKinds.includes(raw as typeof practiceKinds[number]) ? raw : "scripture_meditation",
+    title: record.title ?? record.name ?? "A small faithful practice",
+  };
+}, z.object({
   kind: z.enum([
     "boundary","confession","forgiveness","restitution","reconciliation",
     "silence","scripture_meditation","journaling","accountability",
@@ -100,7 +173,7 @@ export const zPrimaryPractice = z.object({
   ]),
   title: z.string().min(1).max(200),
   rationale: z.string().max(800).default(""),
-});
+}));
 
 export const zPatternResult = zSharedResultBase.extend({
   mode: z.literal("pattern"),
@@ -119,10 +192,21 @@ export const zPatternResult = zSharedResultBase.extend({
 export type PatternResult = z.infer<typeof zPatternResult>;
 
 // ── Deep Wisdom ──────────────────────────────────────────────────────
-export const zCompetingExplanation = z.object({
+const explanationFrames = ["ordinary","relational","situational","embodied","spiritual"] as const;
+
+export const zCompetingExplanation = z.preprocess((value) => {
+  if (!value || typeof value !== "object") return value;
+  const record = value as Record<string, unknown>;
+  const raw = String(record.frame ?? record.kind ?? record.type ?? "ordinary").toLowerCase();
+  return {
+    ...record,
+    frame: explanationFrames.includes(raw as typeof explanationFrames[number]) ? raw : "ordinary",
+    text: record.text ?? record.description ?? record.summary ?? "",
+  };
+}, z.object({
   frame: z.enum(["ordinary","relational","situational","embodied","spiritual"]),
   text: z.string().min(1).max(800),
-});
+}));
 
 export const zProposedPersonaFact = z.object({
   category: z.string().min(1).max(80),
