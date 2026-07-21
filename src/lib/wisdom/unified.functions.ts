@@ -27,7 +27,7 @@ import {
 
 export function isUnifiedTurnEnabled(): boolean {
   const v = process.env.WISDOM_UNIFIED_TURN;
-  return v === "on" || v === "1" || v === "true";
+  return v === "canary" || v === "on" || v === "1" || v === "true";
 }
 
 export function isLegacyChatEnabled(): boolean {
