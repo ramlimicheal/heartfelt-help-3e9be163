@@ -43,13 +43,7 @@ const MODES: { id: Mode; label: string; hint: string; disabled?: boolean; disabl
   { id: "companion", label: "Companion", hint: "Presence first, discernment second." },
   { id: "pattern", label: "Pattern", hint: "Name what keeps repeating." },
   { id: "deep_wisdom", label: "Deep Wisdom", hint: "Test a spiritual interpretation." },
-  {
-    id: "curse_breaker",
-    label: "Curse Breaker",
-    hint: "Discern a possible stronghold.",
-    disabled: true,
-    disabledHint: "Curse Breaker taxonomy upgrade pending.",
-  },
+  { id: "curse_breaker", label: "Curse Breaker", hint: "Discern a possible stronghold." },
 ];
 
 const SUGGESTIONS = [
