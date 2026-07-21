@@ -77,6 +77,51 @@ function WisdomChat() {
 
   const composerEnabled = access.status === "allowed" && !!user;
 
+  // Session rail: past sessions + hydration on click
+  const fetchSessions = useServerFn(listRecentSessions);
+  const fetchHistory = useServerFn(loadSessionHistory);
+  const sessionsQ = useQuery({
+    queryKey: ["wisdom-sessions", user?.id ?? "anon"],
+    queryFn: () => fetchSessions(),
+    enabled: ready && !!user,
+    staleTime: 15_000,
+  });
+
+  const openSession = async (sid: string) => {
+    if (busy) return;
+    setRouteError(null);
+    try {
+      const hist = await fetchHistory({ data: { sessionId: sid } });
+      const userMsgs = new Map(hist.messages.filter((m) => m.role === "user").map((m) => [m.id, m]));
+      const rebuilt: Turn[] = [];
+      for (const t of hist.turns) {
+        const um = t.triggeringUserMessageId ? userMsgs.get(t.triggeringUserMessageId) : undefined;
+        if (um) rebuilt.push({ kind: "user", id: um.id, text: um.content });
+        rebuilt.push({
+          kind: "wisdom",
+          id: t.id,
+          turnId: t.id,
+          result: t.result ?? undefined,
+          phase: t.status === "completed" ? "done" : t.status === "failed" ? "error" : "processing",
+        });
+      }
+      setTurns(rebuilt);
+      setSessionId(sid);
+      const m = (hist.session.mode as Mode);
+      if (m) setMode(m);
+    } catch {
+      setRouteError(mapWisdomError("session not found"));
+    }
+  };
+
+  const newSession = () => {
+    if (busy) return;
+    setTurns([]);
+    setSessionId(null);
+    setRouteError(null);
+    setInput("");
+  };
+
   // Create a session lazily on first send (mode is authoritative once locked).
   const ensureSession = async (chosenMode: Mode): Promise<string | null> => {
     if (sessionId) return sessionId;
@@ -91,6 +136,7 @@ function WisdomChat() {
       return null;
     }
     setSessionId(data.id);
+    void sessionsQ.refetch();
     return data.id;
   };
 
