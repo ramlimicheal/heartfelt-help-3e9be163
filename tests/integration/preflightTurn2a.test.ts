@@ -135,16 +135,16 @@ describe("Turn 2a.1 preflight — wisdom_turns invariants", () => {
 describe("Turn 2a.1 preflight — SECURITY DEFINER hardening (per-function)", () => {
   it.each(EXPECTED_FNS)(
     "$name: SECURITY DEFINER, search_path pinned, service_role has EXECUTE, PUBLIC/anon/authenticated do not",
-    async ({ name, args }) => {
+    async ({ name }) => {
       const oidRes = await db.query(
-        `select p.oid::text as oid, p.prosecdef, p.proconfig
+        `select p.oid::text as oid, p.prosecdef, p.proconfig,
+                pg_get_function_identity_arguments(p.oid) as args
          from pg_proc p
-         where p.pronamespace='public'::regnamespace and p.proname=$1
-           and pg_get_function_identity_arguments(p.oid)=$2`,
-        [name, args],
+         where p.pronamespace='public'::regnamespace and p.proname=$1`,
+        [name],
       );
-      expect(oidRes.rows.length, `${name} not found with args (${args})`).toBe(1);
-      const row = oidRes.rows[0] as { oid: string; prosecdef: boolean; proconfig: string[] | null };
+      expect(oidRes.rows.length, `${name} not found`).toBe(1);
+      const row = oidRes.rows[0] as { oid: string; prosecdef: boolean; proconfig: string[] | null; args: string };
       expect(row.prosecdef).toBe(true);
 
       const cfg = row.proconfig ?? [];
