@@ -52,6 +52,7 @@ export type UnifiedRunContext = {
   userId: string;
   sessionId: string;
   triggeringUserMessageId: string;
+  retryTurnId?: string;
   storedSessionMode: UnifiedMode;
   memoryDirective: "normal" | "session_only" | "do_not_remember";
   userText: string;
@@ -71,6 +72,8 @@ export async function runUnifiedTurnCore(ctx: UnifiedRunContext) {
     payloadHash: ctx.payloadHash,
     resultSchemaVersion: ctx.resultSchemaVersion ?? 1,
     expectedUserId: ctx.userId,
+    retryTurnId: ctx.retryTurnId,
+    retryTriggeringUserMessageId: ctx.retryTurnId ? ctx.triggeringUserMessageId : undefined,
   });
   return runUnifiedTurn(
     {
@@ -204,6 +207,8 @@ type ProductionExtras = {
   payloadHash: string;
   resultSchemaVersion: number;
   expectedUserId: string;
+  retryTurnId?: string;
+  retryTriggeringUserMessageId?: string;
 };
 
 export function buildProductionDeps(db: Db, extras: ProductionExtras): OrchestratorDeps {
@@ -283,6 +288,7 @@ export function buildProductionDeps(db: Db, extras: ProductionExtras): Orchestra
       throw new Error(`model output failed schema after repair: ${second.cause?.slice(0, 200) ?? "unknown"}`);
     },
     findExistingTurn: async (msgId) => {
+      if (extras.retryTurnId && extras.retryTriggeringUserMessageId === msgId) return null;
       const { data } = await db.from("wisdom_turns")
         .select("id,status,result").eq("triggering_user_message_id", msgId).maybeSingle();
       if (!data) return null;
@@ -300,6 +306,9 @@ export function buildProductionDeps(db: Db, extras: ProductionExtras): Orchestra
       };
     },
     createTurn: async (row) => {
+      if (extras.retryTurnId) {
+        return { id: extras.retryTurnId };
+      }
       const { data, error } = await db.from("wisdom_turns").insert({
         user_id: row.userId,
         session_id: row.sessionId,
