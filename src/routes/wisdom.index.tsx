@@ -470,3 +470,43 @@ function RailCard({ label, head, children }: { label: string; head: string; chil
     </div>
   );
 }
+
+function PrivateBetaBanner({
+  access,
+  user,
+}: {
+  access: ReturnType<typeof useWisdomAccess>;
+  user: ReturnType<typeof useSession>["user"];
+}) {
+  const signedOut = !user;
+  const title = signedOut
+    ? "Sign in to request access"
+    : access.status === "loading"
+      ? "Checking access…"
+      : "Wisdom is currently in private beta";
+  const body = signedOut
+    ? "Wisdom is in a founder-only canary. Sign in with your invited email to continue."
+    : access.status === "denied" && access.reason === "email_unverified"
+      ? "Verify your email to be considered for the founder canary."
+      : access.status === "denied" && access.reason === "unified_disabled"
+        ? "The intelligence path is currently disabled. Please check back shortly."
+        : "Your account isn't on the founder allowlist yet. We'll email when access opens.";
+  return (
+    <div
+      role="status"
+      data-testid="wisdom-private-beta"
+      className="mb-3 flex items-start gap-3 rounded-2xl border border-panel-border bg-surface/60 px-4 py-3 text-[12px] text-muted-foreground"
+    >
+      <Lock className="mt-0.5 size-4 text-primary/80" aria-hidden />
+      <div className="flex-1">
+        <div className="text-[12.5px] font-medium text-foreground">{title}</div>
+        <p className="mt-0.5 leading-relaxed">{body}</p>
+        {signedOut && (
+          <Link to="/auth" className="mt-1 inline-block text-[11px] text-primary underline underline-offset-2">
+            Sign in →
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
