@@ -145,6 +145,11 @@ export const zPrayerLine = z.preprocess((value) => {
     ...record,
     movement,
     text: record.text ?? record.line ?? "",
+    citations: record.citations ?? (record.passage_id ? [{
+      passage_id: record.passage_id,
+      derivation: "inferred",
+      explanation: record.derivation ?? record.explanation ?? "Applied to this prayer line.",
+    }] : []),
   };
 }, z.object({
   movement: zPrayerMovement,
