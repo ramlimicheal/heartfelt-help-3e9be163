@@ -10,7 +10,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { generateText, Output } from "ai";
+import { generateText, Output, NoObjectGeneratedError } from "ai";
 import { z } from "zod";
 import {
   runUnifiedTurn,
