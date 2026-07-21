@@ -4,14 +4,10 @@
  * - Binds ONLY to 127.0.0.1 on an ephemeral port (port 0 → OS picks free).
  * - Never touches Lovable preview/prod flags. WISDOM_UNIFIED_TURN is set on
  *   `process.env` only for the duration of this in-process server.
- * - Refuses to start if the DB URL looks like a production database and no
- *   explicit override (WISDOM_TEST_ALLOW_PROD_DB=1) is present.
+ * - Fails closed if the target database looks like production. There is no
+ *   override — Turn 2b–2d cannot run against production.
  * - Never prints tokens, service-role keys, prompts, or model output.
  * - Guarantees teardown via a `stop()` returned from `startTestServer()`.
- *
- * Used by later sub-turns (2b/2c) to run the real POST /api/wisdom/turn
- * handler against a real Supabase test database, with the fake gateway
- * seam active. This module only owns lifecycle; it does not run cases.
  */
 
 import http from "node:http";
@@ -25,12 +21,56 @@ export interface TestServerHandle {
   stop: () => Promise<void>;
 }
 
-function looksLikeProductionDb(dbUrl: string | undefined): boolean {
-  if (!dbUrl) return false;
-  // Heuristic: hostnames marked prod, or an explicit env label.
+export interface NonSecretDbIdentity {
+  host: string;
+  port: string;
+  database: string;
+  projectRef: string; // Supabase project ref (non-secret)
+}
+
+/**
+ * Extract non-secret DB identity from SUPABASE_DB_URL. Never returns the
+ * password. `projectRef` is derived from the pooler username suffix
+ * (`postgres.<ref>`), falling back to hostname parsing.
+ */
+export function nonSecretDbIdentity(dbUrl: string): NonSecretDbIdentity {
+  const u = new URL(dbUrl);
+  const userParts = u.username.split(".");
+  const projectRef = userParts.length > 1
+    ? userParts[userParts.length - 1]
+    : (u.hostname.split(".")[0] ?? "");
+  return {
+    host: u.hostname,
+    port: u.port,
+    database: u.pathname.replace(/^\//, ""),
+    projectRef,
+  };
+}
+
+/**
+ * Fail-closed production check. There is NO override for this route suite.
+ * A database is considered production if:
+ *   - SUPABASE_ENV === 'production' | 'prod', OR
+ *   - the host/URL contains a `prod` label, OR
+ *   - the project ref does not match SUPABASE_PROJECT_ID (i.e. someone
+ *     pointed the harness at a different project's DB).
+ */
+export function assertNotProductionDb(dbUrl: string, expectedProjectRef?: string): NonSecretDbIdentity {
+  const id = nonSecretDbIdentity(dbUrl);
   const label = (process.env.SUPABASE_ENV ?? "").toLowerCase();
-  if (label === "production" || label === "prod") return true;
-  return /(^|[.-])prod(\.|-|$)/i.test(dbUrl);
+  if (label === "production" || label === "prod") {
+    throw new Error(`testServer: SUPABASE_ENV=${label} — refusing to run.`);
+  }
+  if (/(^|[.-])prod(\.|-|$)/i.test(id.host)) {
+    throw new Error(`testServer: DB host '${id.host}' looks like production — refusing to run.`);
+  }
+  if (expectedProjectRef && id.projectRef && expectedProjectRef !== id.projectRef) {
+    throw new Error(
+      `testServer: project ref mismatch (SUPABASE_PROJECT_ID=${expectedProjectRef}, ` +
+      `DB ref=${id.projectRef}) — refusing to run.`,
+    );
+  }
+  return id;
 }
 
 export async function startTestServer(): Promise<TestServerHandle> {
@@ -38,30 +78,31 @@ export async function startTestServer(): Promise<TestServerHandle> {
     throw new Error("testServer: NODE_ENV must be 'test' to start the isolated server.");
   }
   const dbUrl = process.env.SUPABASE_DB_URL;
-  if (looksLikeProductionDb(dbUrl) && process.env.WISDOM_TEST_ALLOW_PROD_DB !== "1") {
+  if (!dbUrl) {
+    throw new Error("testServer: SUPABASE_DB_URL required.");
+  }
+  // No override. If someone tries `WISDOM_TEST_ALLOW_PROD_DB=1`, reject.
+  if (process.env.WISDOM_TEST_ALLOW_PROD_DB) {
     throw new Error(
-      "testServer: refusing to run against a production-looking database. " +
-      "Set WISDOM_TEST_ALLOW_PROD_DB=1 to explicitly override (not recommended).",
+      "testServer: WISDOM_TEST_ALLOW_PROD_DB is not honored by this route suite. " +
+      "Point tests at a non-production project.",
     );
   }
+  assertNotProductionDb(dbUrl, process.env.SUPABASE_PROJECT_ID);
 
-  // Per-run isolation identifier — used by the fake gateway keying.
   const runId = process.env.WISDOM_TEST_RUN_ID ?? randomUUID().slice(0, 12);
   process.env.WISDOM_TEST_RUN_ID = runId;
 
-  // Enable unified turn ONLY in this process. Never written to disk/.env.
   const prevFlag = process.env.WISDOM_UNIFIED_TURN;
   process.env.WISDOM_UNIFIED_TURN = "on";
 
-  // Fake model seam gate: NODE_ENV=test + WISDOM_TEST_FAKE_MODEL=1 + runId.
   const prevFake = process.env.WISDOM_TEST_FAKE_MODEL;
   process.env.WISDOM_TEST_FAKE_MODEL = "1";
 
-  // Lazy-import the route handler so env is set before module init reads it.
   const routeMod = await import("@/routes/api/wisdom/turn");
-  // The TanStack file route exposes `Route.options.server.handlers.POST`.
-  // Reach into it to invoke the handler with a synthetic Request.
-  const RouteAny = (routeMod as unknown as { Route: { options: { server: { handlers: { POST: (ctx: { request: Request }) => Promise<Response> } } } } }).Route;
+  const RouteAny = (routeMod as unknown as {
+    Route: { options: { server: { handlers: { POST: (ctx: { request: Request }) => Promise<Response> } } } };
+  }).Route;
   const post = RouteAny.options.server.handlers.POST;
 
   const server = http.createServer(async (req, res) => {
@@ -84,11 +125,7 @@ export async function startTestServer(): Promise<TestServerHandle> {
       res.statusCode = response.status;
       response.headers.forEach((v, k) => res.setHeader(k, v));
       const reader = response.body?.getReader();
-      if (!reader) {
-        res.end();
-        return;
-      }
-      // Stream SSE frames through without buffering.
+      if (!reader) { res.end(); return; }
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -96,7 +133,6 @@ export async function startTestServer(): Promise<TestServerHandle> {
       }
       res.end();
     } catch {
-      // Never leak the error text — could contain prompts/tokens if misused.
       res.statusCode = 500;
       res.end();
     }
