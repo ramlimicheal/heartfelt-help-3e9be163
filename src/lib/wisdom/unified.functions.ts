@@ -348,7 +348,7 @@ export function buildProductionDeps(db: Db, extras: ProductionExtras): Orchestra
     logRun: async (row) => {
       await db.from("pipeline_runs").insert({
         user_id: row.userId, session_id: row.sessionId,
-        mode: row.mode === "deep_wisdom" ? "wisdom" : row.mode === "pattern" ? "wisdom" : "companion",
+        mode: row.mode === "curse_breaker" ? "curse_breaker" : (row.mode === "deep_wisdom" || row.mode === "pattern") ? "wisdom" : "companion",
         stage: row.stage, status: row.status, latency_ms: row.latencyMs,
         prompt_key: row.promptKey, prompt_version: row.promptVersion,
         model: row.model, tokens_in: row.tokensIn, tokens_out: row.tokensOut,
