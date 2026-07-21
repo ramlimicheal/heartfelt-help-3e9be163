@@ -24,7 +24,7 @@ export const Route = createFileRoute("/prayers/$prayerId")({
 });
 
 function PrayerDetail() {
-  const { prayer } = Route.useLoaderData();
+  const { prayer } = Route.useLoaderData()!;
   return (
     <div className="space-y-6">
       <header className="space-y-2">

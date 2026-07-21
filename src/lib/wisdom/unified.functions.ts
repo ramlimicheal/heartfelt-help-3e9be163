@@ -245,7 +245,9 @@ export function buildProductionDeps(db: Db, extras: ProductionExtras): Orchestra
         await db.rpc("fail_unified_turn", {
           p_turn_id: id,
           p_expected_user: extras.expectedUserId,
-          p_error: patch.error ?? patch.status,
+          p_error_code: (patch.error ?? patch.status ?? "unknown").slice(0, 80),
+          p_stage: "orchestrator",
+          p_retryable: true,
         });
       }
     },

@@ -45,7 +45,7 @@ export const Route = createFileRoute("/wisdom/$sessionId")({
 });
 
 function SessionView() {
-  const { session, response } = Route.useLoaderData();
+  const { session, response } = Route.useLoaderData()!;
   const [verdict, setVerdict] = useState<UserVerdict | null>(null);
   const [showDeep, setShowDeep] = useState(session.depth === "deep");
   const primary = response.hypotheses.find((h: import("@/lib/wisdom/schemas").PatternHypothesis) => h.id === response.primaryHypothesisId)!;

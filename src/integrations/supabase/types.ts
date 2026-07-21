@@ -1677,6 +1677,24 @@ export type Database = {
         }
         Relationships: []
       }
+      wisdom_turn_attempts: {
+        Row: {
+          created_at: string
+          id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       wisdom_turn_rate_limits: {
         Row: {
           count: number
@@ -1698,17 +1716,21 @@ export type Database = {
       wisdom_turns: {
         Row: {
           artifact_ids: Json
+          attempt_count: number
           created_at: string
           error: string | null
           id: string
           idempotency_key: string
           input_payload: Json | null
+          last_error: Json | null
           latency_ms: number | null
           memory_directive: Database["public"]["Enums"]["memory_directive"]
           mode: Database["public"]["Enums"]["session_mode"]
           model: string
           model_version: number
           payload_hash: string | null
+          processing_expires_at: string | null
+          processing_started_at: string | null
           prompt_key: string
           prompt_version: number
           result: Json | null
@@ -1724,17 +1746,21 @@ export type Database = {
         }
         Insert: {
           artifact_ids?: Json
+          attempt_count?: number
           created_at?: string
           error?: string | null
           id?: string
           idempotency_key: string
           input_payload?: Json | null
+          last_error?: Json | null
           latency_ms?: number | null
           memory_directive: Database["public"]["Enums"]["memory_directive"]
           mode: Database["public"]["Enums"]["session_mode"]
           model: string
           model_version: number
           payload_hash?: string | null
+          processing_expires_at?: string | null
+          processing_started_at?: string | null
           prompt_key: string
           prompt_version: number
           result?: Json | null
@@ -1750,17 +1776,21 @@ export type Database = {
         }
         Update: {
           artifact_ids?: Json
+          attempt_count?: number
           created_at?: string
           error?: string | null
           id?: string
           idempotency_key?: string
           input_payload?: Json | null
+          last_error?: Json | null
           latency_ms?: number | null
           memory_directive?: Database["public"]["Enums"]["memory_directive"]
           mode?: Database["public"]["Enums"]["session_mode"]
           model?: string
           model_version?: number
           payload_hash?: string | null
+          processing_expires_at?: string | null
+          processing_started_at?: string | null
           prompt_key?: string
           prompt_version?: number
           result?: Json | null
@@ -1796,12 +1826,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_turn_retry: {
+        Args: {
+          p_expected_user: string
+          p_lease_seconds?: number
+          p_max_attempts?: number
+          p_payload_hash: string
+          p_turn_id: string
+        }
+        Returns: Json
+      }
       current_user_has_role: {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
       }
       fail_unified_turn: {
-        Args: { p_error: string; p_expected_user: string; p_turn_id: string }
+        Args: {
+          p_error_code: string
+          p_expected_user: string
+          p_retryable?: boolean
+          p_stage?: string
+          p_turn_id: string
+        }
         Returns: undefined
       }
       has_role: {
@@ -1825,9 +1871,17 @@ export type Database = {
         }
         Returns: Json
       }
+      wisdom_turn_attempts_cleanup: {
+        Args: { p_older_than_seconds?: number }
+        Returns: number
+      }
       wisdom_turn_rate_limit_check: {
         Args: { p_limit: number; p_user: string; p_window_seconds: number }
         Returns: boolean
+      }
+      wisdom_turn_rate_limit_v2: {
+        Args: { p_limit?: number; p_user: string; p_window_seconds?: number }
+        Returns: Json
       }
     }
     Enums: {

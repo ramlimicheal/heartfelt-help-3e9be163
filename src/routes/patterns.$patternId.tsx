@@ -22,7 +22,7 @@ export const Route = createFileRoute("/patterns/$patternId")({
 });
 
 function PatternDetail() {
-  const { pattern } = Route.useLoaderData();
+  const { pattern } = Route.useLoaderData()!;
   const eventChain = Object.values(RESPONSES)[0]?.eventChain ?? [];
   const practices = PRACTICES.filter((p) => p.patternId === pattern.id);
 
