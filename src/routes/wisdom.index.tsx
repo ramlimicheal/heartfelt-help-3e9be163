@@ -373,11 +373,18 @@ function WisdomBubble({ turn }: { turn: WisdomTurn }) {
             <Loader2 className="size-3 animate-spin" /> Wisdom is listening…
           </div>
         )}
-        {turn.phase === "error" && (
-          <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
-            {turn.error ?? "Something went wrong."}
-          </div>
-        )}
+        {turn.phase === "error" && (() => {
+          const raw = turn.error ?? "unknown";
+          const retryAfter = raw.startsWith("retry_after:") ? Number(raw.slice(12)) : undefined;
+          const code = retryAfter ? "rate_limited" : raw;
+          const safe = mapWisdomError(code, { retryAfter });
+          return (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
+              <div className="font-medium">{safe.title}</div>
+              <div className="text-destructive/85">{safe.body}</div>
+            </div>
+          );
+        })()}
         {r && <UnifiedResultView result={r} />}
       </div>
     </div>
