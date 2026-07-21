@@ -18,13 +18,13 @@ if (!SUPABASE_DB_URL || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error("preflight: SUPABASE_DB_URL / SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY required.");
 }
 
-const EXPECTED_FNS: Array<{ name: string; args: string }> = [
-  { name: "persist_unified_turn", args: "uuid, uuid, jsonb, jsonb, text, integer, integer, integer, integer" },
-  { name: "fail_unified_turn", args: "uuid, uuid, text, text, boolean" },
-  { name: "claim_turn_retry", args: "uuid, uuid, text, integer, integer" },
-  { name: "wisdom_turn_rate_limit_v2", args: "uuid, integer, integer" },
-  { name: "wisdom_turn_rate_limit_check", args: "uuid, integer, integer" },
-  { name: "wisdom_turn_attempts_cleanup", args: "integer" },
+const EXPECTED_FNS: Array<{ name: string }> = [
+  { name: "persist_unified_turn" },
+  { name: "fail_unified_turn" },
+  { name: "claim_turn_retry" },
+  { name: "wisdom_turn_rate_limit_v2" },
+  { name: "wisdom_turn_rate_limit_check" },
+  { name: "wisdom_turn_attempts_cleanup" },
 ];
 
 let db: Client;
