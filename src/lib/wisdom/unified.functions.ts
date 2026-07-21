@@ -120,7 +120,7 @@ export const runUnifiedWisdomTurn = createServerFn({ method: "POST" })
       userId: context.userId,
       sessionId: data.sessionId,
       triggeringUserMessageId: data.triggeringUserMessageId,
-      storedSessionMode: sess.mode as UnifiedMode | "curse_breaker",
+      storedSessionMode: sess.mode as UnifiedMode,
       memoryDirective: msg.memory_directive as UnifiedRunContext["memoryDirective"],
       userText: msg.content as string,
       clientRequestedMode: data.clientRequestedMode,
