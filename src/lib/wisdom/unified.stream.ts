@@ -38,9 +38,13 @@ export async function* streamUnifiedTurn(
   });
 
   if (!res.ok || !res.body) {
-    let msg = res.statusText;
-    try { const j = await res.json(); msg = j.error ?? msg; } catch { /* ignore */ }
-    yield { type: "error", error: `http_${res.status}`, message: msg };
+    let code = `http_${res.status}`;
+    try {
+      const j = await res.json();
+      if (typeof j?.error === "string") code = j.error;
+    } catch { /* ignore */ }
+    const retryAfter = Number(res.headers.get("retry-after") ?? "") || undefined;
+    yield { type: "error", error: code, message: retryAfter ? `retry_after:${retryAfter}` : undefined };
     yield { type: "done" };
     return;
   }

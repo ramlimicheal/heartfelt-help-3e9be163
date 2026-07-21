@@ -8,15 +8,18 @@ import {
   Hand,
   HandHelping,
   Loader2,
+  Lock,
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
 import { useSession } from "@/hooks/useSession";
+import { useWisdomAccess } from "@/hooks/useWisdomAccess";
 import { FlickeringGrid } from "@/registry/magicui/flickering-grid";
 import { ShineBorder } from "@/registry/magicui/shine-border";
 import { streamUnifiedTurn, type TurnEvent } from "@/lib/wisdom/unified.stream";
+import { mapWisdomError, type UserSafeError } from "@/lib/wisdom/errorCopy";
 import type { UnifiedResult } from "@/lib/wisdom/unified.schemas";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -70,10 +73,14 @@ function WisdomChat() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [routeError, setRouteError] = useState<string | null>(null);
+  const [routeError, setRouteError] = useState<UserSafeError | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const inflightRef = useRef(false); // hard double-submit guard
 
   const { user, ready } = useSession();
+  const access = useWisdomAccess();
+
+  const composerEnabled = access.status === "allowed" && !!user;
 
   // Create a session lazily on first send (mode is authoritative once locked).
   const ensureSession = async (chosenMode: Mode): Promise<string | null> => {
@@ -85,7 +92,7 @@ function WisdomChat() {
       .select("id")
       .single();
     if (error || !data) {
-      setRouteError(error?.message ?? "session_create_failed");
+      setRouteError(mapWisdomError("session not found"));
       return null;
     }
     setSessionId(data.id);
@@ -93,7 +100,7 @@ function WisdomChat() {
   };
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => { textareaRef.current?.focus(); }, [turns.length]);
+  useEffect(() => { if (composerEnabled) textareaRef.current?.focus(); }, [turns.length, composerEnabled]);
   const scrollerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: "smooth" });
@@ -101,23 +108,37 @@ function WisdomChat() {
 
   const isEmpty = turns.length === 0;
 
-  const submit = async () => {
-    const text = input.trim();
-    if (!text || busy) return;
-    if (!user) { setRouteError("Please sign in to talk with Wisdom."); return; }
+  const submit = async (retryOf?: string) => {
+    const text = retryOf ?? input.trim();
+    if (!text) return;
+    // Hard double-submit guard (state can race across handlers)
+    if (inflightRef.current || busy) return;
+    if (!user) {
+      setRouteError(mapWisdomError("unauthenticated"));
+      return;
+    }
+    if (access.status !== "allowed") {
+      const reason = access.status === "denied" ? access.reason : "unified_disabled";
+      setRouteError(mapWisdomError(reason));
+      return;
+    }
     const chosen = MODES.find((m) => m.id === mode);
-    if (chosen?.disabled) { setRouteError(chosen.disabledHint ?? "Mode unavailable."); return; }
+    if (chosen?.disabled) {
+      setRouteError(mapWisdomError("curse_breaker_unavailable"));
+      return;
+    }
 
+    inflightRef.current = true;
     setRouteError(null);
     const sid = await ensureSession(mode);
-    if (!sid) return;
+    if (!sid) { inflightRef.current = false; return; }
 
     const messageId = newId();
     const userTurn: UserTurn = { kind: "user", id: messageId, text };
     const wisdomId = newId();
     const wisdomTurn: WisdomTurn = { kind: "wisdom", id: wisdomId, phase: "processing" };
     setTurns((t) => [...t, userTurn, wisdomTurn]);
-    setInput("");
+    if (!retryOf) setInput("");
     setBusy(true);
 
     const controller = new AbortController();
@@ -133,10 +154,11 @@ function WisdomChat() {
       }, controller.signal)) {
         applyEvent(setTurns, wisdomId, ev);
       }
-    } catch (e) {
-      applyEvent(setTurns, wisdomId, { type: "error", error: "network_error", message: String((e as Error).message) });
+    } catch {
+      applyEvent(setTurns, wisdomId, { type: "error", error: "network_error" });
     } finally {
       setBusy(false);
+      inflightRef.current = false;
       abortRef.current = null;
     }
   };
@@ -185,8 +207,22 @@ function WisdomChat() {
                 : <WisdomBubble key={t.id} turn={t} />
               )}
               {routeError && (
-                <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
-                  {routeError}
+                <div
+                  role="alert"
+                  data-testid="wisdom-error"
+                  className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12px] text-destructive"
+                >
+                  <div className="font-medium">{routeError.title}</div>
+                  <div className="text-destructive/85">{routeError.body}</div>
+                  {routeError.retryable && (
+                    <button
+                      type="button"
+                      onClick={() => submit()}
+                      className="mt-1 text-[11px] underline underline-offset-2"
+                    >
+                      Try again
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -194,7 +230,11 @@ function WisdomChat() {
         </div>
 
         <div className="mx-auto w-full max-w-3xl">
-          <div className="relative overflow-hidden rounded-2xl border border-panel-border bg-surface/70 p-3 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur">
+          {!composerEnabled && <PrivateBetaBanner access={access} user={user} />}
+          <div
+            className="relative overflow-hidden rounded-2xl border border-panel-border bg-surface/70 p-3 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur"
+            aria-disabled={!composerEnabled}
+          >
             <ShineBorder borderWidth={1.5} duration={3.2} shineColor={["#E8DFC8", "#FFFFFF", "#B8A470"]} />
             <textarea
               ref={textareaRef}
@@ -234,8 +274,10 @@ function WisdomChat() {
                   : MODES.find((m) => m.id === mode)?.hint}
               </span>
               <button
-                onClick={submit}
-                disabled={busy || input.trim().length === 0}
+                type="button"
+                data-testid="wisdom-submit"
+                onClick={() => submit()}
+                disabled={busy || input.trim().length === 0 || !composerEnabled}
                 className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {busy ? <><Loader2 className="size-3 animate-spin" /> Composing…</> : <>Begin <ArrowUp className="size-3" /></>}
@@ -331,11 +373,18 @@ function WisdomBubble({ turn }: { turn: WisdomTurn }) {
             <Loader2 className="size-3 animate-spin" /> Wisdom is listening…
           </div>
         )}
-        {turn.phase === "error" && (
-          <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
-            {turn.error ?? "Something went wrong."}
-          </div>
-        )}
+        {turn.phase === "error" && (() => {
+          const raw = turn.error ?? "unknown";
+          const retryAfter = raw.startsWith("retry_after:") ? Number(raw.slice(12)) : undefined;
+          const code = retryAfter ? "rate_limited" : raw;
+          const safe = mapWisdomError(code, { retryAfter });
+          return (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
+              <div className="font-medium">{safe.title}</div>
+              <div className="text-destructive/85">{safe.body}</div>
+            </div>
+          );
+        })()}
         {r && <UnifiedResultView result={r} />}
       </div>
     </div>
@@ -425,6 +474,46 @@ function RailCard({ label, head, children }: { label: string; head: string; chil
       <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
       <div className="mt-1 text-[13px] font-medium">{head}</div>
       <div className="mt-2">{children}</div>
+    </div>
+  );
+}
+
+function PrivateBetaBanner({
+  access,
+  user,
+}: {
+  access: ReturnType<typeof useWisdomAccess>;
+  user: ReturnType<typeof useSession>["user"];
+}) {
+  const signedOut = !user;
+  const title = signedOut
+    ? "Sign in to request access"
+    : access.status === "loading"
+      ? "Checking access…"
+      : "Wisdom is currently in private beta";
+  const body = signedOut
+    ? "Wisdom is in a founder-only canary. Sign in with your invited email to continue."
+    : access.status === "denied" && access.reason === "email_unverified"
+      ? "Verify your email to be considered for the founder canary."
+      : access.status === "denied" && access.reason === "unified_disabled"
+        ? "The intelligence path is currently disabled. Please check back shortly."
+        : "Your account isn't on the founder allowlist yet. We'll email when access opens.";
+  return (
+    <div
+      role="status"
+      data-testid="wisdom-private-beta"
+      className="mb-3 flex items-start gap-3 rounded-2xl border border-panel-border bg-surface/60 px-4 py-3 text-[12px] text-muted-foreground"
+    >
+      <Lock className="mt-0.5 size-4 text-primary/80" aria-hidden />
+      <div className="flex-1">
+        <div className="text-[12.5px] font-medium text-foreground">{title}</div>
+        <p className="mt-0.5 leading-relaxed">{body}</p>
+        {signedOut && (
+          <Link to="/auth" className="mt-1 inline-block text-[11px] text-primary underline underline-offset-2">
+            Sign in →
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
