@@ -270,8 +270,10 @@ function WisdomChat() {
                   : MODES.find((m) => m.id === mode)?.hint}
               </span>
               <button
-                onClick={submit}
-                disabled={busy || input.trim().length === 0}
+                type="button"
+                data-testid="wisdom-submit"
+                onClick={() => submit()}
+                disabled={busy || input.trim().length === 0 || !composerEnabled}
                 className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {busy ? <><Loader2 className="size-3 animate-spin" /> Composing…</> : <>Begin <ArrowUp className="size-3" /></>}
