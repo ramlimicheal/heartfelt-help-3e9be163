@@ -10,7 +10,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { generateText, Output, NoObjectGeneratedError } from "ai";
+import { generateText } from "ai";
 import { z } from "zod";
 import {
   runUnifiedTurn,
@@ -137,6 +137,60 @@ export async function sha256Hex(s: string): Promise<string> {
     .map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+function extractJsonObject(text: string): unknown | null {
+  const trimmed = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/```$/i, "").trim();
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
+  if (start < 0 || end <= start) return null;
+  try {
+    return JSON.parse(trimmed.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+}
+
+function normalizeModelJson(value: unknown, mode: UnifiedMode, fallbackPassageId?: string): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const record = { ...(value as Record<string, unknown>) };
+
+  if (mode === "pattern") {
+    record.competing_hypotheses = record.competing_hypotheses ?? record.hypotheses ?? [];
+    const draft = record.prayer_draft ?? record.prayer ?? record.evolving_prayer ?? record.evolving_prayer_draft;
+    record.prayer_draft = Array.isArray(draft) ? { title: "Prayer draft", lines: draft } : draft;
+  }
+
+  if (mode === "deep_wisdom") {
+    record.hypothesis_under_test = record.hypothesis_under_test ?? record.primary_hypothesis ?? record.hypothesis ?? {
+      name: "Working hypothesis",
+      description: "",
+      confidence: 0.5,
+    };
+    record.competing_explanations = record.competing_explanations ?? record.alternative_explanations ?? [];
+    const draft = record.prayer_lineage_draft ?? record.prayer_draft ?? record.prayer ?? record.evolving_prayer ?? record.evolving_prayer_draft;
+    record.prayer_lineage_draft = Array.isArray(draft) ? { title: "Prayer draft", lines: draft } : draft;
+  }
+
+  if (mode === "companion") {
+    const mirrors = record.biblical_mirrors;
+    record.biblical_mirror = record.biblical_mirror ?? (Array.isArray(mirrors) ? mirrors[0] : undefined);
+    if (!record.biblical_mirror && fallbackPassageId) {
+      record.biblical_mirror = {
+        passage_id: fallbackPassageId,
+        derivation: "inferred",
+        direct_vs_inferred: "inferred",
+        descriptive_vs_prescriptive: "descriptive",
+        explanation: "General wisdom from the retrieved passage.",
+      };
+    }
+  }
+
+  return record;
+}
+
+function firstPassageIdFromPrompt(prompt: string): string | undefined {
+  return prompt.match(/passage_id=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i)?.[1];
+}
+
 // ── Production dependency wiring ─────────────────────────────────────
 type Db = Awaited<ReturnType<typeof admin>>;
 
@@ -186,29 +240,25 @@ export function buildProductionDeps(db: Db, extras: ProductionExtras): Orchestra
         mode === "companion" ? zCompanionResult :
         mode === "pattern"   ? zPatternResult   : zDeepWisdomResult;
       const gateway = await getGateway();
+      const fallbackPassageId = firstPassageIdFromPrompt(userPrompt);
 
       const tryOnce = async (sys: string, prompt: string) => {
-        try {
-          const r = await generateText({
-            model: gateway(model),
-            output: Output.object({ schema: schema as unknown as typeof zCompanionResult }),
-            system: sys,
-            prompt,
-          });
-          return { ok: true as const, raw: r.output, tokensIn: r.usage?.inputTokens, tokensOut: r.usage?.outputTokens };
-        } catch (err) {
-          if (NoObjectGeneratedError.isInstance(err)) {
-            const preview = (err.text ?? "").slice(0, 4000);
-            // Fallback #1: manual parse of the raw text.
-            try {
-              const parsed = JSON.parse(err.text ?? "");
-              const validated = schema.parse({ ...parsed, mode });
-              return { ok: true as const, raw: validated, tokensIn: err.usage?.inputTokens, tokensOut: err.usage?.outputTokens };
-            } catch { /* fall through */ }
-            return { ok: false as const, textPreview: preview, cause: (err.cause as Error | undefined)?.message ?? err.message };
-          }
-          throw err;
+        const r = await generateText({
+          model: gateway(model),
+          system: sys,
+          prompt: `${prompt}\n\nReturn exactly one valid JSON object. Do not include markdown fences, commentary, or trailing text.`,
+        });
+        const preview = r.text.slice(0, 4000);
+        const parsed = extractJsonObject(r.text);
+        if (!parsed) {
+          return { ok: false as const, textPreview: preview, cause: "response was not parseable JSON" };
         }
+        const normalized = normalizeModelJson(parsed, mode, fallbackPassageId);
+        const validated = schema.safeParse({ ...(normalized as object), mode });
+        if (!validated.success) {
+          return { ok: false as const, textPreview: preview, cause: validated.error.message.slice(0, 1000) };
+        }
+        return { ok: true as const, raw: validated.data, tokensIn: r.usage?.inputTokens, tokensOut: r.usage?.outputTokens };
       };
 
       const first = await tryOnce(system, userPrompt);
