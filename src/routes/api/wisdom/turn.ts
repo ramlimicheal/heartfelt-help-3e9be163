@@ -96,13 +96,22 @@ async function handlePost(request: Request): Promise<Response> {
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  // 3. Atomic rate limit
-  const { data: allowed, error: rlErr } = await supabaseAdmin.rpc(
-    "wisdom_turn_rate_limit_check",
+  // 3. Sliding-window rate limit (20 / rolling 5 min). Runs BEFORE any turn/message writes.
+  const { data: rl, error: rlErr } = await supabaseAdmin.rpc(
+    "wisdom_turn_rate_limit_v2",
     { p_user: userId, p_limit: RATE_LIMIT, p_window_seconds: RATE_WINDOW },
   );
   if (rlErr) return json({ error: "rate_limit_check_failed" }, 500);
-  if (allowed === false) return json({ error: "rate_limited" }, 429);
+  const rlObj = (rl ?? {}) as { allowed?: boolean; retry_after?: number };
+  if (rlObj.allowed === false) {
+    return new Response(JSON.stringify({ error: "rate_limited", retry_after: rlObj.retry_after ?? 60 }), {
+      status: 429,
+      headers: {
+        "content-type": "application/json",
+        "retry-after": String(rlObj.retry_after ?? 60),
+      },
+    });
+  }
 
   // 4. Session ownership + stored mode
   const { data: sess } = await supabaseAdmin
@@ -127,20 +136,9 @@ async function handlePost(request: Request): Promise<Response> {
     if (existingMsg.user_id !== userId || existingMsg.session_id !== body.sessionId || existingMsg.role !== "user") {
       return json({ error: "message_mismatch" }, 409);
     }
-    // messages are immutable; compare content to detect drift
     if (existingMsg.content !== body.userText || existingMsg.memory_directive !== body.memoryDirective) {
       return json({ error: "payload_drift" }, 409);
     }
-  } else {
-    const { error: insErr } = await supabaseAdmin.from("messages").insert({
-      id: body.triggeringUserMessageId,
-      session_id: body.sessionId,
-      user_id: userId,
-      role: "user",
-      content: body.userText,
-      memory_directive: body.memoryDirective,
-    });
-    if (insErr) return json({ error: "message_insert_failed", detail: insErr.message.slice(0, 200) }, 500);
   }
 
   // 5. Payload hash for drift detection at the turn level
@@ -154,27 +152,60 @@ async function handlePost(request: Request): Promise<Response> {
   };
   const payloadHash = await sha256Hex(JSON.stringify(inputPayload));
 
-  // 5b. Detect existing turn for this triggering message
+  // 5b. Detect existing turn for this triggering message BEFORE inserting the message row.
   const { data: existingTurn } = await supabaseAdmin
     .from("wisdom_turns")
-    .select("id,status,result,artifact_ids,payload_hash")
+    .select("id,status,result,artifact_ids,payload_hash,attempt_count,processing_expires_at,memory_directive")
     .eq("triggering_user_message_id", body.triggeringUserMessageId)
     .maybeSingle();
+
   if (existingTurn) {
+    // Drift → 409, no writes.
     if (existingTurn.payload_hash && existingTurn.payload_hash !== payloadHash) {
       return json({ error: "payload_drift" }, 409);
     }
     if (existingTurn.status === "completed") {
+      // DNR completed turns intentionally stored no result — do NOT synthesize one.
+      if (existingTurn.memory_directive === "do_not_remember") {
+        return json({ error: "dnr_no_replay", message: "Do-not-remember results are ephemeral and cannot be replayed." }, 410);
+      }
       return sseReplay({
         turnId: existingTurn.id as string,
         result: existingTurn.result,
         artifactIds: existingTurn.artifact_ids,
       });
     }
-    if (existingTurn.status === "failed") {
-      return json({ error: "prior_attempt_failed", turnId: existingTurn.id }, 409);
+    if (existingTurn.status === "failed" || existingTurn.status === "processing") {
+      // Attempt atomic retry-claim (respects owner, hash, lease-expiry, max attempts).
+      const { data: claimRaw, error: claimErr } = await supabaseAdmin.rpc("claim_turn_retry", {
+        p_turn_id: existingTurn.id as string,
+        p_expected_user: userId,
+        p_payload_hash: payloadHash,
+        p_max_attempts: RETRY_MAX_ATTEMPTS,
+        p_lease_seconds: 120,
+      });
+      if (claimErr) return json({ error: "retry_claim_failed" }, 500);
+      const claim = (claimRaw ?? {}) as { ok?: boolean; reason?: string; attempt?: number };
+      if (!claim.ok) {
+        if (claim.reason === "payload_drift") return json({ error: "payload_drift" }, 409);
+        if (claim.reason === "retry_exhausted") return json({ error: "retry_exhausted", attempt: claim.attempt }, 409);
+        if (claim.reason === "processing_active") return json({ error: "processing_active", turnId: existingTurn.id }, 409);
+        if (claim.reason === "already_completed") return json({ error: "already_completed", turnId: existingTurn.id }, 409);
+        return json({ error: "retry_denied", reason: claim.reason ?? "unknown" }, 409);
+      }
+      // Fall through: run the turn again under the same protected turn identity.
     }
-    // status === 'processing' → let the new call race with the unique index
+  } else {
+    // First attempt: insert the triggering message now (immutable thereafter).
+    const { error: insErr } = await supabaseAdmin.from("messages").insert({
+      id: body.triggeringUserMessageId,
+      session_id: body.sessionId,
+      user_id: userId,
+      role: "user",
+      content: body.userText,
+      memory_directive: body.memoryDirective,
+    });
+    if (insErr) return json({ error: "message_insert_failed" }, 500);
   }
 
   // 6. Stream: processing frame → run → result/error frame
