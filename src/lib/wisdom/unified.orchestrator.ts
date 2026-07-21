@@ -206,12 +206,7 @@ export async function runUnifiedTurn(
   input: UnifiedTurnInput,
   deps: OrchestratorDeps,
 ): Promise<UnifiedTurnOutcome> {
-  // Client-mode override policy: the STORED session mode is authoritative.
-  // We ignore input.clientRequestedMode entirely for durable behaviour;
-  // it is retained only for telemetry/observability by the caller.
-  if (input.storedSessionMode === "curse_breaker") {
-    return { kind: "unsupported", error: CURSE_BREAKER_PENDING_ERROR };
-  }
+  // Stored session mode is authoritative. Client-requested mode is telemetry only.
   const mode: UnifiedMode = input.storedSessionMode;
 
   const promptKey = promptKeyFor(mode);
