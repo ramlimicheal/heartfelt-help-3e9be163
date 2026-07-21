@@ -73,10 +73,14 @@ function WisdomChat() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [routeError, setRouteError] = useState<string | null>(null);
+  const [routeError, setRouteError] = useState<UserSafeError | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const inflightRef = useRef(false); // hard double-submit guard
 
   const { user, ready } = useSession();
+  const access = useWisdomAccess();
+
+  const composerEnabled = access.status === "allowed" && !!user;
 
   // Create a session lazily on first send (mode is authoritative once locked).
   const ensureSession = async (chosenMode: Mode): Promise<string | null> => {
@@ -88,7 +92,7 @@ function WisdomChat() {
       .select("id")
       .single();
     if (error || !data) {
-      setRouteError(error?.message ?? "session_create_failed");
+      setRouteError(mapWisdomError("session not found"));
       return null;
     }
     setSessionId(data.id);
@@ -96,7 +100,7 @@ function WisdomChat() {
   };
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => { textareaRef.current?.focus(); }, [turns.length]);
+  useEffect(() => { if (composerEnabled) textareaRef.current?.focus(); }, [turns.length, composerEnabled]);
   const scrollerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: "smooth" });
@@ -104,23 +108,37 @@ function WisdomChat() {
 
   const isEmpty = turns.length === 0;
 
-  const submit = async () => {
-    const text = input.trim();
-    if (!text || busy) return;
-    if (!user) { setRouteError("Please sign in to talk with Wisdom."); return; }
+  const submit = async (retryOf?: string) => {
+    const text = retryOf ?? input.trim();
+    if (!text) return;
+    // Hard double-submit guard (state can race across handlers)
+    if (inflightRef.current || busy) return;
+    if (!user) {
+      setRouteError(mapWisdomError("unauthenticated"));
+      return;
+    }
+    if (access.status !== "allowed") {
+      const reason = access.status === "denied" ? access.reason : "unified_disabled";
+      setRouteError(mapWisdomError(reason));
+      return;
+    }
     const chosen = MODES.find((m) => m.id === mode);
-    if (chosen?.disabled) { setRouteError(chosen.disabledHint ?? "Mode unavailable."); return; }
+    if (chosen?.disabled) {
+      setRouteError(mapWisdomError("curse_breaker_unavailable"));
+      return;
+    }
 
+    inflightRef.current = true;
     setRouteError(null);
     const sid = await ensureSession(mode);
-    if (!sid) return;
+    if (!sid) { inflightRef.current = false; return; }
 
     const messageId = newId();
     const userTurn: UserTurn = { kind: "user", id: messageId, text };
     const wisdomId = newId();
     const wisdomTurn: WisdomTurn = { kind: "wisdom", id: wisdomId, phase: "processing" };
     setTurns((t) => [...t, userTurn, wisdomTurn]);
-    setInput("");
+    if (!retryOf) setInput("");
     setBusy(true);
 
     const controller = new AbortController();
@@ -136,10 +154,11 @@ function WisdomChat() {
       }, controller.signal)) {
         applyEvent(setTurns, wisdomId, ev);
       }
-    } catch (e) {
-      applyEvent(setTurns, wisdomId, { type: "error", error: "network_error", message: String((e as Error).message) });
+    } catch {
+      applyEvent(setTurns, wisdomId, { type: "error", error: "network_error" });
     } finally {
       setBusy(false);
+      inflightRef.current = false;
       abortRef.current = null;
     }
   };
