@@ -242,8 +242,10 @@ export function buildProductionDeps(db: Db, extras: ProductionExtras): Orchestra
         return fakeCallModel({ system, userPrompt, mode, model });
       }
       const schema =
-        mode === "companion" ? zCompanionResult :
-        mode === "pattern"   ? zPatternResult   : zDeepWisdomResult;
+        mode === "companion"     ? zCompanionResult :
+        mode === "pattern"       ? zPatternResult   :
+        mode === "curse_breaker" ? zCurseBreakerResult :
+                                   zDeepWisdomResult;
       const gateway = await getGateway();
       const fallbackPassageId = firstPassageIdFromPrompt(userPrompt);
 
