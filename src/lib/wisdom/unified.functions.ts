@@ -154,10 +154,14 @@ function normalizeModelJson(value: unknown, mode: UnifiedMode, fallbackPassageId
   if (!value || typeof value !== "object" || Array.isArray(value)) return value;
   const record = { ...(value as Record<string, unknown>) };
 
-  if (mode === "pattern") {
+  if (mode === "pattern" || mode === "curse_breaker") {
     record.competing_hypotheses = record.competing_hypotheses ?? record.hypotheses ?? [];
     const draft = record.prayer_draft ?? record.prayer ?? record.evolving_prayer ?? record.evolving_prayer_draft;
     record.prayer_draft = Array.isArray(draft) ? { title: "Prayer draft", lines: draft } : draft;
+    if (mode === "curse_breaker") {
+      record.stronghold_category = record.stronghold_category ?? record.category ?? record.stronghold ?? "unnamed pattern";
+      record.renunciations = record.renunciations ?? record.renunciation_targets ?? [];
+    }
   }
 
   if (mode === "deep_wisdom") {
