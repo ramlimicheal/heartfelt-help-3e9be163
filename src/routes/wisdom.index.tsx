@@ -8,15 +8,18 @@ import {
   Hand,
   HandHelping,
   Loader2,
+  Lock,
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
 import { useSession } from "@/hooks/useSession";
+import { useWisdomAccess } from "@/hooks/useWisdomAccess";
 import { FlickeringGrid } from "@/registry/magicui/flickering-grid";
 import { ShineBorder } from "@/registry/magicui/shine-border";
 import { streamUnifiedTurn, type TurnEvent } from "@/lib/wisdom/unified.stream";
+import { mapWisdomError, type UserSafeError } from "@/lib/wisdom/errorCopy";
 import type { UnifiedResult } from "@/lib/wisdom/unified.schemas";
 import { supabase } from "@/integrations/supabase/client";
 
