@@ -16,7 +16,7 @@ import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
 import { useSession } from "@/hooks/useSession";
 import { FlickeringGrid } from "@/registry/magicui/flickering-grid";
 import { ShineBorder } from "@/registry/magicui/shine-border";
-import { streamUnifiedTurn, type TurnEvent } from "@/lib/wisdom/unified.client";
+import { streamUnifiedTurn, type TurnEvent } from "@/lib/wisdom/unified.stream";
 import type { UnifiedResult } from "@/lib/wisdom/unified.schemas";
 import { supabase } from "@/integrations/supabase/client";
 
