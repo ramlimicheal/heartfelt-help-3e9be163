@@ -207,8 +207,22 @@ function WisdomChat() {
                 : <WisdomBubble key={t.id} turn={t} />
               )}
               {routeError && (
-                <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
-                  {routeError}
+                <div
+                  role="alert"
+                  data-testid="wisdom-error"
+                  className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12px] text-destructive"
+                >
+                  <div className="font-medium">{routeError.title}</div>
+                  <div className="text-destructive/85">{routeError.body}</div>
+                  {routeError.retryable && (
+                    <button
+                      type="button"
+                      onClick={() => submit()}
+                      className="mt-1 text-[11px] underline underline-offset-2"
+                    >
+                      Try again
+                    </button>
+                  )}
                 </div>
               )}
             </div>
