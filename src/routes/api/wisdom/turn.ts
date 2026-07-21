@@ -238,8 +238,9 @@ async function handlePost(request: Request): Promise<Response> {
             result: outcome.result,
           });
         }
-      } catch (e) {
-        send("error", { error: "turn_failed", message: String((e as Error).message ?? e).slice(0, 400) });
+      } catch {
+        // Never leak stack traces, prompts, model output, or DNR content.
+        send("error", { error: "turn_failed", code: "internal_error" });
       } finally {
         send("done", { ok: true });
         controller.close();
