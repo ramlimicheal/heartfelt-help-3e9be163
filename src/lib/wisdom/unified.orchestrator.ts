@@ -171,7 +171,7 @@ export function validateGrounding(
         && !(result.biblical_mirror.contextual_limit && result.biblical_mirror.contextual_limit.trim().length >= 8)) {
       result.biblical_mirror.contextual_limit = "Applied by analogy, not direct instruction.";
     }
-  } else if (result.mode === "pattern") {
+  } else if (result.mode === "pattern" || result.mode === "curse_breaker") {
     result.prayer_draft.lines = result.prayer_draft.lines.map((l) => {
       const cleaned = cleanCitations(l.citations);
       if (cleaned.length === 0) {
@@ -179,7 +179,7 @@ export function validateGrounding(
       }
       return { ...l, citations: cleaned };
     });
-  } else {
+  } else if (result.mode === "deep_wisdom") {
     result.biblical_mirrors = result.biblical_mirrors.filter((m) => retrievalIds.has(m.passage_id));
     for (const m of result.biblical_mirrors) {
       if (m.derivation === "pattern_matched"
