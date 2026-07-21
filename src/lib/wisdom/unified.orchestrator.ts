@@ -119,6 +119,7 @@ export function computeIdempotencyKey(args: {
 function schemaFor(mode: UnifiedMode) {
   if (mode === "companion") return zCompanionResult;
   if (mode === "pattern") return zPatternResult;
+  if (mode === "curse_breaker") return zCurseBreakerResult;
   return zDeepWisdomResult;
 }
 
