@@ -24,10 +24,14 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
 import {
-  isUnifiedTurnEnabled,
   runUnifiedTurnCore,
   sha256Hex,
 } from "@/lib/wisdom/unified.functions";
+import {
+  currentWisdomMode,
+  extractVerifiedEmailFromClaims,
+  resolveWisdomAccess,
+} from "@/lib/wisdom/gate";
 import type { UnifiedMode } from "@/lib/wisdom/unified.schemas";
 
 const BodySchema = z.object({
