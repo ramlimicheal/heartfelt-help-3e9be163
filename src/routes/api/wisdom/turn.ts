@@ -62,15 +62,16 @@ export const Route = createFileRoute("/api/wisdom/turn")({
 });
 
 async function handlePost(request: Request): Promise<Response> {
-  if (!isUnifiedTurnEnabled()) {
-    return json({ error: "unified turn disabled" }, 503);
-  }
+  const mode = currentWisdomMode();
+
+  // Fast-fail when unified turn is globally off (still send 503 for parity).
+  if (mode === "off") return json({ error: "unified_disabled" }, 503);
 
   // 1. Auth: verify bearer token
   const authHeader = request.headers.get("authorization") ?? "";
-  if (!authHeader.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
+  if (!authHeader.startsWith("Bearer ")) return json({ error: "unauthenticated" }, 401);
   const token = authHeader.slice("Bearer ".length).trim();
-  if (!token || token.split(".").length !== 3) return json({ error: "unauthorized" }, 401);
+  if (!token || token.split(".").length !== 3) return json({ error: "unauthenticated" }, 401);
 
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
@@ -81,8 +82,21 @@ async function handlePost(request: Request): Promise<Response> {
     global: { fetch: makeSupabaseFetch(SUPABASE_PUBLISHABLE_KEY), headers: { Authorization: `Bearer ${token}` } },
   });
   const { data: claims, error: cErr } = await authClient.auth.getClaims(token);
-  if (cErr || !claims?.claims?.sub) return json({ error: "unauthorized" }, 401);
+  if (cErr || !claims?.claims?.sub) return json({ error: "unauthenticated" }, 401);
   const userId = claims.claims.sub as string;
+
+  // Three-state gate — email/allowlist evaluated from SERVER-VERIFIED claims only.
+  const { email, verified } = extractVerifiedEmailFromClaims(claims.claims);
+  const decision = resolveWisdomAccess({
+    authenticated: true,
+    verifiedEmail: email,
+    emailVerified: verified,
+    mode,
+  });
+  if (!decision.allowed) {
+    const status = decision.reason === "unified_disabled" ? 503 : 403;
+    return json({ error: decision.reason }, status);
+  }
 
   // 2. Body parse
   const raw = await request.text();
