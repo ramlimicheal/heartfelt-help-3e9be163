@@ -25,14 +25,13 @@ import {
   type UnifiedResult,
 } from "./unified.schemas";
 
+// Beta: unified turn is always on for any authenticated user.
 export function isUnifiedTurnEnabled(): boolean {
-  const v = process.env.WISDOM_UNIFIED_TURN;
-  return v === "canary" || v === "on" || v === "1" || v === "true";
+  return true;
 }
 
 export function isLegacyChatEnabled(): boolean {
-  const v = process.env.WISDOM_LEGACY_CHAT;
-  return v === "on" || v === "1" || v === "true";
+  return false;
 }
 
 async function admin() {
@@ -176,8 +175,6 @@ export function buildProductionDeps(db: Db, extras: ProductionExtras): Orchestra
       }));
     },
     callModel: async ({ system, userPrompt, mode, model }) => {
-      // Fail-closed fake-model seam: activates only under NODE_ENV=test +
-      // WISDOM_TEST_FAKE_MODEL=1 + WISDOM_TEST_RUN_ID. Never selectable via HTTP.
       const { isFakeModelEnabled, assertFakeModelSafe, fakeCallModel } = await import(
         "./testing/fakeGateway.server"
       );
@@ -189,36 +186,44 @@ export function buildProductionDeps(db: Db, extras: ProductionExtras): Orchestra
         mode === "companion" ? zCompanionResult :
         mode === "pattern"   ? zPatternResult   : zDeepWisdomResult;
       const gateway = await getGateway();
-      try {
-        const r = await generateText({
-          model: gateway(model),
-          output: Output.object({ schema: schema as unknown as typeof zCompanionResult }),
-          system,
-          prompt: userPrompt,
-        });
-        return { raw: r.output, tokensIn: r.usage?.inputTokens, tokensOut: r.usage?.outputTokens };
-      } catch (err) {
-        if (NoObjectGeneratedError.isInstance(err)) {
-          // Log a bounded preview of the raw model text so we can see which
-          // field failed validation. Never surface to the client.
-          const preview = (err.text ?? "").slice(0, 2000);
-          console.error("[wisdom.callModel] schema mismatch", {
-            mode, model, textPreview: preview,
-            cause: (err.cause as Error | undefined)?.message?.slice(0, 400),
+
+      const tryOnce = async (sys: string, prompt: string) => {
+        try {
+          const r = await generateText({
+            model: gateway(model),
+            output: Output.object({ schema: schema as unknown as typeof zCompanionResult }),
+            system: sys,
+            prompt,
           });
-          // Fallback: try to parse the raw text ourselves and validate.
-          try {
-            const parsed = JSON.parse(err.text ?? "");
-            const validated = schema.parse(parsed);
-            return { raw: validated, tokensIn: err.usage?.inputTokens, tokensOut: err.usage?.outputTokens };
-          } catch (parseErr) {
-            console.error("[wisdom.callModel] fallback parse failed", {
-              mode, message: (parseErr as Error).message?.slice(0, 400),
-            });
+          return { ok: true as const, raw: r.output, tokensIn: r.usage?.inputTokens, tokensOut: r.usage?.outputTokens };
+        } catch (err) {
+          if (NoObjectGeneratedError.isInstance(err)) {
+            const preview = (err.text ?? "").slice(0, 4000);
+            // Fallback #1: manual parse of the raw text.
+            try {
+              const parsed = JSON.parse(err.text ?? "");
+              const validated = schema.parse({ ...parsed, mode });
+              return { ok: true as const, raw: validated, tokensIn: err.usage?.inputTokens, tokensOut: err.usage?.outputTokens };
+            } catch { /* fall through */ }
+            return { ok: false as const, textPreview: preview, cause: (err.cause as Error | undefined)?.message ?? err.message };
           }
+          throw err;
         }
-        throw err;
-      }
+      };
+
+      const first = await tryOnce(system, userPrompt);
+      if (first.ok) return { raw: first.raw, tokensIn: first.tokensIn, tokensOut: first.tokensOut };
+
+      // Repair pass: hand the model back its own broken output plus the schema
+      // and ask for a corrected JSON. One retry only.
+      console.warn("[wisdom.callModel] first pass failed; repair", { mode, cause: first.cause?.slice(0, 300) });
+      const repairSystem = system + "\n\nYour previous output failed JSON schema validation. Fix it. Return ONLY the corrected JSON. No prose, no code fences.";
+      const repairPrompt = `PREVIOUS INVALID OUTPUT:\n${first.textPreview}\n\nSCHEMA ERROR:\n${first.cause?.slice(0, 800) ?? "schema mismatch"}\n\nORIGINAL REQUEST:\n${userPrompt}`;
+      const second = await tryOnce(repairSystem, repairPrompt);
+      if (second.ok) return { raw: second.raw, tokensIn: second.tokensIn, tokensOut: second.tokensOut };
+
+      console.error("[wisdom.callModel] repair pass also failed", { mode, cause: second.cause?.slice(0, 300) });
+      throw new Error(`model output failed schema after repair: ${second.cause?.slice(0, 200) ?? "unknown"}`);
     },
     findExistingTurn: async (msgId) => {
       const { data } = await db.from("wisdom_turns")
