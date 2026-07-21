@@ -27,7 +27,7 @@ beforeAll(async () => {
   // The server enforces NODE_ENV === 'test'.
   process.env.NODE_ENV = "test";
 
-  db = new Client({ connectionString: SUPABASE_DB_URL });
+  db = new Client({ connectionString: SUPABASE_DB_URL, ssl: { rejectUnauthorized: false } });
   await db.connect();
   server = await startTestServer();
 });
