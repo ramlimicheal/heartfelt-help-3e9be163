@@ -119,10 +119,7 @@ async function handlePost(request: Request): Promise<Response> {
     .select("id,user_id,mode,mode_locked_at")
     .eq("id", body.sessionId).maybeSingle();
   if (!sess || sess.user_id !== userId) return json({ error: "session not found" }, 404);
-  const storedMode = sess.mode as UnifiedMode | "curse_breaker";
-  if (storedMode === "curse_breaker") {
-    return json({ error: "curse_breaker_unavailable", message: "Curse Breaker taxonomy upgrade pending." }, 409);
-  }
+  const storedMode = sess.mode as UnifiedMode;
 
   // 4b. Ensure triggering user message exists; payload-drift check on retry.
   const userTextHash = await sha256Hex(body.userText);
