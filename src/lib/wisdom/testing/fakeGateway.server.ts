@@ -136,7 +136,7 @@ export const fakeCallModel: ModelCall = async ({ mode, model, userPrompt }) => {
   const key = matches.length ? matches[matches.length - 1]!.toLowerCase() : null;
   state.callLog.push({ mode, model, at: Date.now(), key });
 
-  const scenario = (key && state.scenariosByKey.get(key)) ?? state.defaultScenario;
+  const scenario = (key ? state.scenariosByKey.get(key) : undefined) ?? state.defaultScenario;
   return runScenario(scenario);
 };
 
