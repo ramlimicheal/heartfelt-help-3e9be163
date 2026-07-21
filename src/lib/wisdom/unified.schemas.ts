@@ -13,9 +13,16 @@ import { z } from "zod";
 import { zPrayerMovement } from "./pipeline.schemas";
 
 // ── Shared primitives ────────────────────────────────────────────────
-const zConfidence = z.coerce.number().catch(0.5).pipe(z.number().min(0).max(1));
+const zConfidence = z.preprocess((value) => {
+  const number = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(number)) return 0.5;
+  const normalized = number > 1 && number <= 100 ? number / 100 : number;
+  return Math.min(1, Math.max(0, normalized));
+}, z.number().min(0).max(1));
 const zTextArray = z.preprocess(
-  (value) => Array.isArray(value) ? value.map((item) => typeof item === "string" ? item : JSON.stringify(item)) : value,
+  (value) => Array.isArray(value)
+    ? value.map((item) => (typeof item === "string" ? item : JSON.stringify(item)).slice(0, 400))
+    : value,
   z.array(z.string().max(400)).max(12).default([]),
 );
 const prayerMovementValues = zPrayerMovement.options;
@@ -145,10 +152,18 @@ export const zPrayerLine = z.preprocess((value) => {
   citations: z.array(zCitation).max(6).default([]),
 }));
 
-export const zPrayerDraft = z.object({
-  title: z.string().min(1).max(200),
+export const zPrayerDraft = z.preprocess((value) => {
+  if (!value || typeof value !== "object") return value;
+  const record = value as Record<string, unknown>;
+  return {
+    ...record,
+    title: record.title ?? record.name ?? "Prayer draft",
+    lines: record.lines ?? record.prayer_lines ?? record.movements ?? [],
+  };
+}, z.object({
+  title: z.string().min(1).max(200).default("Prayer draft"),
   lines: z.array(zPrayerLine).min(1).max(8),
-});
+}));
 
 const practiceKinds = [
   "boundary","confession","forgiveness","restitution","reconciliation",
