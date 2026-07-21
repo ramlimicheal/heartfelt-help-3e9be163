@@ -189,13 +189,36 @@ export function buildProductionDeps(db: Db, extras: ProductionExtras): Orchestra
         mode === "companion" ? zCompanionResult :
         mode === "pattern"   ? zPatternResult   : zDeepWisdomResult;
       const gateway = await getGateway();
-      const r = await generateText({
-        model: gateway(model),
-        output: Output.object({ schema: schema as unknown as typeof zCompanionResult }),
-        system,
-        prompt: userPrompt,
-      });
-      return { raw: r.output, tokensIn: r.usage?.inputTokens, tokensOut: r.usage?.outputTokens };
+      try {
+        const r = await generateText({
+          model: gateway(model),
+          output: Output.object({ schema: schema as unknown as typeof zCompanionResult }),
+          system,
+          prompt: userPrompt,
+        });
+        return { raw: r.output, tokensIn: r.usage?.inputTokens, tokensOut: r.usage?.outputTokens };
+      } catch (err) {
+        if (NoObjectGeneratedError.isInstance(err)) {
+          // Log a bounded preview of the raw model text so we can see which
+          // field failed validation. Never surface to the client.
+          const preview = (err.text ?? "").slice(0, 2000);
+          console.error("[wisdom.callModel] schema mismatch", {
+            mode, model, textPreview: preview,
+            cause: (err.cause as Error | undefined)?.message?.slice(0, 400),
+          });
+          // Fallback: try to parse the raw text ourselves and validate.
+          try {
+            const parsed = JSON.parse(err.text ?? "");
+            const validated = schema.parse(parsed);
+            return { raw: validated, tokensIn: err.usage?.inputTokens, tokensOut: err.usage?.outputTokens };
+          } catch (parseErr) {
+            console.error("[wisdom.callModel] fallback parse failed", {
+              mode, message: (parseErr as Error).message?.slice(0, 400),
+            });
+          }
+        }
+        throw err;
+      }
     },
     findExistingTurn: async (msgId) => {
       const { data } = await db.from("wisdom_turns")
