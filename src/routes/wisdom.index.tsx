@@ -469,7 +469,21 @@ function UnifiedResultView({ result }: { result: UnifiedResult }) {
     <div className="space-y-3">
       <p className="text-foreground/90">{result.user_facing_response}</p>
 
-      {result.mode !== "companion" && "prayer_draft" in result && (
+      {result.mode === "curse_breaker" && (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Stronghold discerned</div>
+          <div className="mt-1 text-[13px] font-medium">{result.stronghold_category}</div>
+          {result.renunciations.length > 0 && (
+            <ul className="mt-2 space-y-1 text-[12px] text-foreground/80">
+              {result.renunciations.map((r, i) => (
+                <li key={i} className="pl-3 border-l-2 border-primary/40 italic">{r}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {(result.mode === "pattern" || result.mode === "curse_breaker") && (
         <PrayerDraft title={result.prayer_draft.title} lines={result.prayer_draft.lines} />
       )}
       {result.mode === "deep_wisdom" && (
