@@ -39,9 +39,10 @@ const BodySchema = z.object({
 });
 type Body = z.infer<typeof BodySchema>;
 
-const RATE_LIMIT = 30; // turns per minute per user
-const RATE_WINDOW = 60;
+const RATE_LIMIT = 20; // attempts per rolling 5-minute window per user
+const RATE_WINDOW = 300;
 const MAX_BODY_BYTES = 32 * 1024;
+const RETRY_MAX_ATTEMPTS = 3;
 
 export const Route = createFileRoute("/api/wisdom/turn")({
   server: {
