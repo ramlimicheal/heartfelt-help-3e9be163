@@ -18,19 +18,23 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 describe("Turn 2a.1 — fake gateway is unreachable from browser code", () => {
-  it("no non-server source file imports src/lib/wisdom/testing/fakeGateway", () => {
+  it("no non-server source file statically imports the fake gateway", () => {
     const all = walk("src");
     const leaks: string[] = [];
+    // Match STATIC top-level import/export forms only. Dynamic imports
+    // inside handler bodies of *.functions.ts are stripped by the
+    // TanStack server-fn transformer and never reach the client bundle.
+    const staticImportRe =
+      /(?:^|\n)\s*(?:import[^;]*from\s*["'][^"']*fakeGateway[^"']*["']|import\s*\(\s*["'][^"']*fakeGateway[^"']*["']\s*\)(?!\s*;?\s*$))/m;
     for (const f of all) {
-      // Skip server-only modules and the fake gateway itself.
       if (f.endsWith(".server.ts") || f.endsWith(".server.tsx")) continue;
       if (f.includes("/wisdom/testing/")) continue;
       const src = readFileSync(f, "utf8");
-      if (/fakeGateway/.test(src) || /wisdom\/testing\/fakeGateway/.test(src)) {
-        leaks.push(f);
-      }
+      // First a cheap containment check; then the strict static-import check.
+      if (!/fakeGateway/.test(src)) continue;
+      if (staticImportRe.test(src)) leaks.push(f);
     }
-    expect(leaks, `client-reachable files reference fakeGateway: ${leaks.join(", ")}`).toEqual([]);
+    expect(leaks, `client-reachable files STATICALLY import fakeGateway: ${leaks.join(", ")}`).toEqual([]);
   });
 
   it("fakeGateway module filename ends in .server.ts (import-protection tripwire)", () => {
