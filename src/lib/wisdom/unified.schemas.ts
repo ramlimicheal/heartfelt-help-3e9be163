@@ -249,11 +249,25 @@ export const zDeepWisdomResult = zSharedResultBase.extend({
 });
 export type DeepWisdomResult = z.infer<typeof zDeepWisdomResult>;
 
+// ── Curse Breaker ────────────────────────────────────────────────────
+export const zCurseBreakerResult = zSharedResultBase.extend({
+  mode: z.literal("curse_breaker"),
+  stronghold_category: z.string().max(160).default("unnamed pattern"),
+  event_chain: z.array(zEventChainLink).max(24).default([]),
+  competing_hypotheses: z.array(zHypothesis).min(1).max(4),
+  distinguishing_question: z.string().max(600).default(""),
+  renunciations: z.array(z.string().max(400)).max(12).default([]),
+  prayer_draft: zPrayerDraft,
+  primary_practice: zPrimaryPractice,
+});
+export type CurseBreakerResult = z.infer<typeof zCurseBreakerResult>;
+
 export const zUnifiedResult = z.discriminatedUnion("mode", [
   zCompanionResult,
   zPatternResult,
   zDeepWisdomResult,
+  zCurseBreakerResult,
 ]);
 export type UnifiedResult = z.infer<typeof zUnifiedResult>;
 
-export type UnifiedMode = "companion" | "pattern" | "deep_wisdom";
+export type UnifiedMode = "companion" | "pattern" | "deep_wisdom" | "curse_breaker";

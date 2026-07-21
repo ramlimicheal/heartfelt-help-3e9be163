@@ -13,6 +13,7 @@ import {
   zCompanionResult,
   zPatternResult,
   zDeepWisdomResult,
+  zCurseBreakerResult,
   type UnifiedMode,
   type UnifiedResult,
 } from "./unified.schemas";
@@ -21,7 +22,7 @@ export type UnifiedTurnInput = {
   userId: string;
   sessionId: string;
   triggeringUserMessageId: string;
-  storedSessionMode: UnifiedMode | "curse_breaker";
+  storedSessionMode: UnifiedMode;
   memoryDirective: "normal" | "session_only" | "do_not_remember";
   userText: string;
   clientRequestedMode?: string;
@@ -118,6 +119,7 @@ export function computeIdempotencyKey(args: {
 function schemaFor(mode: UnifiedMode) {
   if (mode === "companion") return zCompanionResult;
   if (mode === "pattern") return zPatternResult;
+  if (mode === "curse_breaker") return zCurseBreakerResult;
   return zDeepWisdomResult;
 }
 
@@ -169,7 +171,7 @@ export function validateGrounding(
         && !(result.biblical_mirror.contextual_limit && result.biblical_mirror.contextual_limit.trim().length >= 8)) {
       result.biblical_mirror.contextual_limit = "Applied by analogy, not direct instruction.";
     }
-  } else if (result.mode === "pattern") {
+  } else if (result.mode === "pattern" || result.mode === "curse_breaker") {
     result.prayer_draft.lines = result.prayer_draft.lines.map((l) => {
       const cleaned = cleanCitations(l.citations);
       if (cleaned.length === 0) {
@@ -177,7 +179,7 @@ export function validateGrounding(
       }
       return { ...l, citations: cleaned };
     });
-  } else {
+  } else if (result.mode === "deep_wisdom") {
     result.biblical_mirrors = result.biblical_mirrors.filter((m) => retrievalIds.has(m.passage_id));
     for (const m of result.biblical_mirrors) {
       if (m.derivation === "pattern_matched"
@@ -204,12 +206,7 @@ export async function runUnifiedTurn(
   input: UnifiedTurnInput,
   deps: OrchestratorDeps,
 ): Promise<UnifiedTurnOutcome> {
-  // Client-mode override policy: the STORED session mode is authoritative.
-  // We ignore input.clientRequestedMode entirely for durable behaviour;
-  // it is retained only for telemetry/observability by the caller.
-  if (input.storedSessionMode === "curse_breaker") {
-    return { kind: "unsupported", error: CURSE_BREAKER_PENDING_ERROR };
-  }
+  // Stored session mode is authoritative. Client-requested mode is telemetry only.
   const mode: UnifiedMode = input.storedSessionMode;
 
   const promptKey = promptKeyFor(mode);

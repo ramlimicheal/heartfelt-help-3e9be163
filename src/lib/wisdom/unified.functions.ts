@@ -21,6 +21,7 @@ import {
   zCompanionResult,
   zPatternResult,
   zDeepWisdomResult,
+  zCurseBreakerResult,
   type UnifiedMode,
   type UnifiedResult,
 } from "./unified.schemas";
@@ -51,7 +52,7 @@ export type UnifiedRunContext = {
   userId: string;
   sessionId: string;
   triggeringUserMessageId: string;
-  storedSessionMode: UnifiedMode | "curse_breaker";
+  storedSessionMode: UnifiedMode;
   memoryDirective: "normal" | "session_only" | "do_not_remember";
   userText: string;
   clientRequestedMode?: string;
@@ -119,7 +120,7 @@ export const runUnifiedWisdomTurn = createServerFn({ method: "POST" })
       userId: context.userId,
       sessionId: data.sessionId,
       triggeringUserMessageId: data.triggeringUserMessageId,
-      storedSessionMode: sess.mode as UnifiedMode | "curse_breaker",
+      storedSessionMode: sess.mode as UnifiedMode,
       memoryDirective: msg.memory_directive as UnifiedRunContext["memoryDirective"],
       userText: msg.content as string,
       clientRequestedMode: data.clientRequestedMode,
@@ -153,10 +154,14 @@ function normalizeModelJson(value: unknown, mode: UnifiedMode, fallbackPassageId
   if (!value || typeof value !== "object" || Array.isArray(value)) return value;
   const record = { ...(value as Record<string, unknown>) };
 
-  if (mode === "pattern") {
+  if (mode === "pattern" || mode === "curse_breaker") {
     record.competing_hypotheses = record.competing_hypotheses ?? record.hypotheses ?? [];
     const draft = record.prayer_draft ?? record.prayer ?? record.evolving_prayer ?? record.evolving_prayer_draft;
     record.prayer_draft = Array.isArray(draft) ? { title: "Prayer draft", lines: draft } : draft;
+    if (mode === "curse_breaker") {
+      record.stronghold_category = record.stronghold_category ?? record.category ?? record.stronghold ?? "unnamed pattern";
+      record.renunciations = record.renunciations ?? record.renunciation_targets ?? [];
+    }
   }
 
   if (mode === "deep_wisdom") {
@@ -237,8 +242,10 @@ export function buildProductionDeps(db: Db, extras: ProductionExtras): Orchestra
         return fakeCallModel({ system, userPrompt, mode, model });
       }
       const schema =
-        mode === "companion" ? zCompanionResult :
-        mode === "pattern"   ? zPatternResult   : zDeepWisdomResult;
+        mode === "companion"     ? zCompanionResult :
+        mode === "pattern"       ? zPatternResult   :
+        mode === "curse_breaker" ? zCurseBreakerResult :
+                                   zDeepWisdomResult;
       const gateway = await getGateway();
       const fallbackPassageId = firstPassageIdFromPrompt(userPrompt);
 
@@ -341,7 +348,7 @@ export function buildProductionDeps(db: Db, extras: ProductionExtras): Orchestra
     logRun: async (row) => {
       await db.from("pipeline_runs").insert({
         user_id: row.userId, session_id: row.sessionId,
-        mode: row.mode === "deep_wisdom" ? "wisdom" : row.mode === "pattern" ? "wisdom" : "companion",
+        mode: row.mode === "curse_breaker" ? "curse_breaker" : (row.mode === "deep_wisdom" || row.mode === "pattern") ? "wisdom" : "companion",
         stage: row.stage, status: row.status, latency_ms: row.latencyMs,
         prompt_key: row.promptKey, prompt_version: row.promptVersion,
         model: row.model, tokens_in: row.tokensIn, tokens_out: row.tokensOut,
