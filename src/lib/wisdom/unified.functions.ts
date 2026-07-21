@@ -176,6 +176,15 @@ export function buildProductionDeps(db: Db, extras: ProductionExtras): Orchestra
       }));
     },
     callModel: async ({ system, userPrompt, mode, model }) => {
+      // Fail-closed fake-model seam: activates only under NODE_ENV=test +
+      // WISDOM_TEST_FAKE_MODEL=1 + WISDOM_TEST_RUN_ID. Never selectable via HTTP.
+      const { isFakeModelEnabled, assertFakeModelSafe, fakeCallModel } = await import(
+        "./testing/fakeGateway.server"
+      );
+      assertFakeModelSafe();
+      if (isFakeModelEnabled()) {
+        return fakeCallModel({ system, userPrompt, mode, model });
+      }
       const schema =
         mode === "companion" ? zCompanionResult :
         mode === "pattern"   ? zPatternResult   : zDeepWisdomResult;
