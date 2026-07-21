@@ -486,18 +486,10 @@ function PrivateBetaBanner({
   user: ReturnType<typeof useSession>["user"];
 }) {
   const signedOut = !user;
-  const title = signedOut
-    ? "Sign in to request access"
-    : access.status === "loading"
-      ? "Checking access…"
-      : "Wisdom is currently in private beta";
+  const title = signedOut ? "Sign in to continue" : "Checking access…";
   const body = signedOut
-    ? "Wisdom is in a founder-only canary. Sign in with your invited email to continue."
-    : access.status === "denied" && access.reason === "email_unverified"
-      ? "Verify your email to be considered for the founder canary."
-      : access.status === "denied" && access.reason === "unified_disabled"
-        ? "The intelligence path is currently disabled. Please check back shortly."
-        : "Your account isn't on the founder allowlist yet. We'll email when access opens.";
+    ? "Sign in to start a Wisdom conversation."
+    : "One moment.";
   return (
     <div
       role="status"

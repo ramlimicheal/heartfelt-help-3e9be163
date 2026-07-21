@@ -27,11 +27,7 @@ import {
   runUnifiedTurnCore,
   sha256Hex,
 } from "@/lib/wisdom/unified.functions";
-import {
-  currentWisdomMode,
-  extractVerifiedEmailFromClaims,
-  resolveWisdomAccess,
-} from "@/lib/wisdom/gate";
+import { resolveWisdomAccess } from "@/lib/wisdom/gate";
 import type { UnifiedMode } from "@/lib/wisdom/unified.schemas";
 
 const BodySchema = z.object({
@@ -66,11 +62,6 @@ export const Route = createFileRoute("/api/wisdom/turn")({
 });
 
 async function handlePost(request: Request): Promise<Response> {
-  const mode = currentWisdomMode();
-
-  // Fast-fail when unified turn is globally off (still send 503 for parity).
-  if (mode === "off") return json({ error: "unified_disabled" }, 503);
-
   // 1. Auth: verify bearer token
   const authHeader = request.headers.get("authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) return json({ error: "unauthenticated" }, 401);
@@ -89,18 +80,9 @@ async function handlePost(request: Request): Promise<Response> {
   if (cErr || !claims?.claims?.sub) return json({ error: "unauthenticated" }, 401);
   const userId = claims.claims.sub as string;
 
-  // Three-state gate — email/allowlist evaluated from SERVER-VERIFIED claims only.
-  const { email, verified } = extractVerifiedEmailFromClaims(claims.claims);
-  const decision = resolveWisdomAccess({
-    authenticated: true,
-    verifiedEmail: email,
-    emailVerified: verified,
-    mode,
-  });
-  if (!decision.allowed) {
-    const status = decision.reason === "unified_disabled" ? 503 : 403;
-    return json({ error: decision.reason }, status);
-  }
+  // Gate: authenticated users only (canary removed for beta).
+  const decision = resolveWisdomAccess({ authenticated: true });
+  if (!decision.allowed) return json({ error: decision.reason }, 401);
 
   // 2. Body parse
   const raw = await request.text();

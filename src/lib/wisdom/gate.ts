@@ -1,56 +1,31 @@
 /**
- * Founder-only Unified Turn Canary — server-side feature gate.
+ * Wisdom access gate.
  *
- * Three states (via WISDOM_UNIFIED_TURN):
- *   - "off"    → nobody may execute unified turns (default)
- *   - "canary" → only authenticated users whose verified email appears in
- *                WISDOM_UNIFIED_CANARY_EMAILS
- *   - "on"     → all authenticated users
- *
- * Pure functions. Callers pass identity from a server-verified source
- * (Supabase claims). Never accept email / role / canary indicator from
- * the request body.
+ * As of the public beta the founder-only canary is REMOVED. The only gate is
+ * authentication. These helpers are kept so existing callers/tests continue
+ * to type-check; they now resolve to "on" for any authenticated user.
  */
 
-export type WisdomMode = "off" | "canary" | "on";
+export type WisdomMode = "on";
 
 export type AccessInput = {
   authenticated: boolean;
-  /** Normalized verified email from the Supabase JWT, or null. */
-  verifiedEmail: string | null;
-  /** True only when the JWT proves the email is verified. */
-  emailVerified: boolean;
-  /** Optional overrides for deterministic tests. */
+  verifiedEmail?: string | null;
+  emailVerified?: boolean;
   mode?: WisdomMode;
   allowlist?: ReadonlySet<string>;
 };
 
 export type AccessDecision =
-  | { allowed: true; mode: "canary" | "on" }
-  | {
-      allowed: false;
-      reason:
-        | "unified_disabled"
-        | "unauthenticated"
-        | "email_unverified"
-        | "canary_denied";
-    };
+  | { allowed: true; mode: "on" }
+  | { allowed: false; reason: "unauthenticated" };
 
 export function currentWisdomMode(): WisdomMode {
-  const raw = (process.env.WISDOM_UNIFIED_TURN ?? "").trim().toLowerCase();
-  if (raw === "on" || raw === "1" || raw === "true") return "on";
-  if (raw === "canary") return "canary";
-  return "off";
+  return "on";
 }
 
 export function currentCanaryEmails(): ReadonlySet<string> {
-  const raw = process.env.WISDOM_UNIFIED_CANARY_EMAILS ?? "";
-  return new Set(
-    raw
-      .split(",")
-      .map((s) => s.trim().toLowerCase())
-      .filter((s) => s.length > 0 && s.includes("@")),
-  );
+  return new Set<string>();
 }
 
 export function normalizeEmail(v: unknown): string | null {
@@ -61,25 +36,10 @@ export function normalizeEmail(v: unknown): string | null {
 }
 
 export function resolveWisdomAccess(input: AccessInput): AccessDecision {
-  const mode = input.mode ?? currentWisdomMode();
   if (!input.authenticated) return { allowed: false, reason: "unauthenticated" };
-  if (mode === "off") return { allowed: false, reason: "unified_disabled" };
-  if (mode === "on") return { allowed: true, mode };
-  // canary
-  if (!input.emailVerified || !input.verifiedEmail) {
-    return { allowed: false, reason: "email_unverified" };
-  }
-  const list = input.allowlist ?? currentCanaryEmails();
-  if (list.size === 0) return { allowed: false, reason: "canary_denied" };
-  if (!list.has(input.verifiedEmail)) return { allowed: false, reason: "canary_denied" };
-  return { allowed: true, mode };
+  return { allowed: true, mode: "on" };
 }
 
-/**
- * Extract a verified email from a Supabase JWT claims object.
- * We only trust the top-level `email` when a boolean truth signal
- * (`email_verified`) is present in the top claim or in user_metadata.
- */
 export function extractVerifiedEmailFromClaims(claims: unknown): {
   email: string | null;
   verified: boolean;

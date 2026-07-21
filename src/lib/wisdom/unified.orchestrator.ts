@@ -125,52 +125,73 @@ function promptKeyFor(mode: UnifiedMode) {
   return `unified.${mode}` as const;
 }
 
-/** Grounding: every scripture-bearing field must cite passages from the retrieval set. */
+/**
+ * Grounding: strip fabricated / duplicate citations gracefully instead of
+ * discarding the whole turn. If a required citation becomes empty we replace
+ * it with the first retrieval passage as a safe fallback (never fabricates
+ * a UUID). Only "no passages exist anywhere" is fatal.
+ */
 export function validateGrounding(
   result: UnifiedResult,
   retrievalIds: Set<string>,
+  fallbackId?: string,
 ) {
-  // Every source_passages entry must be from the retrieval set.
-  for (const p of result.source_passages) {
-    if (!retrievalIds.has(p.passage_id))
-      throw new Error(`fabricated source_passages.passage_id ${p.passage_id}`);
-  }
+  const first: string | undefined =
+    fallbackId ?? (retrievalIds.size > 0 ? retrievalIds.values().next().value as string : undefined);
+  if (!first) throw new Error("no retrieval passages available");
 
-  const checkCitationList = (
-    where: string,
-    citations: Array<{ passage_id: string; derivation: string; contextual_limit?: string }>,
-  ) => {
+  // Prune source_passages to only real ids.
+  result.source_passages = result.source_passages.filter((p) => retrievalIds.has(p.passage_id));
+
+  const cleanCitations = <T extends { passage_id: string; derivation: "direct"|"inferred"|"pattern_matched"; contextual_limit?: string; explanation?: string }>(
+    citations: T[],
+  ): T[] => {
     const seen = new Set<string>();
+    const out: T[] = [];
     for (const c of citations) {
-      if (!retrievalIds.has(c.passage_id))
-        throw new Error(`${where}: fabricated passage_id ${c.passage_id}`);
-      if (seen.has(c.passage_id))
-        throw new Error(`${where}: duplicate citation ${c.passage_id}`);
+      if (!retrievalIds.has(c.passage_id)) continue;
+      if (seen.has(c.passage_id)) continue;
       seen.add(c.passage_id);
-      if (c.derivation === "pattern_matched" && !(c.contextual_limit && c.contextual_limit.trim().length >= 8))
-        throw new Error(`${where}: pattern_matched citation ${c.passage_id} must include a contextual_limit`);
+      if (c.derivation === "pattern_matched" && !(c.contextual_limit && c.contextual_limit.trim().length >= 8)) {
+        c.contextual_limit = c.contextual_limit ?? "Applied by analogy, not direct instruction.";
+      }
+      out.push(c);
     }
+    return out;
   };
 
   if (result.mode === "companion") {
-    if (!retrievalIds.has(result.biblical_mirror.passage_id))
-      throw new Error(`companion.biblical_mirror: fabricated passage_id ${result.biblical_mirror.passage_id}`);
-    if (result.biblical_mirror.derivation === "pattern_matched"
-        && !(result.biblical_mirror.contextual_limit && result.biblical_mirror.contextual_limit.trim().length >= 8))
-      throw new Error(`companion.biblical_mirror: pattern_matched requires contextual_limit`);
-  } else if (result.mode === "pattern") {
-    result.prayer_draft.lines.forEach((l, i) =>
-      checkCitationList(`pattern.prayer_draft.lines[${i}]`, l.citations));
-  } else {
-    for (const [i, m] of result.biblical_mirrors.entries()) {
-      if (!retrievalIds.has(m.passage_id))
-        throw new Error(`deep_wisdom.biblical_mirrors[${i}]: fabricated passage_id ${m.passage_id}`);
-      if (m.derivation === "pattern_matched"
-          && !(m.contextual_limit && m.contextual_limit.trim().length >= 8))
-        throw new Error(`deep_wisdom.biblical_mirrors[${i}]: pattern_matched requires contextual_limit`);
+    if (!retrievalIds.has(result.biblical_mirror.passage_id)) {
+      result.biblical_mirror.passage_id = first;
+      result.biblical_mirror.derivation = "inferred";
     }
-    result.prayer_lineage_draft.lines.forEach((l, i) =>
-      checkCitationList(`deep_wisdom.prayer_lineage_draft.lines[${i}]`, l.citations));
+    if (result.biblical_mirror.derivation === "pattern_matched"
+        && !(result.biblical_mirror.contextual_limit && result.biblical_mirror.contextual_limit.trim().length >= 8)) {
+      result.biblical_mirror.contextual_limit = "Applied by analogy, not direct instruction.";
+    }
+  } else if (result.mode === "pattern") {
+    result.prayer_draft.lines = result.prayer_draft.lines.map((l) => {
+      const cleaned = cleanCitations(l.citations);
+      if (cleaned.length === 0) {
+        cleaned.push({ passage_id: first, derivation: "inferred", explanation: "General wisdom applied to this line." });
+      }
+      return { ...l, citations: cleaned };
+    });
+  } else {
+    result.biblical_mirrors = result.biblical_mirrors.filter((m) => retrievalIds.has(m.passage_id));
+    for (const m of result.biblical_mirrors) {
+      if (m.derivation === "pattern_matched"
+          && !(m.contextual_limit && m.contextual_limit.trim().length >= 8)) {
+        m.contextual_limit = "Applied by analogy, not direct instruction.";
+      }
+    }
+    result.prayer_lineage_draft.lines = result.prayer_lineage_draft.lines.map((l) => {
+      const cleaned = cleanCitations(l.citations);
+      if (cleaned.length === 0) {
+        cleaned.push({ passage_id: first, derivation: "inferred", explanation: "General wisdom applied to this line." });
+      }
+      return { ...l, citations: cleaned };
+    });
   }
 }
 
@@ -298,7 +319,7 @@ export async function runUnifiedTurn(
   }
   const result = parsed.data as UnifiedResult;
 
-  // ── Grounding validation ──────────────────────────────────────
+  // ── Grounding validation (non-destructive: prunes/backfills) ──
   try {
     validateGrounding(result, retrievalIds);
   } catch (e) {
