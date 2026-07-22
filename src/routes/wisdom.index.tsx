@@ -10,11 +10,13 @@ import {
   HandHelping,
   Loader2,
   Lock,
+  Map as MapIcon,
   ShieldAlert,
   Sparkles,
   Trash2,
-
+  X,
 } from "lucide-react";
+import { WisdomMap, type WisdomMapMode } from "@/components/wisdom/WisdomMap";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
 import { listRecentSessions, loadSessionHistory, deleteSession } from "@/lib/wisdom/session.functions";
