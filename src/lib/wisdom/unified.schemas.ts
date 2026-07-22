@@ -10,7 +10,7 @@
  * - Length caps kept as safety net.
  */
 import { z } from "zod";
-import { zPrayerMovement } from "./pipeline.schemas";
+import { zPrayerMovement } from "./contracts/prayerMovement";
 
 // ── Shared primitives ────────────────────────────────────────────────
 const zConfidence = z.preprocess((value) => {
