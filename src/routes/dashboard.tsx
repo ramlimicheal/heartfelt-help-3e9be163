@@ -92,7 +92,7 @@ function WisdomHome() {
     try {
       const { sessionId } = await startFn({ data: { mode: MODE_TO_DB[mode], text: text.trim() } });
       if (mode === "curse_breaker") { await runCb({ data: { sessionId } }); navigate({ to: "/wisdom/curse-breaker" }); }
-      else { await runWisdom({ data: { sessionId } }); navigate({ to: "/wisdom/live/$sessionId", params: { sessionId } }); }
+      else { await runWisdom({ data: { sessionId } }); navigate({ to: "/wisdom/$sessionId", params: { sessionId } }); }
     } catch (e) {
       setBeginError(e instanceof Error ? e.message : String(e));
       setBusy(false);

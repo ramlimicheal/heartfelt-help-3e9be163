@@ -1,117 +1,136 @@
+/**
+ * Curse Breaker — shows the most recent completed curse_breaker turn from
+ * the unified pipeline. If none exists, guides the user to start one.
+ */
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { ShieldAlert } from "lucide-react";
-import {
-  CompetingExplanationsCard,
-  DignityAndSafetyCard,
-  FormationCheckInCard,
-  FourteenCategoriesCard,
-  GenerationalTimelineCard,
-  PatternBreakingActCard,
-  PrayerLineageCard,
-  TensionAnalysisCard,
-} from "@/components/wisdom/curseBreakerCards";
-import { COPY } from "@/lib/wisdom/copy/v1";
-import { cbResponse, cbSession } from "@/lib/wisdom/mock/curseBreakerSeed";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { Card, MovementBadge, DerivationLegend } from "@/components/wisdom/primitives";
+import { getLatestCurseBreakerTurn } from "@/lib/wisdom/library.functions";
+import type { CurseBreakerResult } from "@/lib/wisdom/unified.schemas";
+
+const cbQuery = queryOptions({
+  queryKey: ["library", "curse-breaker-latest"],
+  queryFn: () => getLatestCurseBreakerTurn(),
+});
 
 export const Route = createFileRoute("/wisdom/curse-breaker")({
   head: () => ({
     meta: [
       { title: "Curse Breaker — Wisdom" },
-      {
-        name: "description",
-        content:
-          "Curse Breaker examines biblical curse and stronghold categories alongside ordinary explanations — with cited evidence, competing hypotheses, and no automatic verdicts.",
-      },
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: CurseBreakerRoute,
+  loader: ({ context }) => {
+    context.queryClient.ensureQueryData(cbQuery);
+  },
+  errorComponent: () => (
+    <p className="text-sm text-destructive">Curse Breaker couldn't load.</p>
+  ),
+  component: CurseBreakerPage,
 });
 
-function CurseBreakerRoute() {
-  const [consented, setConsented] = useState(false);
+function CurseBreakerPage() {
+  const { data: turn } = useSuspenseQuery(cbQuery);
+  const parsed: unknown = turn?.resultJson ? JSON.parse(turn.resultJson) : null;
 
-  if (!consented) {
+  if (!turn || !parsed) {
     return (
-      <div className="mx-auto max-w-2xl space-y-6">
-        <header className="space-y-2">
-          <Link to="/wisdom" className="text-xs text-muted-foreground hover:text-foreground">
-            ← Back to Wisdom
-          </Link>
-          <p className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-primary">
-            <ShieldAlert className="size-3.5" strokeWidth={2} />
-            {COPY.curseBreaker.heroEyebrow}
+      <div className="space-y-6">
+        <Header />
+        <div className="rounded-2xl border border-panel-border bg-panel/60 px-6 py-10 text-center">
+          <p className="text-lg">No stronghold analysis yet.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Start a Curse Breaker session from the dashboard. Wisdom will trace the tension, weigh competing explanations, and compose a lineage prayer.
           </p>
-          <h1 className="text-3xl leading-tight md:text-[38px] md:leading-[1.1]">
-            {COPY.curseBreaker.preambleTitle}
-          </h1>
-        </header>
-        <div className="space-y-3 rounded-2xl border border-panel-border bg-surface/40 px-5 py-5 md:px-6 md:py-6">
-          {COPY.curseBreaker.preambleBody.map((p, i) => (
-            <p key={i} className="text-[15px] leading-relaxed text-foreground/90">
-              {p}
-            </p>
-          ))}
+          <Link to="/dashboard" className="mt-4 inline-block rounded-full bg-primary px-4 py-1.5 text-sm text-primary-foreground">
+            Begin from dashboard
+          </Link>
         </div>
-        <p className="text-xs text-muted-foreground">
-          {COPY.curseBreaker.disclaimers.dignity}
-        </p>
-        <button
-          onClick={() => setConsented(true)}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-        >
-          {COPY.curseBreaker.preambleConsent}
-        </button>
       </div>
     );
   }
 
+  const r = parsed as CurseBreakerResult;
+
   return (
     <div className="space-y-6">
-      <header className="space-y-2">
-        <Link to="/wisdom" className="text-xs text-muted-foreground hover:text-foreground">
-          ← Back to Wisdom
-        </Link>
-        <p className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-primary">
-          <ShieldAlert className="size-3.5" strokeWidth={2} />
-          {COPY.modes.curse_breaker.label} · seeded example
-        </p>
-        <h1 className="text-3xl leading-tight">{cbSession.title}</h1>
-      </header>
+      <Header />
 
-      <section className="space-y-3">
-        {cbSession.messages.map((m) => (
-          <blockquote
-            key={m.id}
-            className="rounded-xl border-l-2 border-primary/40 bg-surface/50 px-4 py-3 text-[15px] leading-relaxed text-foreground/85"
-          >
-            {m.text}
-          </blockquote>
-        ))}
-      </section>
+      <Card eyebrow="Interpretation" title={r.what_wisdom_heard || "What Wisdom heard"}>
+        <p>{r.user_facing_response}</p>
+        {r.stronghold_category && (
+          <p className="mt-3 text-[11px] uppercase tracking-wide text-muted-foreground">
+            Stronghold category · {r.stronghold_category}
+          </p>
+        )}
+      </Card>
 
-      {/* Card 0 — What I hear (shared with other modes) */}
-      <div className="rounded-2xl border border-panel-border bg-surface/60 px-5 py-5 md:px-6 md:py-6">
-        <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-primary">
-          What I hear
-        </p>
-        <p className="mt-2 text-[15px] leading-relaxed text-foreground/90">
-          {cbResponse.whatIHear}
-        </p>
-      </div>
+      {r.competing_hypotheses.length > 0 && (
+        <Card eyebrow="Discernment" title="Competing hypotheses">
+          <ul className="space-y-2">
+            {r.competing_hypotheses.map((h, i) => (
+              <li key={i} className="rounded-lg border border-panel-border/60 bg-surface/40 px-3 py-2">
+                <p className="text-sm font-medium">{h.name}</p>
+                {h.description && <p className="mt-1 text-sm text-muted-foreground">{h.description}</p>}
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {Math.round(h.confidence * 100)}% confidence
+                </p>
+              </li>
+            ))}
+          </ul>
+          {r.distinguishing_question && (
+            <p className="mt-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+              <span className="font-medium">Distinguishing question:</span> {r.distinguishing_question}
+            </p>
+          )}
+        </Card>
+      )}
 
-      <GenerationalTimelineCard points={cbResponse.timeline} />
-      <FourteenCategoriesCard interpretations={cbResponse.interpretations} />
-      <CompetingExplanationsCard interpretations={cbResponse.interpretations} />
-      <TensionAnalysisCard tensions={cbResponse.tensions} />
-      <PrayerLineageCard
-        lineage={cbResponse.prayerLineage}
-        passages={cbResponse.passageIndex}
-      />
-      <PatternBreakingActCard act={cbResponse.primaryAct} />
-      <FormationCheckInCard checkIn={cbResponse.checkIn} />
-      <DignityAndSafetyCard dignity={cbResponse.dignity} />
+      {r.renunciations.length > 0 && (
+        <Card eyebrow="Renunciation" title="What to renounce">
+          <ul className="space-y-1.5">
+            {r.renunciations.map((line, i) => (
+              <li key={i} className="rounded border-l-2 border-destructive/60 bg-destructive/5 px-3 py-1.5 text-sm">
+                {line}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {r.prayer_draft && r.prayer_draft.lines.length > 0 && (
+        <Card eyebrow="Prayer" title={r.prayer_draft.title || "Draft prayer"}>
+          <DerivationLegend />
+          <div className="mt-4 space-y-3">
+            {r.prayer_draft.lines.map((l, i) => (
+              <div key={i} className="rounded-xl border border-panel-border/60 bg-gradient-to-br from-surface/60 via-surface/30 to-transparent p-4">
+                <MovementBadge movement={l.movement} />
+                <p className="mt-2 font-serif text-[17px] leading-relaxed">{l.text}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {r.primary_practice && (
+        <Card eyebrow="Practice" title={r.primary_practice.title}>
+          <p>{r.primary_practice.rationale}</p>
+        </Card>
+      )}
     </div>
+  );
+}
+
+function Header() {
+  return (
+    <header className="space-y-2">
+      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary">
+        Curse Breaker
+      </p>
+      <h1 className="text-3xl leading-tight">Stronghold discernment.</h1>
+      <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+        Wisdom weighs competing explanations, holds the tension, and — only when the ground is real — composes a renunciation and a lineage prayer.
+      </p>
+    </header>
   );
 }
