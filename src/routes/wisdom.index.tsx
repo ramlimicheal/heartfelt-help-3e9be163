@@ -760,6 +760,99 @@ function WisdomChat() {
         </div>
       </div>
 
+      {/* Right rail — persistent on xl+, quiet summary of the live turn */}
+      <aside className="hidden w-[300px] shrink-0 flex-col gap-3 overflow-y-auto pr-1 xl:flex">
+        {/* Session */}
+        <div className="rounded-2xl border border-panel-border/70 bg-surface/40 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Session</span>
+            <span
+              className="inline-block size-1.5 rounded-full"
+              style={{ background: `var(--color-tag-${activeModeMeta?.tag ?? "insight"})` }}
+              aria-hidden
+            />
+          </div>
+          <div className="mt-1.5 truncate text-[13px] text-foreground">
+            {sessionTitleFromRail ?? (sessionId ? activeModeMeta?.label : "New session")}
+          </div>
+          <div className="mt-0.5 text-[11px] text-muted-foreground">
+            {activeModeMeta?.label} · {exchangeCount} exchange{exchangeCount === 1 ? "" : "s"}
+          </div>
+        </div>
+
+        {/* Live */}
+        <div className="rounded-2xl border border-panel-border/70 bg-surface/40 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Live</span>
+            {mapMode === "streaming" ? (
+              <span className="inline-flex items-center gap-1.5 text-[10px] text-tag-attend">
+                <span className="relative inline-flex size-1.5">
+                  <span className="absolute inset-0 animate-ping rounded-full bg-tag-attend/70" />
+                  <span className="relative inline-block size-1.5 rounded-full bg-tag-attend" />
+                </span>
+                Listening
+              </span>
+            ) : mapMode === "ready" ? (
+              <span className="text-[10px] text-tag-affirm">Ready</span>
+            ) : (
+              <span className="text-[10px] text-muted-foreground">Idle</span>
+            )}
+          </div>
+          <div className="mt-1.5 text-[12.5px] leading-relaxed text-foreground/85">
+            {mapMode === "streaming"
+              ? "Wisdom is listening…"
+              : mapMode === "ready"
+                ? "Response is anchored. Tap Map for the full three-layer view."
+                : "Waiting for your first message."}
+          </div>
+        </div>
+
+        {/* Emerging pattern */}
+        <div className="rounded-2xl border border-panel-border/70 bg-surface/40 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Emerging pattern</span>
+            <span className="inline-block size-1.5 rounded-full bg-tag-insight" aria-hidden />
+          </div>
+          {emergingPattern ? (
+            <>
+              <div className="mt-1.5 text-[13px] font-medium text-foreground">{emergingPattern}</div>
+              {emergingPatternDesc && (
+                <div className="mt-0.5 line-clamp-3 text-[11.5px] leading-snug text-muted-foreground">
+                  {emergingPatternDesc}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="mt-1.5 text-[12px] text-muted-foreground/80">
+              Patterns surface after a few exchanges.
+            </div>
+          )}
+        </div>
+
+        {/* Latest prayer */}
+        <div className="rounded-2xl border border-panel-border/70 bg-surface/40 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Latest prayer</span>
+            <span className="inline-block size-1.5 rounded-full bg-tag-prayer" aria-hidden />
+          </div>
+          {latestPrayerText ? (
+            <>
+              {latestPrayerTitle && (
+                <div className="mt-1.5 text-[13px] font-medium text-foreground">{latestPrayerTitle}</div>
+              )}
+              <div className="mt-1 line-clamp-4 text-[12px] italic leading-snug text-foreground/80">
+                “{latestPrayerText}”
+              </div>
+            </>
+          ) : (
+            <div className="mt-1.5 text-[12px] text-muted-foreground/80">
+              A prayer will form alongside the response.
+            </div>
+          )}
+        </div>
+      </aside>
+
+
       {/* Wisdom Map — slide-in drawer from the right (all viewports) */}
       {mapOpen && (
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Wisdom Map">
