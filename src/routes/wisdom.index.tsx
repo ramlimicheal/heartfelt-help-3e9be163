@@ -462,7 +462,7 @@ function WisdomChat() {
 
 
   return (
-    <div className="relative flex h-[calc(100vh-3rem)] w-full gap-4 xl:gap-6">
+    <div className="relative flex h-[calc(100vh-3rem)] w-full">
       <div
         aria-hidden
         className="pointer-events-none absolute left-0 top-0 -z-0 h-[90px] w-[280px] overflow-hidden opacity-60"
@@ -480,6 +480,8 @@ function WisdomChat() {
           maxOpacity={0.35}
         />
       </div>
+
+
 
 
       {/* Main column — fluid, centered content, composer anchored bottom */}
