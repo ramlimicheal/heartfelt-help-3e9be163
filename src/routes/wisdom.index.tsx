@@ -993,11 +993,11 @@ function WisdomBubble({
 
 function EmptyState({ onPick }: { onPick: (prompt: string, mode: Mode) => void }) {
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center py-10 text-center">
-      <span className="grid size-12 place-items-center rounded-2xl bg-primary/15 text-primary shadow-[0_0_40px_-8px_var(--primary-glow)]">
-        <Sparkles className="size-5" strokeWidth={1.75} />
+    <div className="flex w-full flex-col items-start pt-10 text-left sm:pt-14 md:pt-20">
+      <span className="grid size-11 place-items-center rounded-2xl bg-primary/15 text-primary shadow-[0_0_40px_-8px_var(--primary-glow)]">
+        <Sparkles className="size-4" strokeWidth={1.75} />
       </span>
-      <h1 className="mt-5 text-2xl font-light tracking-tight md:text-3xl">
+      <h1 className="mt-5 max-w-2xl text-2xl font-light tracking-tight md:text-4xl">
         What is happening beneath the surface,
         <span className="text-muted-foreground"> that you'd like to see clearly?</span>
       </h1>
@@ -1005,7 +1005,7 @@ function EmptyState({ onPick }: { onPick: (prompt: string, mode: Mode) => void }
         Bring a real situation. Wisdom listens for the pattern, then mirrors it through
         Scripture—never as a verdict.
       </p>
-      <div className="mt-8 grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-8 grid w-full max-w-3xl grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
         {SUGGESTIONS.map(({ Icon, label, prompt, mode }) => (
           <button
             key={label}
