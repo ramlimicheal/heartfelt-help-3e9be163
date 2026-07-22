@@ -510,7 +510,7 @@ function WisdomChat() {
 
 
   return (
-    <div className="relative flex h-[calc(100dvh-5rem)] w-full gap-4">
+    <div className="relative flex h-[calc(100dvh-3rem)] w-full gap-4">
       {/* Main column — fluid, centered content, composer anchored bottom */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
 
