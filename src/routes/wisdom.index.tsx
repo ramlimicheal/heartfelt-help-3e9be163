@@ -263,20 +263,33 @@ function WisdomChat() {
         <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground px-1 mt-1">Past sessions</div>
         <div className="flex flex-col gap-1">
           {(sessionsQ.data ?? []).map((s) => (
-            <button
+            <div
               key={s.id}
-              onClick={() => openSession(s.id)}
               className={[
-                "truncate rounded-md px-2 py-1.5 text-left text-[12px] transition",
+                "group relative flex items-center gap-1 rounded-md transition",
                 sessionId === s.id
                   ? "bg-primary/15 text-foreground"
                   : "text-muted-foreground hover:bg-surface/60 hover:text-foreground",
               ].join(" ")}
-              title={s.title ?? new Date(s.updatedAt).toLocaleString()}
             >
-              <div className="truncate">{s.title ?? `${s.mode} · ${new Date(s.updatedAt).toLocaleDateString()}`}</div>
-              <div className="text-[9.5px] uppercase tracking-wider opacity-60">{s.mode}</div>
-            </button>
+              <button
+                onClick={() => openSession(s.id)}
+                className="min-w-0 flex-1 truncate px-2 py-1.5 text-left text-[12px]"
+                title={s.title ?? new Date(s.updatedAt).toLocaleString()}
+              >
+                <div className="truncate">{s.title ?? `${s.mode} · ${new Date(s.updatedAt).toLocaleDateString()}`}</div>
+                <div className="text-[9.5px] uppercase tracking-wider opacity-60">{s.mode}</div>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => handleDeleteSession(s.id, e)}
+                aria-label="Delete session"
+                title="Delete session"
+                className="mr-1 rounded p-1 text-muted-foreground opacity-0 transition hover:bg-destructive/15 hover:text-destructive focus:opacity-100 group-hover:opacity-100"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
           ))}
           {(sessionsQ.data ?? []).length === 0 && (
             <div className="px-2 text-[11px] text-muted-foreground">No past sessions yet.</div>
