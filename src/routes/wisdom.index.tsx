@@ -761,10 +761,7 @@ function WisdomChat() {
             <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Live</span>
             {mapMode === "streaming" ? (
               <span className="inline-flex items-center gap-1.5 text-[10px] text-tag-attend">
-                <span className="relative inline-flex size-1.5">
-                  <span className="absolute inset-0 animate-ping rounded-full bg-tag-attend/70" />
-                  <span className="relative inline-block size-1.5 rounded-full bg-tag-attend" />
-                </span>
+                <span className="inline-block size-1.5 rounded-full bg-tag-attend" />
                 Listening
               </span>
             ) : mapMode === "ready" ? (
