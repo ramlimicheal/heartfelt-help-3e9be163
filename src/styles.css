@@ -61,7 +61,15 @@
   --color-tier-founder: var(--tier-founder);
   --color-tier-analogy: var(--tier-analogy);
   --color-tier-hypothesis: var(--tier-hypothesis);
+
+  /* Semantic status tags — consistent across modes, evidence, safety, map. */
+  --color-tag-affirm: var(--tag-affirm);
+  --color-tag-attend: var(--tag-attend);
+  --color-tag-alert: var(--tag-alert);
+  --color-tag-insight: var(--tag-insight);
+  --color-tag-prayer: var(--tag-prayer);
 }
+
 
 /* Dark — default. Paper & Ink: near-black canvas, ivory ink, no accent hue. */
 :root {
@@ -110,7 +118,15 @@
   --tier-founder: oklch(0.52 0.005 90);
   --tier-analogy: oklch(0.44 0.005 90);
   --tier-hypothesis: oklch(0.36 0.005 90);
+
+  /* Semantic tags — muted, jewel-toned for dark canvas. */
+  --tag-affirm: oklch(0.74 0.14 155);   /* green — resolved, aligned */
+  --tag-attend: oklch(0.80 0.14 80);    /* amber — watch, tension */
+  --tag-alert: oklch(0.68 0.19 25);     /* red — stronghold, safety */
+  --tag-insight: oklch(0.72 0.11 235);  /* blue — pattern, discernment */
+  --tag-prayer: oklch(0.72 0.13 300);   /* violet — prayer, formation */
 }
+
 
 /* Light — flat parchment. No gradients, no glow. */
 .light {
@@ -156,7 +172,15 @@
   --tier-founder: oklch(0.62 0.005 90);
   --tier-analogy: oklch(0.68 0.005 90);
   --tier-hypothesis: oklch(0.74 0.005 90);
+
+  /* Semantic tags — deeper saturation for parchment surface. */
+  --tag-affirm: oklch(0.52 0.14 155);
+  --tag-attend: oklch(0.58 0.15 70);
+  --tag-alert: oklch(0.52 0.20 25);
+  --tag-insight: oklch(0.48 0.13 240);
+  --tag-prayer: oklch(0.48 0.15 300);
 }
+
 
 * { border-color: var(--border); }
 html, body {
