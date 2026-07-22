@@ -24,7 +24,7 @@ import { finalizePrayer } from "@/lib/wisdom/library.functions";
 import { useSession } from "@/hooks/useSession";
 import { useWisdomAccess } from "@/hooks/useWisdomAccess";
 
-import { ShineBorder } from "@/registry/magicui/shine-border";
+
 import { streamUnifiedTurn, type TurnEvent } from "@/lib/wisdom/unified.stream";
 import { mapWisdomError, type UserSafeError } from "@/lib/wisdom/errorCopy";
 import type { UnifiedResult } from "@/lib/wisdom/unified.schemas";
@@ -651,16 +651,16 @@ function WisdomChat() {
         {/* Split-focus separator: anchors the composer as a distinct bottom bar. */}
         <div className="my-3 h-px w-full bg-gradient-to-r from-transparent via-panel-border to-transparent" />
 
-        {/* Composer — slim pill, tag-colored mode chips, circular submit */}
-        <div className="w-full shrink-0">
+        {/* Composer — minimal, no border animation */}
+        <div className="w-full shrink-0 space-y-2">
           {!composerEnabled && <PrivateBetaBanner access={access} user={user} />}
+
           <div
-            className="relative overflow-hidden rounded-[28px] border border-panel-border bg-surface/70 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur"
+            className="relative overflow-hidden rounded-2xl border border-panel-border/70 bg-surface/40 transition focus-within:border-panel-border focus-within:bg-surface/60"
             aria-disabled={!composerEnabled}
           >
-            <ShineBorder borderWidth={1.5} duration={3.2} shineColor={["#E8DFC8", "#FFFFFF", "#B8A470"]} />
-            {/* Row 1: mode chip strip */}
-            <div className="flex items-center gap-1.5 overflow-x-auto px-4 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* Top row: mode chips */}
+            <div className="flex items-center gap-1.5 overflow-x-auto px-3 pt-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {MODES.map((m) => {
                 const active = mode === m.id;
                 const locked = turns.length > 0;
@@ -672,16 +672,14 @@ function WisdomChat() {
                     onClick={() => !disabled && setMode(m.id)}
                     disabled={disabled}
                     title={m.disabled ? m.disabledHint : locked ? "Mode locks after the first message. Start a new session to switch." : m.hint}
-                    style={active ? {
-                      borderColor: `color-mix(in oklab, ${tagColor} 50%, transparent)`,
-                      backgroundColor: `color-mix(in oklab, ${tagColor} 12%, transparent)`,
-                      color: tagColor,
-                    } : undefined}
                     className={[
-                      "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition",
-                      active ? "" : "border-panel-border/70 bg-transparent text-muted-foreground hover:text-foreground",
+                      "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] transition",
+                      active
+                        ? "bg-background/70 text-foreground"
+                        : "text-muted-foreground hover:text-foreground",
                       disabled ? "cursor-not-allowed opacity-40" : "",
                     ].join(" ")}
+                    style={active ? { color: tagColor } : undefined}
                   >
                     <span
                       className="inline-block size-1.5 rounded-full"
@@ -692,14 +690,10 @@ function WisdomChat() {
                   </button>
                 );
               })}
-
-              <span className="ml-auto hidden shrink-0 text-[10px] uppercase tracking-[0.14em] text-muted-foreground md:inline">
-                {turns.length > 0 ? `Locked · ${activeModeMeta?.label}` : activeModeMeta?.hint}
-              </span>
             </div>
 
-            {/* Row 2: textarea + circular submit */}
-            <div className="flex items-end gap-2 px-4 pb-3 pt-2">
+            {/* Text area */}
+            <div className="px-3 py-2">
               <textarea
                 ref={textareaRef}
                 value={input}
@@ -707,7 +701,16 @@ function WisdomChat() {
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
                 rows={1}
                 placeholder="Bring a real situation. Wisdom mirrors it through Scripture—never as a verdict."
-                className="max-h-40 min-h-[28px] flex-1 resize-none bg-transparent py-1 text-[14px] leading-relaxed placeholder:text-muted-foreground/60 focus:outline-none"
+                className="max-h-32 min-h-[24px] w-full resize-none bg-transparent py-1 text-[15px] leading-relaxed placeholder:text-muted-foreground/50 focus:outline-none"
+              />
+            </div>
+
+            {/* Bottom row: memory + submit */}
+            <div className="flex items-center justify-between gap-2 border-t border-panel-border/40 px-2 py-1.5">
+              <MemoryDirectiveControl
+                value={memoryDirective}
+                onChange={setMemoryDirective}
+                disabled={!composerEnabled || busy}
               />
               <button
                 type="button"
@@ -715,21 +718,14 @@ function WisdomChat() {
                 onClick={() => submit()}
                 disabled={busy || input.trim().length === 0 || !composerEnabled}
                 aria-label={busy ? "Composing" : "Send"}
-                className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30"
+                className="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30"
               >
-                {busy ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4" strokeWidth={2} />}
+                {busy ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowUp className="size-3.5" strokeWidth={2} />}
               </button>
             </div>
-
-            <div className="border-t border-panel-border/50 px-2">
-              <MemoryDirectiveControl
-                value={memoryDirective}
-                onChange={setMemoryDirective}
-                disabled={!composerEnabled || busy}
-              />
-            </div>
           </div>
-          <p className="mt-1.5 px-2 text-center text-[10px] leading-tight text-muted-foreground">
+
+          <p className="px-1 text-center text-[10px] leading-tight text-muted-foreground/70">
             Scripture citations are checked against curated passages · nothing is remembered without your permission.
           </p>
         </div>
@@ -1083,58 +1079,46 @@ function MemoryDirectiveControl({
   onChange: (v: MemoryDirective) => void;
   disabled?: boolean;
 }) {
-  const active = MEMORY_CHOICES.find((c) => c.id === value) ?? MEMORY_CHOICES[0];
   return (
     <div
       data-testid="memory-directive-control"
-      className="mt-2 flex flex-col gap-1.5 border-t border-panel-border/60 pt-2"
+      className="flex items-center gap-1.5"
     >
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
-          Memory
-        </span>
-        <div
-          role="radiogroup"
-          aria-label="Memory directive for this message"
-          className="flex items-center gap-0.5 rounded-full border border-panel-border bg-background/60 p-0.5"
-        >
-          {MEMORY_CHOICES.map((c) => {
-            const isActive = c.id === value;
-            return (
-              <button
-                key={c.id}
-                type="button"
-                role="radio"
-                aria-checked={isActive}
-                aria-label={c.label}
-                data-testid={`memory-directive-${c.id}`}
-                data-active={isActive ? "true" : "false"}
-                onClick={() => onChange(c.id)}
-                disabled={disabled}
-                title={c.helper}
-                className={[
-                  "rounded-full px-2.5 py-1 text-[11px] transition",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                  disabled ? "cursor-not-allowed opacity-40" : "",
-                ].join(" ")}
-              >
-                {c.label}
-              </button>
-            );
-          })}
-        </div>
-        <span
-          data-testid="memory-directive-status"
-          className="ml-auto text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
-        >
-          This message: {active.short}
-        </span>
+      <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
+        Memory
+      </span>
+      <div
+        role="radiogroup"
+        aria-label="Memory directive for this message"
+        className="flex items-center gap-0.5 rounded-full border border-panel-border/60 bg-background/50 p-0.5"
+      >
+        {MEMORY_CHOICES.map((c) => {
+          const isActive = c.id === value;
+          return (
+            <button
+              key={c.id}
+              type="button"
+              role="radio"
+              aria-checked={isActive}
+              aria-label={c.label}
+              data-testid={`memory-directive-${c.id}`}
+              data-active={isActive ? "true" : "false"}
+              onClick={() => onChange(c.id)}
+              disabled={disabled}
+              title={c.helper}
+              className={[
+                "rounded-full px-2 py-0.5 text-[10px] transition",
+                isActive
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+                disabled ? "cursor-not-allowed opacity-40" : "",
+              ].join(" ")}
+            >
+              {c.label}
+            </button>
+          );
+        })}
       </div>
-      <p className="px-1 text-[10.5px] leading-snug text-muted-foreground">
-        {active.helper}
-      </p>
     </div>
   );
 }
