@@ -278,9 +278,17 @@ function WisdomChat() {
     if (!sid) { inflightRef.current = false; return; }
 
     const messageId = newId();
-    const userTurn: UserTurn = { kind: "user", id: messageId, text };
+    const nowIso = new Date().toISOString();
+    const userTurn: UserTurn = { kind: "user", id: messageId, text, createdAt: nowIso, memoryDirective };
     const wisdomId = newId();
-    const wisdomTurn: WisdomTurn = { kind: "wisdom", id: wisdomId, phase: "processing" };
+    const wisdomTurn: WisdomTurn = {
+      kind: "wisdom",
+      id: wisdomId,
+      phase: "processing",
+      createdAt: nowIso,
+      memoryDirective,
+      mode: effectiveMode,
+    };
     setTurns((t) => [...t, userTurn, wisdomTurn]);
     if (!retryOf) setInput("");
     setBusy(true);
