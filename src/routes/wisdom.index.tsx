@@ -606,10 +606,10 @@ function WisdomChat() {
           </div>
         </div>
 
-        {/* Scroll region — empty state centers vertically, filled state scrolls */}
+        {/* Scroll region — empty state floats above, composer anchors the bottom */}
         <div ref={scrollerRef} className="flex flex-1 flex-col overflow-y-auto pr-1">
           {isEmpty ? (
-            <div className="flex flex-1 items-start justify-start">
+            <div className="flex flex-1 items-center justify-center">
               <EmptyState onPick={(p, m) => { setInput(p); setMode(m); textareaRef.current?.focus(); }} />
             </div>
           ) : (
@@ -989,7 +989,7 @@ function WisdomBubble({
 
 function EmptyState({ onPick }: { onPick: (prompt: string, mode: Mode) => void }) {
   return (
-    <div className="flex w-full flex-col items-start pt-10 text-left sm:pt-14 md:pt-20">
+    <div className="flex w-full flex-col items-start text-left">
       <span className="grid size-11 place-items-center rounded-2xl bg-primary/15 text-primary shadow-[0_0_40px_-8px_var(--primary-glow)]">
         <Sparkles className="size-4" strokeWidth={1.75} />
       </span>
