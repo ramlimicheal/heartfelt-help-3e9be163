@@ -1,62 +1,72 @@
-# Dashboard Wiring — Real Data, No Seed Leakage
+# P2 — Make Wisdom Fully Alive
 
-## Goal
-Replace all seed/mock reads in production Wisdom routes with a single authenticated server function backed by RLS-scoped queries. Every tile gets loading / empty / populated / error states. Enforce the "user confirms, not Wisdom" copy contract.
+Goal: remove every mock/seed read from user-facing routes, unify the split-brain session viewer, and wire real Supabase data (via server functions with `requireSupabaseAuth`) into every nav destination. Result: nothing a user clicks shows canned data.
 
-## 1. Server contract — `getDashboardSlice`
-New file `src/lib/wisdom/dashboard.functions.ts`:
+## Scope
 
-- `createServerFn({ method: "GET" }).middleware([requireSupabaseAuth])`
-- Runs ~7 parallel `context.supabase` queries scoped to `userId` (RLS re-enforces):
-  - `sessions` — most recent by `updated_at`, plus 5 recent
-  - `patterns` — counts by `lifecycle` (proposed / accepted / improving / recurring), most-recently-updated row (id, name, lifecycle, confidence, updated_at)
-  - `persona_facts` — counts by `status` (`accepted`, `proposed`); **no text, no sensitive rows**
-  - `prayers` — latest finalized (id, title, created_at) + `count(prayer_lines)`
-  - `formation_events` — last 5 (type, at, note — no fruit scores)
-  - `check_ins` — last 1 (state only)
-  - `pipeline_runs` — any `status='running'` for the latest session → drives "Live" flag
-- Returns a Zod-validated `DashboardSlice` DTO with `emptyFlags` and a `suggestedNext: "start_wisdom" | "review_pattern" | "confirm_memory" | "open_prayer"`.
+### 1. Fix the split-brain session viewer
+- Delete `src/routes/wisdom.$sessionId.tsx` (mock).
+- Rename `src/routes/wisdom.live.$sessionId.tsx` → `src/routes/wisdom.$sessionId.tsx` and update its `createFileRoute` string.
+- Update `AppShell` Recent list, dashboard tiles, and `wisdom.index.tsx` rail to link to the unified route.
+- After a turn completes in `/wisdom`, navigate to `/wisdom/$sessionId` so refresh preserves the conversation.
 
-Contract lives in `src/lib/wisdom/dashboard.schemas.ts` (client-safe).
+### 2. Delete dead code
+- `src/routes/wisdom.map.tsx` (unlinked, points to nonexistent routes).
+- `src/lib/wisdom/mock/seed.ts` and `curseBreakerSeed.ts` (after all consumers are rewired).
+- Any remaining `HYPOTHESES / PRAYERS / PERSONA_FACTS / ARCHETYPE_INDEX / PASSAGE_INDEX / seededTimeline` imports.
 
-## 2. Dashboard route rewrite
-`src/routes/dashboard.tsx`:
-- Remove all imports from `@/lib/wisdom/mock/seed`.
-- `useQuery(['dashboard-slice'], useServerFn(getDashboardSlice))`.
-- One skeleton grid while loading; per-tile error boundary with retry (`refetch`).
-- Tiles rewritten against DTO:
-  - **Session** — real title + updated_at; "Live" chip only when `runningPipeline === true`. Empty copy: *No conversation yet — Bring a real situation when you're ready.*
-  - **Pattern activity** — real counts + most-recent row; confidence bar only if `confidence != null`. Line: *This remains a candidate until you confirm or refine it.*
-  - **Persona Graph** — `"{n} things you've confirmed · {m} proposed memories awaiting review"`; link to `/you`. No fact text.
-  - **Prayer scaffold** — latest prayer title + movement count. Empty: *No prayer has been formed yet. A prayer will appear after Wisdom understands the situation and verifies its biblical roots.*
-  - **Recent** — real sessions only; empty state points to `/wisdom`.
-  - **Fruit** — enum state pill from last formation_event / check_in; no scores, no streaks.
+### 3. Wire real data — new server functions
+All authenticated, all RLS-scoped, all Zod-validated DTOs. New file `src/lib/wisdom/library.functions.ts`:
 
-## 3. Wisdom chat route cleanup
-`src/routes/wisdom.index.tsx`:
-- Delete the right-rail cards that read from `HYPOTHESES / ARCHETYPE_INDEX / PRAYERS`. Replace with a live rail that reads the same slice (lightweight) and shows real "Emerging pattern" only when one exists; otherwise a quiet placeholder.
-- Copy fix: `"mirrors it through Scripture—never as a verdict"` (search all routes).
-- Remove any wording that says Wisdom "confirms" a pattern.
+- `listPatterns()` — user's patterns from `patterns` + counts by lifecycle.
+- `getPattern(id)` — single pattern + `pattern_evidence` + linked passages.
+- `listPrayers()` — user's finalized `prayers` + line counts.
+- `getPrayer(id)` — prayer + `prayer_lines` + `prayer_line_sources` joined to `source_passages`.
+- `listJourney()` — recent `formation_events` and `check_ins` merged by `at`.
+- `getPersonaFacts()` + `confirmPersonaFact(id)` / `rejectPersonaFact(id)` for `/you`.
 
-## 4. Navigation trim
-`src/components/wisdom/AppShell.tsx`:
-- Keep: Wisdom, Curse Breaker, Dashboard, Patterns, Prayer, Journey, You.
-- Remove Constellation (`/wisdom/map`) and Mirrors from the sidebar (files stay, just unlinked).
+### 4. Rewrite routes against real data
+- `patterns.index.tsx`, `patterns.$patternId.tsx` — `useSuspenseQuery` on new fns; empty states from `.lovable/plan.md` copy.
+- `prayers.index.tsx`, `prayers.$prayerId.tsx` — same pattern.
+- `journey.tsx` — real timeline; empty state.
+- `you.tsx` — real persona facts; accept/reject persist via server fn.
+- `wisdom.curse-breaker.tsx` — consume `runCurseBreakerPipeline` result (from dashboard nav state / query key) instead of `cbResponse` seed.
 
-## 5. Copy sweep
-Grep for `never as advice`, `Wisdom confirms`, `Wisdom will confirm` → replace with approved wording. Central strings in `src/lib/wisdom/copy/v1.ts` where possible.
+### 5. Wire `/settings/privacy`
+New server fns in `src/lib/wisdom/privacy.functions.ts`:
+- `exportMyData()` — returns JSON of user-owned rows across sessions/messages/patterns/prayers/persona_facts.
+- `deleteMyAccount()` — cascades via existing FKs; server-only; requires confirmation string.
+- `setMemoryPaused(bool)` — writes to `profiles`.
 
-## 6. Responsive + a11y
-- Verify grid at 375 / 768 / 1280 / 1600 via Playwright screenshots.
-- Re-run axe in dark + light.
+Wire the three buttons in `settings.privacy.tsx` with real onClick handlers, confirmation dialogs, and toast feedback.
 
-## 7. RLS check
-Confirm existing policies on `sessions`, `patterns`, `persona_facts`, `prayers`, `prayer_lines`, `formation_events`, `check_ins`, `pipeline_runs` scope to `auth.uid()`. No migration expected; if a gap is found I'll surface a migration for approval before shipping.
+### 6. Cleanup
+- Fix all 31 TypeScript errors (will resolve naturally as mock imports are removed).
+- Delete unused `AppShell` icons after removing Constellation/Mirrors leftovers.
+- Sanity pass: `bunx tsgo --noEmit` clean, existing 112 tests still green.
 
-## 8. Evidence returned
-Changed files list, removed mock imports, DTO shape, table/RLS map, Playwright screenshots (empty + populated, mobile + desktop, dark + light), axe results, confirmation no seed reaches production.
+## Technical Details
+
+- All new server fns follow the canonical pattern: `createServerFn({ method }).middleware([requireSupabaseAuth]).inputValidator(zod).handler(...)`.
+- All reads use `context.supabase` (RLS as user). No `supabaseAdmin` for reads.
+- `deleteMyAccount` is the only one that loads `supabaseAdmin` inside the handler (auth admin API).
+- Zod DTOs live in `src/lib/wisdom/library.schemas.ts` (client-safe).
+- Route loaders use `context.queryClient.ensureQueryData(queryOptions)` + `useSuspenseQuery` pattern from `tanstack-query-integration`.
+- Every route with a loader defines `errorComponent` + `notFoundComponent`.
+
+## Order of execution
+
+1. Session viewer unification + dead-code deletion (biggest UX win, unblocks refresh).
+2. `library.functions.ts` + rewrite `/patterns`, `/prayers`, `/journey`, `/you`.
+3. Curse Breaker real wiring.
+4. `/settings/privacy` server fns + buttons.
+5. Typecheck + test sweep.
 
 ## Out of scope
-- No schema changes unless RLS gap discovered.
-- Constellation/Mirrors routes untouched (just unlinked).
-- Curse Breaker page untouched this pass.
+- No schema changes.
+- No new UI design — keep current visual language.
+- No SEO/OG image work (Dashboard/Wisdom stay auth-gated, not shareable).
+- Constellation/Mirrors remain deleted (not restored).
+
+## Deliverable
+Every nav destination reads live user data. Zero imports from `mock/`. Typecheck clean. All 112 tests still pass. Screenshot evidence of one populated + one empty state per rewritten route.
