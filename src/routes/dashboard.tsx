@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   ArrowUp,
@@ -99,10 +99,22 @@ function WisdomHome() {
     }
   };
 
-  const now = new Date();
-  const hour = now.getHours();
-  const timeStr = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase();
-  const greeting = hour < 5 ? "Peace to you tonight" : hour < 12 ? "Peace to you this morning" : hour < 18 ? "Peace to you this afternoon" : "Peace to you this evening";
+  const [clock, setClock] = useState<{ timeStr: string; greeting: string } | null>(null);
+  useEffect(() => {
+    const compute = () => {
+      const n = new Date();
+      const h = n.getHours();
+      setClock({
+        timeStr: n.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase(),
+        greeting: h < 5 ? "Peace to you tonight" : h < 12 ? "Peace to you this morning" : h < 18 ? "Peace to you this afternoon" : "Peace to you this evening",
+      });
+    };
+    compute();
+    const t = setInterval(compute, 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const timeStr = clock?.timeStr ?? "";
+  const greeting = clock?.greeting ?? "Peace to you";
   const displayName = (user?.email?.split("@")[0] ?? "friend").replace(/[._-]/g, " ");
 
   return (
