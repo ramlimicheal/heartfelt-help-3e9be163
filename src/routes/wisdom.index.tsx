@@ -510,7 +510,7 @@ function WisdomChat() {
 
 
   return (
-    <div className="relative flex h-[calc(100dvh-7rem)] w-full gap-4">
+    <div className="relative flex h-[calc(100dvh-5rem)] w-full gap-4">
       {/* Main column — fluid, centered content, composer anchored bottom */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
 
@@ -648,12 +648,12 @@ function WisdomChat() {
           )}
         </div>
 
-        {/* Composer — anchored at the bottom, ChatGPT-style */}
-        <div className="mx-auto w-full max-w-2xl shrink-0 pb-2 pt-1">
+        {/* Composer — anchored at the very bottom of the frame */}
+        <div className="w-full shrink-0 pt-2">
           {!composerEnabled && <PrivateBetaBanner access={access} user={user} />}
 
           <div
-            className="relative overflow-hidden rounded-xl border border-panel-border/70 bg-surface/50 transition focus-within:border-panel-border focus-within:bg-surface/70"
+            className="relative overflow-hidden rounded-2xl border border-panel-border/70 bg-surface/40 transition focus-within:border-panel-border focus-within:bg-surface/60"
             aria-disabled={!composerEnabled}
           >
             {/* Top row: mode chips */}
