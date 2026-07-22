@@ -37,6 +37,14 @@ export type SessionMessage = {
   memoryDirective: string;
 };
 
+export type TurnArtifactIds = {
+  interpretation_id?: string;
+  pattern_id?: string;
+  prayer_id?: string;
+  prayer_line_ids?: string[];
+  practice_id?: string;
+};
+
 export type SessionTurn = {
   id: string;
   triggeringUserMessageId: string | null;
@@ -45,7 +53,7 @@ export type SessionTurn = {
   createdAt: string;
   mode: string;
   memoryDirective: string;
-  artifactIds: Record<string, unknown> | null;
+  artifactIds: TurnArtifactIds | null;
 };
 
 export type SessionHistory = {
