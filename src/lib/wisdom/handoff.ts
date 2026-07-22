@@ -130,7 +130,12 @@ export function consumeHandoff(nonce: string | undefined | null): HandoffPayload
   // Replay protection: once a nonce is used, it can never re-open the payload.
   if (readConsumed(storage).includes(nonce)) return null;
 
-  const raw = storage.getItem(KEY_PAYLOAD);
+  let raw: string | null;
+  try {
+    raw = storage.getItem(KEY_PAYLOAD);
+  } catch {
+    return null;
+  }
   if (!raw) return null;
 
   let parsed: StoredHandoff | null = null;
