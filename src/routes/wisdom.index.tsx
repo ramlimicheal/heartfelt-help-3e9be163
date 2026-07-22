@@ -648,12 +648,12 @@ function WisdomChat() {
           )}
         </div>
 
-        {/* Composer — floating bottom island, minimal, no border animation */}
-        <div className="w-full shrink-0 px-2 pb-3 pt-2">
+        {/* Composer — anchored at the bottom, ChatGPT-style */}
+        <div className="mx-auto w-full max-w-2xl shrink-0 pb-2 pt-1">
           {!composerEnabled && <PrivateBetaBanner access={access} user={user} />}
 
           <div
-            className="relative overflow-hidden rounded-2xl border border-panel-border/80 bg-surface/60 shadow-[0_6px_24px_-8px_color-mix(in_oklab,_var(--foreground)_8%,_transparent)] backdrop-blur-sm transition focus-within:border-panel-border focus-within:bg-surface/80"
+            className="relative overflow-hidden rounded-xl border border-panel-border/70 bg-surface/50 transition focus-within:border-panel-border focus-within:bg-surface/70"
             aria-disabled={!composerEnabled}
           >
             {/* Top row: mode chips */}
