@@ -1,75 +1,87 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { HYPOTHESES } from "@/lib/wisdom/mock/seed";
-import { ConfidenceBar } from "@/components/wisdom/primitives";
-import type { PatternStatus } from "@/lib/wisdom/schemas";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { listPatterns } from "@/lib/wisdom/library.functions";
+
+const patternsQuery = queryOptions({
+  queryKey: ["library", "patterns"],
+  queryFn: () => listPatterns(),
+});
 
 export const Route = createFileRoute("/patterns/")({
   head: () => ({ meta: [{ title: "Patterns — Wisdom" }] }),
+  loader: ({ context }) => {
+    context.queryClient.ensureQueryData(patternsQuery);
+  },
+  errorComponent: () => (
+    <p className="text-sm text-destructive">Patterns couldn't load. Try again in a moment.</p>
+  ),
   component: PatternsList,
 });
 
-const STATUS_ORDER: PatternStatus[] = [
-  "proposed",
-  "exploring",
-  "accepted",
-  "improving",
-  "recurring",
-  "resolved",
-  "rejected",
-  "archived",
-];
+const STATUS_ORDER = ["proposed", "exploring", "accepted", "improving", "recurring", "resolved", "rejected", "archived"];
 
 function PatternsList() {
-  const list = Object.values(HYPOTHESES);
-  const groups = STATUS_ORDER.map((status) => ({
-    status,
-    items: list.filter((h) => h.status === status),
-  })).filter((g) => g.items.length > 0);
+  const { data: list } = useSuspenseQuery(patternsQuery);
+
+  if (list.length === 0) {
+    return (
+      <div className="space-y-6">
+        <Header />
+        <div className="rounded-2xl border border-panel-border bg-panel/60 px-6 py-10 text-center">
+          <p className="text-lg">No patterns yet.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Bring a real situation to Wisdom. When a pattern emerges it will appear here as a candidate — never as a verdict.
+          </p>
+          <Link to="/wisdom" className="mt-4 inline-block rounded-full bg-primary px-4 py-1.5 text-sm text-primary-foreground">
+            Open Wisdom
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const groups = STATUS_ORDER
+    .map((status) => ({ status, items: list.filter((p) => p.status === status) }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <div className="space-y-8">
-      <header className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary">Patterns</p>
-        <h1 className="text-3xl leading-tight">The loops beneath your story.</h1>
-        <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground">
-          Every pattern is a hypothesis you can accept, edit, rename, reject, or leave
-          unsure. Rejected patterns never silently return.
-        </p>
-      </header>
-
+      <Header />
       {groups.map((g) => (
         <section key={g.status} className="space-y-3">
           <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            {g.status}
+            {g.status} ({g.items.length})
           </h2>
-          {g.items.map((h) => (
+          {g.items.map((p) => (
             <Link
-              key={h.id}
+              key={p.id}
               to="/patterns/$patternId"
-              params={{ patternId: h.id }}
+              params={{ patternId: p.id }}
               className="block rounded-xl border border-panel-border bg-panel px-5 py-4 transition hover:bg-surface"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-lg leading-snug">{h.name}</p>
-                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{h.description}</p>
-                </div>
-                <ConfidenceBar value={h.confidence} />
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {h.domains.map((d) => (
-                  <span
-                    key={d}
-                    className="rounded-full border border-surface-border bg-background px-2 py-0.5 text-[10px] text-muted-foreground"
-                  >
-                    {d}
-                  </span>
-                ))}
-              </div>
+              <p className="text-lg leading-snug">{p.title}</p>
+              {p.description && (
+                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{p.description}</p>
+              )}
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Updated {new Date(p.updatedAt).toLocaleDateString()}
+              </p>
             </Link>
           ))}
         </section>
       ))}
     </div>
+  );
+}
+
+function Header() {
+  return (
+    <header className="space-y-2">
+      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary">Patterns</p>
+      <h1 className="text-3xl leading-tight">The loops beneath your story.</h1>
+      <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+        Every pattern is a candidate you can accept, refine, or reject. Rejected patterns never silently return.
+      </p>
+    </header>
   );
 }
