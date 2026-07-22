@@ -469,14 +469,24 @@ function WisdomChat() {
   }) | undefined;
   const emergingPattern = latestResult?.proposed_pattern?.title
     ?? latestResult?.pattern?.title
+    ?? d?.patterns.mostRecent?.title
     ?? null;
   const emergingPatternDesc = latestResult?.proposed_pattern?.description
     ?? latestResult?.pattern?.description
-    ?? null;
+    ?? (d?.patterns.mostRecent
+      ? `${d.patterns.mostRecent.lifecycle} · updated ${new Date(d.patterns.mostRecent.updatedAt).toLocaleDateString()}`
+      : null);
   const latestPrayerText = latestResult?.prayer?.body
     ?? latestResult?.prayer?.text
     ?? null;
-  const latestPrayerTitle = latestResult?.prayer?.title ?? null;
+  const latestPrayerTitle = latestResult?.prayer?.title
+    ?? d?.latestPrayer?.title
+    ?? null;
+  const latestPrayerMeta = !latestPrayerText && d?.latestPrayer
+    ? `${d.latestPrayer.movementCount} movement${d.latestPrayer.movementCount === 1 ? "" : "s"}`
+    : null;
+  const latestPrayerLinkId = !latestPrayerText ? d?.latestPrayer?.id ?? null : null;
+
 
   return (
     <div className="relative flex h-[calc(100vh-3rem)] w-full gap-4">
