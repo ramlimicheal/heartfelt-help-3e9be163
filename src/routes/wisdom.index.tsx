@@ -662,66 +662,78 @@ function WisdomChat() {
           </div>
         )}
 
-        {/* Composer */}
+        {/* Composer — slim pill, tag-colored mode chips, circular submit */}
         <div className="mt-3 w-full">
           {!composerEnabled && <PrivateBetaBanner access={access} user={user} />}
           <div
-            className="relative overflow-hidden rounded-2xl border border-panel-border bg-surface/70 p-3 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur"
+            className="relative overflow-hidden rounded-[28px] border border-panel-border bg-surface/70 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur"
             aria-disabled={!composerEnabled}
           >
             <ShineBorder borderWidth={1.5} duration={3.2} shineColor={["#E8DFC8", "#FFFFFF", "#B8A470"]} />
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
-              rows={2}
-              placeholder="Bring a real situation. Wisdom mirrors it through Scripture—never as a verdict."
-              className="w-full resize-none bg-transparent px-2 py-1 text-[14px] leading-relaxed placeholder:text-muted-foreground/60 focus:outline-none"
-            />
-            <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-panel-border/60 pt-2">
-              <div className="flex items-center gap-0.5 rounded-full border border-panel-border bg-background/60 p-0.5">
-                {MODES.map((m) => {
-                  const active = mode === m.id;
-                  const locked = turns.length > 0;
-                  const disabled = m.disabled || (locked && !active);
-                  return (
-                    <button
-                      key={m.id}
-                      onClick={() => !disabled && setMode(m.id)}
-                      disabled={disabled}
-                      title={m.disabled ? m.disabledHint : locked ? "Mode locks after the first message. Start a new session to switch." : m.hint}
-                      className={[
-                        "rounded-full px-2.5 py-1 text-[11px] transition",
-                        active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-                        disabled ? "cursor-not-allowed opacity-40" : "",
-                      ].join(" ")}
-                    >
-                      {m.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <span className="hidden text-[10px] uppercase tracking-[0.14em] text-muted-foreground md:inline">
-                {turns.length > 0
-                  ? `Locked · ${activeModeMeta?.label}`
-                  : activeModeMeta?.hint}
+            {/* Row 1: mode chip strip */}
+            <div className="flex items-center gap-1.5 overflow-x-auto px-4 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {MODES.map((m) => {
+                const active = mode === m.id;
+                const locked = turns.length > 0;
+                const disabled = m.disabled || (locked && !active);
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => !disabled && setMode(m.id)}
+                    disabled={disabled}
+                    title={m.disabled ? m.disabledHint : locked ? "Mode locks after the first message. Start a new session to switch." : m.hint}
+                    className={[
+                      "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition",
+                      active
+                        ? `border-tag-${m.tag}/50 bg-tag-${m.tag}/12 text-tag-${m.tag}`
+                        : "border-panel-border/70 bg-transparent text-muted-foreground hover:text-foreground",
+                      disabled ? "cursor-not-allowed opacity-40" : "",
+                    ].join(" ")}
+                  >
+                    <span
+                      className="inline-block size-1.5 rounded-full"
+                      style={{ background: `var(--color-tag-${m.tag})` }}
+                      aria-hidden
+                    />
+                    {m.label}
+                  </button>
+                );
+              })}
+              <span className="ml-auto hidden shrink-0 text-[10px] uppercase tracking-[0.14em] text-muted-foreground md:inline">
+                {turns.length > 0 ? `Locked · ${activeModeMeta?.label}` : activeModeMeta?.hint}
               </span>
+            </div>
+
+            {/* Row 2: textarea + circular submit */}
+            <div className="flex items-end gap-2 px-4 pb-3 pt-2">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
+                rows={1}
+                placeholder="Bring a real situation. Wisdom mirrors it through Scripture—never as a verdict."
+                className="max-h-40 min-h-[28px] flex-1 resize-none bg-transparent py-1 text-[14px] leading-relaxed placeholder:text-muted-foreground/60 focus:outline-none"
+              />
               <button
                 type="button"
                 data-testid="wisdom-submit"
                 onClick={() => submit()}
                 disabled={busy || input.trim().length === 0 || !composerEnabled}
-                className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label={busy ? "Composing" : "Send"}
+                className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30"
               >
-                {busy ? <><Loader2 className="size-3 animate-spin" /> Composing…</> : <>Begin <ArrowUp className="size-3" /></>}
+                {busy ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4" strokeWidth={2} />}
               </button>
             </div>
-            <MemoryDirectiveControl
-              value={memoryDirective}
-              onChange={setMemoryDirective}
-              disabled={!composerEnabled || busy}
-            />
+
+            <div className="border-t border-panel-border/50 px-2">
+              <MemoryDirectiveControl
+                value={memoryDirective}
+                onChange={setMemoryDirective}
+                disabled={!composerEnabled || busy}
+              />
+            </div>
           </div>
           <p className="mt-2 px-2 text-center text-[10px] text-muted-foreground">
             Scripture citations are checked against curated passages · nothing is remembered without your permission.
@@ -729,53 +741,26 @@ function WisdomChat() {
         </div>
       </div>
 
-      {/* Right rail — persistent Wisdom Map on wide desktops. */}
-      <aside
-        className="relative z-10 hidden shrink-0 xl:flex xl:w-[340px] 2xl:w-[380px]"
-        aria-label="Wisdom Map rail"
-      >
-        <div className="sticky top-0 flex h-[calc(100vh-3rem)] w-full flex-col rounded-2xl border border-panel-border/60 bg-surface/30 p-3.5 backdrop-blur">
-          <WisdomMap
-            result={latestWisdom?.result}
-            mode={mapMode}
-            responseRoot={scrollerRef.current}
-            streamingStage={mapMode === "streaming" ? "Wisdom is listening" : undefined}
-          />
-        </div>
-      </aside>
-
-      {/* Mobile / laptop map trigger — floating, unobtrusive. */}
-      {!isEmpty && (
-        <button
-          type="button"
-          onClick={() => setMapOpen(true)}
-          aria-label="Open Wisdom Map"
-          className="fixed bottom-24 right-4 z-40 inline-flex items-center gap-1.5 rounded-full border border-panel-border bg-surface/95 px-3.5 py-2 text-[11px] font-medium text-foreground shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6)] backdrop-blur transition hover:bg-background xl:hidden"
-        >
-          <MapIcon className="size-3.5 text-primary" strokeWidth={1.75} />
-          Wisdom Map
-        </button>
-      )}
-
-      {/* Mobile / laptop drawer */}
+      {/* Wisdom Map — slide-in drawer from the right (all viewports) */}
       {mapOpen && (
-        <div className="fixed inset-0 z-50 xl:hidden" role="dialog" aria-modal="true" aria-label="Wisdom Map">
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Wisdom Map">
           <button
             type="button"
             aria-label="Close Wisdom Map"
             onClick={() => setMapOpen(false)}
-            className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+            className="absolute inset-0 bg-background/60 backdrop-blur-sm animate-fade-in"
           />
-          <div className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col rounded-t-3xl border-t border-panel-border bg-surface p-4 shadow-[0_-20px_60px_-20px_rgba(0,0,0,0.6)] sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[380px] sm:max-h-none sm:rounded-none sm:border-l sm:border-t-0">
+          <div className="absolute inset-y-0 right-0 flex w-full max-w-[420px] flex-col border-l border-panel-border bg-panel/95 p-4 shadow-[0_-20px_60px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl animate-slide-in-right">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+              <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                <MapIcon className="size-3.5 text-tag-insight" strokeWidth={1.75} />
                 Wisdom Map
               </span>
               <button
                 type="button"
                 onClick={() => setMapOpen(false)}
                 aria-label="Close"
-                className="grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-background hover:text-foreground"
+                className="grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-surface hover:text-foreground"
               >
                 <X className="size-4" strokeWidth={1.75} />
               </button>
@@ -796,6 +781,7 @@ function WisdomChat() {
     </div>
   );
 }
+
 
 
 function applyEvent(
