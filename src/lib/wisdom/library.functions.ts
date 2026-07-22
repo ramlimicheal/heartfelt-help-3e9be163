@@ -441,7 +441,7 @@ export const getLatestCurseBreakerTurn = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data } = await context.supabase
       .from("wisdom_turns")
-      .select("id,session_id,status,result,created_at,mode,taxonomy_version")
+      .select("id,session_id,status,result,created_at,mode,taxonomy_version,memory_directive,artifact_ids")
       .eq("user_id", context.userId)
       .eq("mode", "curse_breaker")
       .eq("status", "completed")
@@ -449,12 +449,15 @@ export const getLatestCurseBreakerTurn = createServerFn({ method: "GET" })
       .limit(1)
       .maybeSingle();
     if (!data) return null;
+    const artifacts = (data.artifact_ids ?? null) as { prayer_id?: string } | null;
     return {
       id: data.id as string,
       sessionId: data.session_id as string,
       resultJson: JSON.stringify(data.result ?? null),
       taxonomyVersion: ((data.taxonomy_version as number | null) ?? 1),
       createdAt: data.created_at as string,
+      memoryDirective: ((data.memory_directive as string | null) ?? "normal"),
+      prayerId: (artifacts?.prayer_id ?? null) as string | null,
     };
   });
 

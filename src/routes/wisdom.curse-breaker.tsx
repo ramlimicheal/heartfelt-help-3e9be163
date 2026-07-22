@@ -1,17 +1,23 @@
 /**
  * Curse Breaker landing — renders the most recent completed curse_breaker
- * turn from the unified pipeline.
+ * turn from the unified pipeline through the canonical response renderer.
  *
- * - v2 (taxonomy_version = 2): full layered renderer with pastoral actions.
+ * - v2 (taxonomy_version = 2): UnifiedResultView → WisdomResponse, which
+ *   embeds CurseBreakerV2View in place with its layered contract and
+ *   pastoral actions preserved.
  * - v1 (legacy): honest compatibility renderer, no verdict framing.
  * - Empty: onboarding CTA back to the dashboard.
  */
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Card, MovementBadge, DerivationLegend } from "@/components/wisdom/primitives";
-import { getLatestCurseBreakerTurn } from "@/lib/wisdom/library.functions";
+import { getLatestCurseBreakerTurn, finalizePrayer } from "@/lib/wisdom/library.functions";
 import { readCurseBreakerResult } from "@/lib/wisdom/curseBreakerSafety";
-import { CurseBreakerV2View } from "@/components/wisdom/CurseBreakerV2View";
+import { UnifiedResultView } from "@/components/wisdom/UnifiedResultView";
+import { writePendingInput } from "@/lib/wisdom/handoff";
+import { mapWisdomError } from "@/lib/wisdom/errorCopy";
 
 const cbQuery = queryOptions({
   queryKey: ["library", "curse-breaker-latest"],
@@ -35,10 +41,37 @@ export const Route = createFileRoute("/wisdom/curse-breaker")({
   component: CurseBreakerPage,
 });
 
+type FinalizeState = { status: "idle" | "pending" | "done" | "error"; message?: string };
+
 function CurseBreakerPage() {
   const { data: turn } = useSuspenseQuery(cbQuery);
   const parsed: unknown = turn?.resultJson ? JSON.parse(turn.resultJson) : null;
   const reading = parsed ? readCurseBreakerResult(parsed, turn?.taxonomyVersion) : null;
+  const navigate = useNavigate();
+
+  const [finalizeStates, setFinalizeStates] = useState<Record<string, FinalizeState>>({});
+  const finalize = useServerFn(finalizePrayer);
+  const handleFinalizePrayer = async (prayerId: string) => {
+    const current = finalizeStates[prayerId];
+    if (current?.status === "pending" || current?.status === "done") return;
+    setFinalizeStates((m) => ({ ...m, [prayerId]: { status: "pending" } }));
+    try {
+      const res = await finalize({ data: { prayerId } });
+      setFinalizeStates((m) => ({
+        ...m,
+        [prayerId]: {
+          status: "done",
+          message: res.alreadyFinalized ? "Already in your prayer library." : "Added to your prayer library.",
+        },
+      }));
+    } catch (err) {
+      const safe = mapWisdomError((err as Error)?.message ?? "unknown");
+      setFinalizeStates((m) => ({
+        ...m,
+        [prayerId]: { status: "error", message: safe.body ?? safe.title },
+      }));
+    }
+  };
 
   if (!turn || !reading) {
     return (
@@ -63,33 +96,32 @@ function CurseBreakerPage() {
   }
 
   const r = reading.result;
+  const durableMemory = turn.memoryDirective !== "do_not_remember";
+  const prayerId = durableMemory && turn.memoryDirective === "normal" ? (turn.prayerId ?? undefined) : undefined;
+
+  const handleContinue = (prompt: string) => {
+    // Non-autosubmit continuation into /wisdom, preserving this session.
+    writePendingInput({ sessionId: turn.sessionId, prompt });
+    void navigate({ to: "/wisdom", search: { sessionId: turn.sessionId } });
+  };
+
   return (
     <div className="space-y-6">
       <Header />
-      <CurseBreakerV2View result={r} wisdomTurnId={turn.id} />
-
-      {r.prayer_draft && r.prayer_draft.lines.length > 0 && (
-        <Card eyebrow="Prayer" title={r.prayer_draft.title || "Draft prayer"}>
-          <DerivationLegend />
-          <div className="mt-4 space-y-3">
-            {r.prayer_draft.lines.map((l, i) => (
-              <div
-                key={i}
-                className="rounded-xl border border-panel-border/60 bg-gradient-to-br from-surface/60 via-surface/30 to-transparent p-4"
-              >
-                <MovementBadge movement={l.movement} />
-                <p className="mt-2 font-serif text-[17px] leading-relaxed">{l.text}</p>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {r.primary_practice && (
-        <Card eyebrow="One small faithful practice" title={r.primary_practice.title}>
-          <p>{r.primary_practice.rationale}</p>
-        </Card>
-      )}
+      <UnifiedResultView
+        result={r}
+        wisdomTurnId={turn.id}
+        prayerId={prayerId}
+        orientation={{
+          createdAt: turn.createdAt,
+          sessionTitle: null,
+          memoryDirective: turn.memoryDirective as "normal" | "session_only" | "do_not_remember",
+          streaming: false,
+        }}
+        onContinue={handleContinue}
+        onFinalizePrayer={handleFinalizePrayer}
+        finalizeState={prayerId ? finalizeStates[prayerId] : undefined}
+      />
     </div>
   );
 }

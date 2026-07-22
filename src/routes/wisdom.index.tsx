@@ -18,6 +18,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
 import { listRecentSessions, loadSessionHistory, deleteSession } from "@/lib/wisdom/session.functions";
+import { finalizePrayer } from "@/lib/wisdom/library.functions";
 import { useSession } from "@/hooks/useSession";
 import { useWisdomAccess } from "@/hooks/useWisdomAccess";
 import { FlickeringGrid } from "@/registry/magicui/flickering-grid";
@@ -27,7 +28,7 @@ import { mapWisdomError, type UserSafeError } from "@/lib/wisdom/errorCopy";
 import type { UnifiedResult } from "@/lib/wisdom/unified.schemas";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedResultView } from "@/components/wisdom/UnifiedResultView";
-import { consumeHandoff } from "@/lib/wisdom/handoff";
+import { consumeHandoff, consumePendingInput } from "@/lib/wisdom/handoff";
 
 type WisdomSearch = {
   // Opaque nonce that references a sessionStorage payload. Never contains user text.
@@ -81,8 +82,19 @@ const SUGGESTIONS = [
   { Icon: Hand, label: "Reflect on a repeated setback", prompt: "I said I wouldn't again, and I did. Here's what happened — ", mode: "pattern" as Mode },
 ];
 
-type UserTurn = { kind: "user"; id: string; text: string };
-type WisdomTurn = { kind: "wisdom"; id: string; turnId?: string; result?: UnifiedResult; error?: string; phase: "processing" | "done" | "error" };
+type UserTurn = { kind: "user"; id: string; text: string; createdAt: string; memoryDirective: MemoryDirective };
+type WisdomTurn = {
+  kind: "wisdom";
+  id: string;
+  turnId?: string;
+  result?: UnifiedResult;
+  error?: string;
+  phase: "processing" | "done" | "error";
+  createdAt: string;
+  memoryDirective: MemoryDirective;
+  prayerId?: string;
+  mode: Mode;
+};
 type Turn = UserTurn | WisdomTurn;
 
 function newId() {
@@ -156,13 +168,23 @@ function WisdomChat() {
       const rebuilt: Turn[] = [];
       for (const t of hist.turns) {
         const um = t.triggeringUserMessageId ? userMsgs.get(t.triggeringUserMessageId) : undefined;
-        if (um) rebuilt.push({ kind: "user", id: um.id, text: um.content });
+        if (um) rebuilt.push({
+          kind: "user",
+          id: um.id,
+          text: um.content,
+          createdAt: um.createdAt,
+          memoryDirective: (um.memoryDirective as MemoryDirective) ?? "normal",
+        });
         rebuilt.push({
           kind: "wisdom",
           id: t.id,
           turnId: t.id,
           result: t.result ?? undefined,
           phase: t.status === "completed" ? "done" : t.status === "failed" ? "error" : "processing",
+          createdAt: t.createdAt,
+          memoryDirective: (t.memoryDirective as MemoryDirective) ?? "normal",
+          prayerId: (t.artifactIds?.prayer_id as string | undefined) ?? undefined,
+          mode: (t.mode as Mode),
         });
       }
       setTurns(rebuilt);
@@ -257,9 +279,17 @@ function WisdomChat() {
     if (!sid) { inflightRef.current = false; return; }
 
     const messageId = newId();
-    const userTurn: UserTurn = { kind: "user", id: messageId, text };
+    const nowIso = new Date().toISOString();
+    const userTurn: UserTurn = { kind: "user", id: messageId, text, createdAt: nowIso, memoryDirective };
     const wisdomId = newId();
-    const wisdomTurn: WisdomTurn = { kind: "wisdom", id: wisdomId, phase: "processing" };
+    const wisdomTurn: WisdomTurn = {
+      kind: "wisdom",
+      id: wisdomId,
+      phase: "processing",
+      createdAt: nowIso,
+      memoryDirective,
+      mode: effectiveMode,
+    };
     setTurns((t) => [...t, userTurn, wisdomTurn]);
     if (!retryOf) setInput("");
     setBusy(true);
@@ -316,6 +346,14 @@ function WisdomChat() {
     if (search.sessionId) {
       bootRef.current = true;
       void openSession(search.sessionId);
+      // Non-autosubmit continuation: if the session viewer pushed a
+      // suggested prompt into sessionStorage, drop it into the composer
+      // and focus — never auto-submit.
+      const pending = consumePendingInput();
+      if (pending && pending.sessionId === search.sessionId) {
+        setInput(pending.prompt);
+        requestAnimationFrame(() => textareaRef.current?.focus());
+      }
       // Strip the query param so back/forward doesn't retrigger.
       void navigate({ to: "/wisdom", search: {}, replace: true });
       return;
@@ -366,6 +404,46 @@ function WisdomChat() {
 
   const activeModeMeta = MODES.find((m) => m.id === mode);
   const exchangeCount = turns.filter((t) => t.kind === "user").length;
+
+  // Rail entry for current session (for orientation session title).
+  const sessionTitleFromRail = sessionId
+    ? (sessionsQ.data?.find((s) => s.id === sessionId)?.title ?? null)
+    : null;
+
+  const handleContinue = (prompt: string) => {
+    setInput(prompt);
+    // Focus without submitting.
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  };
+
+  // Explicit prayer finalization state, keyed by prayerId so multiple
+  // drafts in one session stay independent.
+  const [finalizeStates, setFinalizeStates] = useState<Record<string, FinalizeState>>({});
+  const finalize = useServerFn(finalizePrayer);
+  const handleFinalizePrayer = async (prayerId: string) => {
+    if (!prayerId) return;
+    const current = finalizeStates[prayerId];
+    if (current?.status === "pending" || current?.status === "done") return; // duplicate-submit guard
+    setFinalizeStates((m) => ({ ...m, [prayerId]: { status: "pending" } }));
+    try {
+      const res = await finalize({ data: { prayerId } });
+      setFinalizeStates((m) => ({
+        ...m,
+        [prayerId]: {
+          status: "done",
+          message: res.alreadyFinalized ? "Already in your prayer library." : "Added to your prayer library.",
+        },
+      }));
+    } catch (err) {
+      const raw = (err as Error)?.message ?? "unknown";
+      const safe = mapWisdomError(raw);
+      setFinalizeStates((m) => ({
+        ...m,
+        [prayerId]: { status: "error", message: safe.body ?? safe.title },
+      }));
+    }
+  };
+
 
   return (
     <div className="relative flex h-[calc(100vh-3rem)] w-full gap-4 xl:gap-6">
@@ -482,7 +560,14 @@ function WisdomChat() {
             <div className="flex w-full flex-col gap-6 py-6">
               {turns.map((t) => t.kind === "user"
                 ? <UserBubble key={t.id} text={t.text} />
-                : <WisdomBubble key={t.id} turn={t} />
+                : <WisdomBubble
+                    key={t.id}
+                    turn={t}
+                    sessionTitle={sessionTitleFromRail}
+                    onContinue={handleContinue}
+                    onFinalizePrayer={handleFinalizePrayer}
+                    finalizeState={t.prayerId ? finalizeStates[t.prayerId] : undefined}
+                  />
               )}
               {routeError && (
                 <div
@@ -629,7 +714,10 @@ function applyEvent(
   setTurns((prev) => prev.map((t) => {
     if (t.kind !== "wisdom" || t.id !== wisdomId) return t;
     if (ev.type === "status") return { ...t, phase: "processing" };
-    if (ev.type === "result") return { ...t, phase: "done", turnId: ev.turnId, result: ev.result };
+    if (ev.type === "result") {
+      const aids = (ev.artifactIds ?? null) as { prayer_id?: string } | null;
+      return { ...t, phase: "done", turnId: ev.turnId, result: ev.result, prayerId: aids?.prayer_id };
+    }
     if (ev.type === "error") return { ...t, phase: "error", error: ev.message ?? ev.error };
     if (ev.type === "done") return t.phase === "processing" ? { ...t, phase: "error", error: t.error ?? "no_result" } : t;
     return t;
@@ -644,7 +732,21 @@ function UserBubble({ text }: { text: string }) {
   );
 }
 
-function WisdomBubble({ turn }: { turn: WisdomTurn }) {
+type FinalizeState = { status: "idle" | "pending" | "done" | "error"; message?: string };
+
+function WisdomBubble({
+  turn,
+  sessionTitle,
+  onContinue,
+  onFinalizePrayer,
+  finalizeState,
+}: {
+  turn: WisdomTurn;
+  sessionTitle?: string | null;
+  onContinue: (prompt: string) => void;
+  onFinalizePrayer: (prayerId: string) => void;
+  finalizeState?: FinalizeState;
+}) {
   const r = turn.result;
   return (
     <div className="flex max-w-[min(88ch,92%)] gap-3">
@@ -669,7 +771,22 @@ function WisdomBubble({ turn }: { turn: WisdomTurn }) {
             </div>
           );
         })()}
-        {r && <UnifiedResultView result={r} />}
+        {r && (
+          <UnifiedResultView
+            result={r}
+            wisdomTurnId={turn.turnId}
+            prayerId={turn.memoryDirective === "normal" ? turn.prayerId : undefined}
+            orientation={{
+              createdAt: turn.createdAt,
+              sessionTitle,
+              memoryDirective: turn.memoryDirective,
+              streaming: turn.phase === "processing",
+            }}
+            onContinue={onContinue}
+            onFinalizePrayer={onFinalizePrayer}
+            finalizeState={finalizeState}
+          />
+        )}
       </div>
     </div>
   );

@@ -180,10 +180,67 @@ export function consumeHandoff(nonce: string | undefined | null): HandoffPayload
   };
 }
 
+/**
+ * Non-autosubmit continuation channel.
+ *
+ * The response-experience "continue" chips must fill the composer
+ * without submitting. From the session viewer this means navigating
+ * back to /wisdom and pre-populating the textarea. We keep this
+ * strictly separate from the autostart handoff:
+ *   - No nonce, no URL parameter — the payload never appears in the URL.
+ *   - The composer explicitly READS it (setInput + focus). Nothing runs
+ *     automatically.
+ *   - Single-consume, capped age, best-effort against storage failure.
+ */
+const KEY_PENDING = "wisdom.pending-input.v1";
+const PENDING_MAX_AGE_MS = 5 * 60 * 1000;
+export type PendingInput = { sessionId?: string; prompt: string; createdAt: number };
+
+export function writePendingInput(payload: { sessionId?: string; prompt: string }): void {
+  const storage = safeStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(
+      KEY_PENDING,
+      JSON.stringify({
+        sessionId: payload.sessionId,
+        prompt: payload.prompt,
+        createdAt: Date.now(),
+      } satisfies PendingInput),
+    );
+  } catch {
+    /* best-effort */
+  }
+}
+
+export function consumePendingInput(): PendingInput | null {
+  const storage = safeStorage();
+  if (!storage) return null;
+  let raw: string | null = null;
+  try { raw = storage.getItem(KEY_PENDING); } catch { return null; }
+  if (!raw) return null;
+  try { storage.removeItem(KEY_PENDING); } catch { /* ignore */ }
+  try {
+    const obj = JSON.parse(raw) as unknown;
+    if (
+      obj &&
+      typeof obj === "object" &&
+      typeof (obj as PendingInput).prompt === "string" &&
+      typeof (obj as PendingInput).createdAt === "number"
+    ) {
+      const p = obj as PendingInput;
+      if (Date.now() - p.createdAt > PENDING_MAX_AGE_MS) return null;
+      return p;
+    }
+  } catch { /* fall through */ }
+  return null;
+}
+
 /** Test-only: reset both keys. Not exported by name-mangling; safe to call in JSDOM. */
 export function __resetHandoffForTests(): void {
   const storage = safeStorage();
   if (!storage) return;
   try { storage.removeItem(KEY_PAYLOAD); } catch { /* ignore */ }
   try { storage.removeItem(KEY_CONSUMED); } catch { /* ignore */ }
+  try { storage.removeItem(KEY_PENDING); } catch { /* ignore */ }
 }
