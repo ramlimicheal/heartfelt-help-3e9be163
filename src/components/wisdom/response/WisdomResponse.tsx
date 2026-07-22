@@ -423,7 +423,7 @@ function OrientationBlock({
           </div>
           <h2
             id="wr-orientation-heading"
-            className="mt-2 font-serif text-[22px] font-medium leading-tight text-foreground md:text-[26px]"
+            className="mt-2 text-[22px] font-medium leading-tight text-foreground md:text-[26px]"
           >
             {orientation?.sessionTitle
               ? orientation.sessionTitle
@@ -822,7 +822,7 @@ function PrayerBlock({
             className="rounded-xl border border-panel-border/60 bg-gradient-to-br from-surface/60 via-surface/30 to-transparent p-3"
           >
             <MovementBadge movement={l.movement} />
-            <p className="mt-2 font-serif text-[16px] italic leading-relaxed">{l.text}</p>
+            <p className="mt-2 text-[16px] italic leading-relaxed">{l.text}</p>
             {l.citations.length > 0 && (
               <p className="mt-2 text-[10.5px] text-muted-foreground">
                 {l.citations.length} citation{l.citations.length === 1 ? "" : "s"} ·

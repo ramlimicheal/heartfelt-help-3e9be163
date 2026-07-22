@@ -90,7 +90,7 @@ export function Card({
                 </p>
               )}
               {title && (
-                <h2 className="mt-1 font-serif text-xl font-medium leading-tight text-foreground md:text-[26px]">
+                <h2 className="mt-1 text-xl font-medium leading-tight text-foreground md:text-[26px]">
                   {title}
                 </h2>
               )}
@@ -136,7 +136,7 @@ export function ScriptureBlock({
         className="absolute right-3 top-3 size-8 text-primary/20"
         strokeWidth={1.5}
       />
-      <blockquote className="font-serif text-[17px] italic leading-relaxed text-foreground/95">
+      <blockquote className="text-[17px] italic leading-relaxed text-foreground/95">
         “{text}”
       </blockquote>
       <figcaption className="mt-2 flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">

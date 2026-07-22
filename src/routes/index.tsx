@@ -258,7 +258,7 @@ function Landing() {
         <div className="grid gap-12 md:grid-cols-2 md:items-center">
           <div className="order-2 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-transparent p-8 md:order-1">
             <div className="mb-3 text-[11px] tracking-[0.18em] text-white/40">GROUNDED PRAYER</div>
-            <p className="font-serif text-xl leading-relaxed text-white/85">
+            <p className="text-xl leading-relaxed text-white/85">
               "For the returning thing I could not name — meet me here. Give me one honest sentence to carry into tomorrow."
             </p>
             <div className="mt-6 flex items-center gap-2 text-xs text-white/50">
