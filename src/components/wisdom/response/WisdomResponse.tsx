@@ -163,7 +163,7 @@ export function WisdomResponse({
       data-mode={result.mode}
       className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px] xl:grid-cols-[minmax(0,1fr)_200px] xl:gap-6"
     >
-      <div className="min-w-0 md:columns-2 xl:columns-3 2xl:columns-4 md:gap-4 md:[&>*]:mb-4 md:[&>*]:break-inside-avoid space-y-4 md:space-y-0">
+      <div className="min-w-0 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 auto-rows-min items-start [&>*]:min-w-0">
         {/* Mobile/tablet section navigator sits at the top of the reading column */}
         <div className="lg:hidden">
           <SectionNav containerRef={scopeRef as React.RefObject<HTMLElement | null>} presentSections={present} />
