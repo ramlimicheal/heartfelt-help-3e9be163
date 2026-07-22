@@ -136,7 +136,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className={isWisdomChat ? "flex min-h-screen w-full" : "mx-auto flex min-h-screen w-full max-w-[1500px]"}>
+      <div className="flex min-h-screen w-full">
         {/* Desktop left rail */}
         <aside
           className={[
