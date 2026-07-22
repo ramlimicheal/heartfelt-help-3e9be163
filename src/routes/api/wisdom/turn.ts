@@ -232,10 +232,22 @@ async function handlePost(request: Request): Promise<Response> {
         if (outcome.kind === "unsupported") {
           send("error", { error: "unsupported_mode", message: outcome.error });
         } else {
+          // For freshly created turns, load the persisted artifact_ids so the
+          // UI can wire prayer finalization without a follow-up round trip.
+          let artifactIds: unknown = undefined;
+          if (outcome.kind === "created") {
+            const { data: row } = await db
+              .from("wisdom_turns")
+              .select("artifact_ids")
+              .eq("id", outcome.turnId)
+              .maybeSingle();
+            artifactIds = row?.artifact_ids ?? null;
+          }
           send("result", {
             turnId: outcome.turnId,
             kind: outcome.kind,
             result: outcome.result,
+            artifactIds,
           });
         }
       } catch (err) {
