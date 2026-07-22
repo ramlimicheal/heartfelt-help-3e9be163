@@ -394,6 +394,8 @@ function WisdomChat() {
   const d = slice.data;
 
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
+  const responseRootRef = useRef<HTMLDivElement | null>(null);
   const historyRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!historyOpen) return;
@@ -406,6 +408,16 @@ function WisdomChat() {
 
   const activeModeMeta = MODES.find((m) => m.id === mode);
   const exchangeCount = turns.filter((t) => t.kind === "user").length;
+
+  // Latest Wisdom turn drives the map (and only completed ones expose sections).
+  const latestWisdom = [...turns].reverse().find((t) => t.kind === "wisdom") as WisdomTurn | undefined;
+  const mapMode: WisdomMapMode = !latestWisdom
+    ? "empty"
+    : latestWisdom.phase === "processing"
+      ? "streaming"
+      : latestWisdom.result
+        ? "ready"
+        : "empty";
 
   // Rail entry for current session (for orientation session title).
   const sessionTitleFromRail = sessionId
