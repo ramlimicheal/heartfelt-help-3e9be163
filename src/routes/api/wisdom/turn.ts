@@ -236,7 +236,7 @@ async function handlePost(request: Request): Promise<Response> {
           // UI can wire prayer finalization without a follow-up round trip.
           let artifactIds: unknown = undefined;
           if (outcome.kind === "created") {
-            const { data: row } = await db
+            const { data: row } = await supabaseAdmin
               .from("wisdom_turns")
               .select("artifact_ids")
               .eq("id", outcome.turnId)
