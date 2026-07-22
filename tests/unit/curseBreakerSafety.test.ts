@@ -62,11 +62,11 @@ describe("enforceCurseBreakerSafety", () => {
       baseResult({
         contributing_influences: [
           { id: "a", kind: "generational_curse" as never, label: "x", explanation: "", supporting_evidence: [], counter_evidence: [], uncertainty: "", needs_qualified_help: false },
-          { id: "b", kind: "cognitive_habit", label: "y", explanation: "", supporting_evidence: [], counter_evidence: [], uncertainty: "", needs_qualified_help: false },
+          { id: "b", kind: "habit_or_choice", label: "y", explanation: "", supporting_evidence: [], counter_evidence: [], uncertainty: "", needs_qualified_help: false },
         ],
       }),
     );
-    expect(out.contributing_influences.map((i) => i.kind)).toEqual(["cognitive_habit"]);
+    expect(out.contributing_influences.map((i) => i.kind)).toEqual(["habit_or_choice"]);
   });
 
   it("forces needs_qualified_help and injects help notes for trauma/physiology", () => {
@@ -126,7 +126,7 @@ describe("enforceCurseBreakerSafety", () => {
           { id: "good", summary: "s", biblical_lens: { passage_id: "11111111-1111-1111-1111-111111111111", derivation: "inferred", explanation: "", direct_vs_inferred: "inferred", descriptive_vs_prescriptive: "descriptive" }, supporting_evidence: [], counter_evidence: [], uncertainty: "" },
         ],
         contributing_influences: [
-          { id: "c", kind: "cognitive_habit", label: "c", explanation: "", supporting_evidence: [], counter_evidence: [], uncertainty: "", needs_qualified_help: false },
+          { id: "c", kind: "habit_or_choice", label: "c", explanation: "", supporting_evidence: [], counter_evidence: [], uncertainty: "", needs_qualified_help: false },
         ],
       }),
     );

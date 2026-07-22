@@ -74,9 +74,13 @@ export function enforceCurseBreakerSafety(result: CurseBreakerResult): CurseBrea
     (i) => typeof i.biblical_lens?.passage_id === "string" && i.biblical_lens.passage_id.length > 0,
   );
 
-  // 5. If the model produced no honest layered content, mark insufficient.
-  const anyContent =
-    cleanedInfluences.length > 0 || interps.length > 0 || concerns.length > 0;
+  // 5. Pastoral interpretations are only valid when grounded by at least one
+  //    contributing influence OR a user-reported concern. A lens standing
+  //    alone is Wisdom asserting a verdict without evidence — drop it and
+  //    mark the turn insufficient.
+  const groundingExists = cleanedInfluences.length > 0 || concerns.length > 0;
+  const groundedInterps = groundingExists ? interps : [];
+  const anyContent = cleanedInfluences.length > 0 || concerns.length > 0 || groundedInterps.length > 0;
   const insufficient = anyContent ? Boolean(out.insufficient_evidence) : true;
 
   return {
@@ -84,7 +88,7 @@ export function enforceCurseBreakerSafety(result: CurseBreakerResult): CurseBrea
     contributing_influences: cleanedInfluences,
     qualified_help_notes: helpNotes,
     user_reported_spiritual_concern: concerns,
-    pastoral_interpretations: insufficient ? [] : interps,
+    pastoral_interpretations: insufficient ? [] : groundedInterps,
     insufficient_evidence: insufficient,
   };
 }
