@@ -135,8 +135,7 @@ export function SectionShell({
       {(!collapsible || open) && (
         <div
           id={bodyId}
-          className="text-[13.5px] leading-[1.65] text-foreground/90 motion-safe:animate-in motion-safe:fade-in-50 motion-safe:slide-in-from-bottom-1 motion-safe:duration-500"
-
+          className="text-[12.5px] leading-[1.6] text-foreground/85 motion-safe:animate-in motion-safe:fade-in-50 motion-safe:slide-in-from-bottom-1 motion-safe:duration-500"
         >
           {children}
         </div>
