@@ -814,11 +814,26 @@ function WisdomChat() {
                 “{latestPrayerText}”
               </div>
             </>
+          ) : latestPrayerTitle && latestPrayerLinkId ? (
+            <>
+              <div className="mt-1.5 text-[13px] font-medium text-foreground">{latestPrayerTitle}</div>
+              {latestPrayerMeta && (
+                <div className="mt-0.5 text-[11px] text-muted-foreground">{latestPrayerMeta}</div>
+              )}
+              <Link
+                to="/prayers/$prayerId"
+                params={{ prayerId: latestPrayerLinkId }}
+                className="mt-1.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
+              >
+                Open prayer →
+              </Link>
+            </>
           ) : (
             <div className="mt-1.5 text-[12px] text-muted-foreground/80">
               A prayer will form alongside the response.
             </div>
           )}
+
         </div>
       </aside>
 
