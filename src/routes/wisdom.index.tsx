@@ -658,7 +658,10 @@ function applyEvent(
   setTurns((prev) => prev.map((t) => {
     if (t.kind !== "wisdom" || t.id !== wisdomId) return t;
     if (ev.type === "status") return { ...t, phase: "processing" };
-    if (ev.type === "result") return { ...t, phase: "done", turnId: ev.turnId, result: ev.result };
+    if (ev.type === "result") {
+      const aids = (ev.artifactIds ?? null) as { prayer_id?: string } | null;
+      return { ...t, phase: "done", turnId: ev.turnId, result: ev.result, prayerId: aids?.prayer_id };
+    }
     if (ev.type === "error") return { ...t, phase: "error", error: ev.message ?? ev.error };
     if (ev.type === "done") return t.phase === "processing" ? { ...t, phase: "error", error: t.error ?? "no_result" } : t;
     return t;
@@ -673,7 +676,21 @@ function UserBubble({ text }: { text: string }) {
   );
 }
 
-function WisdomBubble({ turn }: { turn: WisdomTurn }) {
+type FinalizeState = { status: "idle" | "pending" | "done" | "error"; message?: string };
+
+function WisdomBubble({
+  turn,
+  sessionTitle,
+  onContinue,
+  onFinalizePrayer,
+  finalizeState,
+}: {
+  turn: WisdomTurn;
+  sessionTitle?: string | null;
+  onContinue: (prompt: string) => void;
+  onFinalizePrayer: (prayerId: string) => void;
+  finalizeState?: FinalizeState;
+}) {
   const r = turn.result;
   return (
     <div className="flex max-w-[min(88ch,92%)] gap-3">
@@ -698,7 +715,22 @@ function WisdomBubble({ turn }: { turn: WisdomTurn }) {
             </div>
           );
         })()}
-        {r && <UnifiedResultView result={r} />}
+        {r && (
+          <UnifiedResultView
+            result={r}
+            wisdomTurnId={turn.turnId}
+            prayerId={turn.memoryDirective === "normal" ? turn.prayerId : undefined}
+            orientation={{
+              createdAt: turn.createdAt,
+              sessionTitle,
+              memoryDirective: turn.memoryDirective,
+              streaming: turn.phase === "processing",
+            }}
+            onContinue={onContinue}
+            onFinalizePrayer={onFinalizePrayer}
+            finalizeState={finalizeState}
+          />
+        )}
       </div>
     </div>
   );
