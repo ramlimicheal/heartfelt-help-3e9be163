@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.delete_session_cascade(uuid, uuid) FROM PUBLIC, anon;
