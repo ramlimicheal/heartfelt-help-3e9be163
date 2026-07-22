@@ -676,29 +676,34 @@ function WisdomChat() {
                 const active = mode === m.id;
                 const locked = turns.length > 0;
                 const disabled = m.disabled || (locked && !active);
+                const tagColor = `var(--color-tag-${m.tag})`;
                 return (
                   <button
                     key={m.id}
                     onClick={() => !disabled && setMode(m.id)}
                     disabled={disabled}
                     title={m.disabled ? m.disabledHint : locked ? "Mode locks after the first message. Start a new session to switch." : m.hint}
+                    style={active ? {
+                      borderColor: `color-mix(in oklab, ${tagColor} 50%, transparent)`,
+                      backgroundColor: `color-mix(in oklab, ${tagColor} 12%, transparent)`,
+                      color: tagColor,
+                    } : undefined}
                     className={[
                       "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition",
-                      active
-                        ? `border-tag-${m.tag}/50 bg-tag-${m.tag}/12 text-tag-${m.tag}`
-                        : "border-panel-border/70 bg-transparent text-muted-foreground hover:text-foreground",
+                      active ? "" : "border-panel-border/70 bg-transparent text-muted-foreground hover:text-foreground",
                       disabled ? "cursor-not-allowed opacity-40" : "",
                     ].join(" ")}
                   >
                     <span
                       className="inline-block size-1.5 rounded-full"
-                      style={{ background: `var(--color-tag-${m.tag})` }}
+                      style={{ background: tagColor }}
                       aria-hidden
                     />
                     {m.label}
                   </button>
                 );
               })}
+
               <span className="ml-auto hidden shrink-0 text-[10px] uppercase tracking-[0.14em] text-muted-foreground md:inline">
                 {turns.length > 0 ? `Locked · ${activeModeMeta?.label}` : activeModeMeta?.hint}
               </span>
