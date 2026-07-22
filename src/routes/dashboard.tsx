@@ -104,24 +104,6 @@ function WisdomHome() {
   const displayName = (user?.email?.split("@")[0] ?? "friend").replace(/[._-]/g, " ");
 
 
-  const [clock, setClock] = useState<{ timeStr: string; greeting: string } | null>(null);
-  useEffect(() => {
-    const compute = () => {
-      const n = new Date();
-      const h = n.getHours();
-      setClock({
-        timeStr: n.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase(),
-        greeting: h < 5 ? "Peace to you tonight" : h < 12 ? "Peace to you this morning" : h < 18 ? "Peace to you this afternoon" : "Peace to you this evening",
-      });
-    };
-    compute();
-    const t = setInterval(compute, 30_000);
-    return () => clearInterval(t);
-  }, []);
-  const timeStr = clock?.timeStr ?? "";
-  const greeting = clock?.greeting ?? "Peace to you";
-  const displayName = (user?.email?.split("@")[0] ?? "friend").replace(/[._-]/g, " ");
-
   return (
     <div className="min-h-[calc(100vh-6rem)] pb-8">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-4">
