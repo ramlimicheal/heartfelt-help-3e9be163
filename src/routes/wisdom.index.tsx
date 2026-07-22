@@ -658,7 +658,7 @@ function WisdomChat() {
             className="relative overflow-hidden rounded-[28px] border border-panel-border bg-surface/70 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur"
             aria-disabled={!composerEnabled}
           >
-            <ShineBorder borderWidth={1} duration={0} shineColor={["#E8DFC8"]} />
+            <ShineBorder borderWidth={1.5} duration={3.2} shineColor={["#E8DFC8", "#FFFFFF", "#B8A470"]} />
             {/* Row 1: mode chip strip */}
             <div className="flex items-center gap-1.5 overflow-x-auto px-4 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {MODES.map((m) => {
