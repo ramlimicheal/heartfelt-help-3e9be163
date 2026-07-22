@@ -89,9 +89,42 @@ function newId() {
   return (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 }
 
+type MemoryDirective = "normal" | "session_only" | "do_not_remember";
+
+const MEMORY_CHOICES: {
+  id: MemoryDirective;
+  label: string;
+  short: string;
+  helper: string;
+}[] = [
+  {
+    id: "normal",
+    label: "Remember normally",
+    short: "Remembered",
+    helper:
+      "This message may contribute to durable Wisdom artifacts — patterns, prayers, practices, and persona memory (subject to your consent on the You page).",
+  },
+  {
+    id: "session_only",
+    label: "Session only",
+    short: "Session only",
+    helper:
+      "May be used within this session, but will not become cross-session persona memory or accepted long-term context.",
+  },
+  {
+    id: "do_not_remember",
+    label: "Do not remember",
+    short: "Not remembered",
+    helper:
+      "Used only to answer this turn. No durable signals, patterns, prayers, practices, persona facts, or formation events are created.",
+  },
+];
+
 function WisdomChat() {
   const [mode, setMode] = useState<Mode>("pattern");
   const [input, setInput] = useState("");
+  // Per-message memory directive. Default is explicit: "normal".
+  const [memoryDirective, setMemoryDirective] = useState<MemoryDirective>("normal");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
