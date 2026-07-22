@@ -116,6 +116,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
   }, [collapsed]);
   const isFullBleed =
     pathname === "/" || pathname === "/welcome" || pathname === "/onboarding" || pathname === "/auth";
+  const isWisdomChat = pathname === "/wisdom" || pathname === "/wisdom/";
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -135,7 +136,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1500px]">
+      <div className={isWisdomChat ? "flex min-h-screen w-full" : "mx-auto flex min-h-screen w-full max-w-[1500px]"}>
         {/* Desktop left rail */}
         <aside
           className={[
@@ -362,7 +363,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
           </header>
 
 
-          <div className="mx-auto w-full max-w-[1400px] px-4 py-6 md:px-8 md:py-8">
+          <div className={isWisdomChat ? "w-full px-4 py-4 md:px-6 md:py-6 2xl:px-8" : "mx-auto w-full max-w-[1400px] px-4 py-6 md:px-8 md:py-8"}>
             {children ?? <Outlet />}
           </div>
         </main>
