@@ -74,6 +74,10 @@ export const getPattern = createServerFn({ method: "POST" })
   });
 
 // ── Prayers ─────────────────────────────────────────────────────────
+//
+// Library rule: /prayers shows only prayers the user has explicitly finalized.
+// Draft prayers stay visible inside their originating session (via
+// loadSessionHistory), never as durable library entries.
 export const listPrayers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -81,7 +85,8 @@ export const listPrayers = createServerFn({ method: "GET" })
       .from("prayers")
       .select("id,title,mode,finalized_at,updated_at,prayer_lines(id)")
       .eq("user_id", context.userId)
-      .order("updated_at", { ascending: false })
+      .not("finalized_at", "is", null)
+      .order("finalized_at", { ascending: false })
       .limit(100);
     return (data ?? []).map((p) => ({
       id: p.id as string,
@@ -101,7 +106,7 @@ export const getPrayer = createServerFn({ method: "POST" })
     const { data: prayer } = await context.supabase
       .from("prayers")
       .select(`
-        id,title,mode,finalized_at,created_at,
+        id,title,mode,finalized_at,created_at,wisdom_turn_id,
         prayer_lines(
           id, ordering, movement, text,
           prayer_line_sources(id, passage_id, derivation, explanation, tier)
@@ -111,6 +116,22 @@ export const getPrayer = createServerFn({ method: "POST" })
       .eq("user_id", context.userId)
       .maybeSingle();
     if (!prayer) return null;
+
+    // Derive the originating memory directive from the wisdom_turn that
+    // produced this prayer. Session-only / do_not_remember prayers can
+    // never be finalized — surface this to the UI as `memoryDirective`
+    // so it can explain why the action is unavailable.
+    let memoryDirective: "normal" | "session_only" | "do_not_remember" = "normal";
+    if (prayer.wisdom_turn_id) {
+      const { data: turn } = await context.supabase
+        .from("wisdom_turns")
+        .select("memory_directive")
+        .eq("id", prayer.wisdom_turn_id as string)
+        .eq("user_id", context.userId)
+        .maybeSingle();
+      const md = (turn?.memory_directive as string | null) ?? "normal";
+      if (md === "session_only" || md === "do_not_remember") memoryDirective = md;
+    }
 
     const passageIds = new Set<string>();
     const lines = (prayer.prayer_lines ?? []) as Array<{
@@ -133,12 +154,27 @@ export const getPrayer = createServerFn({ method: "POST" })
     }
 
     lines.sort((a, b) => a.ordering - b.ordering);
+
+    const missingCitationLineOrders = lines
+      .filter((l) => !Array.isArray(l.prayer_line_sources) || l.prayer_line_sources.length === 0)
+      .map((l) => l.ordering);
+
+    const finalizedAt = (prayer.finalized_at as string | null) ?? null;
+    const canFinalize =
+      !finalizedAt &&
+      memoryDirective === "normal" &&
+      lines.length > 0 &&
+      missingCitationLineOrders.length === 0;
+
     return {
       id: prayer.id as string,
       title: (prayer.title as string) ?? "Draft prayer",
       mode: prayer.mode as string,
-      finalizedAt: (prayer.finalized_at as string | null) ?? null,
+      finalizedAt,
       createdAt: prayer.created_at as string,
+      memoryDirective,
+      canFinalize,
+      missingCitationLineOrders,
       lines: lines.map((l) => ({
         id: l.id,
         ordering: l.ordering,
@@ -156,6 +192,107 @@ export const getPrayer = createServerFn({ method: "POST" })
       })),
     };
   });
+
+// ── Explicit prayer finalization ─────────────────────────────────────
+//
+// A prayer draft enters the durable prayer library only through this
+// server function, called by the user's explicit action. Every check is
+// performed server-side. The database `prayers_finalize_guard` remains
+// the last line of defense.
+const finalizeInput = z.object({ prayerId: z.string().uuid() });
+export const finalizePrayer = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: z.infer<typeof finalizeInput>) => finalizeInput.parse(d))
+  .handler(async ({ data, context }) => {
+    // 1. Load the prayer and verify ownership. Never trust client-supplied
+    //    metadata about who owns it or its state.
+    const { data: prayer, error: loadErr } = await context.supabase
+      .from("prayers")
+      .select("id, user_id, finalized_at, wisdom_turn_id")
+      .eq("id", data.prayerId)
+      .maybeSingle();
+    if (loadErr) throw new Error("Prayer could not be loaded.");
+    if (!prayer || prayer.user_id !== context.userId) {
+      // Do not leak existence to other users.
+      throw new Error("Prayer not found.");
+    }
+
+    // 2. Idempotent short-circuit for an already-finalized prayer.
+    if (prayer.finalized_at) {
+      return {
+        ok: true,
+        finalizedAt: prayer.finalized_at as string,
+        alreadyFinalized: true,
+      };
+    }
+
+    // 3. Reject prayers drafted under a non-durable memory directive.
+    if (prayer.wisdom_turn_id) {
+      const { data: turn } = await context.supabase
+        .from("wisdom_turns")
+        .select("memory_directive, user_id")
+        .eq("id", prayer.wisdom_turn_id as string)
+        .maybeSingle();
+      if (turn && turn.user_id !== context.userId) {
+        throw new Error("Prayer not found.");
+      }
+      const md = (turn?.memory_directive as string | null) ?? "normal";
+      if (md === "session_only" || md === "do_not_remember") {
+        throw new Error(
+          "This prayer was drafted under a non-durable memory directive and cannot be added to your prayer library. Ask Wisdom for a new prayer with 'Remember normally' to keep it.",
+        );
+      }
+    }
+
+    // 4. Load lines + their citations under the user's RLS. Reject empty
+    //    prayers and any line without at least one citation.
+    const { data: lines } = await context.supabase
+      .from("prayer_lines")
+      .select("id, ordering, prayer_line_sources(id)")
+      .eq("prayer_id", data.prayerId)
+      .eq("user_id", context.userId)
+      .order("ordering", { ascending: true });
+    const lineRows = (lines ?? []) as Array<{
+      id: string;
+      ordering: number;
+      prayer_line_sources: Array<{ id: string }>;
+    }>;
+    if (lineRows.length === 0) {
+      throw new Error("This prayer has no lines yet, so it cannot be finalized.");
+    }
+    const missing = lineRows.filter(
+      (l) => !Array.isArray(l.prayer_line_sources) || l.prayer_line_sources.length === 0,
+    );
+    if (missing.length > 0) {
+      const count = missing.length;
+      throw new Error(
+        `${count} prayer ${count === 1 ? "line has" : "lines have"} no scripture citation yet. Every line needs at least one source before this prayer can be finalized.`,
+      );
+    }
+
+    // 5. Set finalized_at only after all validation passes. The
+    //    `is finalized_at null` clause + DB `prayers_finalize_guard`
+    //    together keep the write idempotent under concurrent submits.
+    const nowIso = new Date().toISOString();
+    const { data: updated, error: uErr } = await context.supabase
+      .from("prayers")
+      .update({ finalized_at: nowIso })
+      .eq("id", data.prayerId)
+      .eq("user_id", context.userId)
+      .is("finalized_at", null)
+      .select("finalized_at")
+      .maybeSingle();
+    if (uErr) {
+      // Surface a user-safe error. DB guard messages are theological/technical.
+      throw new Error("This prayer could not be finalized right now.");
+    }
+    return {
+      ok: true,
+      finalizedAt: (updated?.finalized_at as string | null) ?? nowIso,
+      alreadyFinalized: false,
+    };
+  });
+
 
 // ── Journey ─────────────────────────────────────────────────────────
 export const listJourney = createServerFn({ method: "GET" })
