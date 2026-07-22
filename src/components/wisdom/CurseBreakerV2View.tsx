@@ -27,7 +27,7 @@ import {
 import {
   setCurseBreakerInterpretationStatus,
   listCurseBreakerInterpretationStatuses,
-} from "@/lib/wisdom/curseBreaker.functions.actions";
+} from "@/lib/wisdom/curseBreakerActions.functions";
 
 type Status = "unresolved" | "accepted" | "revised" | "rejected";
 
