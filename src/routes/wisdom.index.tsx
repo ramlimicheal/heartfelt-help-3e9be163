@@ -512,7 +512,14 @@ function WisdomChat() {
             <div className="flex w-full flex-col gap-6 py-6">
               {turns.map((t) => t.kind === "user"
                 ? <UserBubble key={t.id} text={t.text} />
-                : <WisdomBubble key={t.id} turn={t} />
+                : <WisdomBubble
+                    key={t.id}
+                    turn={t}
+                    sessionTitle={sessionTitleFromRail}
+                    onContinue={handleContinue}
+                    onFinalizePrayer={handleFinalizePrayer}
+                    finalizeState={t.prayerId ? finalizeStates[t.prayerId] : undefined}
+                  />
               )}
               {routeError && (
                 <div
