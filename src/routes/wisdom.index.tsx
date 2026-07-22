@@ -397,6 +397,46 @@ function WisdomChat() {
   const activeModeMeta = MODES.find((m) => m.id === mode);
   const exchangeCount = turns.filter((t) => t.kind === "user").length;
 
+  // Rail entry for current session (for orientation session title).
+  const sessionTitleFromRail = sessionId
+    ? (sessionsQ.data?.find((s) => s.id === sessionId)?.title ?? null)
+    : null;
+
+  const handleContinue = (prompt: string) => {
+    setInput(prompt);
+    // Focus without submitting.
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  };
+
+  // Explicit prayer finalization state, keyed by prayerId so multiple
+  // drafts in one session stay independent.
+  const [finalizeStates, setFinalizeStates] = useState<Record<string, FinalizeState>>({});
+  const finalize = useServerFn(finalizePrayer);
+  const handleFinalizePrayer = async (prayerId: string) => {
+    if (!prayerId) return;
+    const current = finalizeStates[prayerId];
+    if (current?.status === "pending" || current?.status === "done") return; // duplicate-submit guard
+    setFinalizeStates((m) => ({ ...m, [prayerId]: { status: "pending" } }));
+    try {
+      const res = await finalize({ data: { prayerId } });
+      setFinalizeStates((m) => ({
+        ...m,
+        [prayerId]: {
+          status: "done",
+          message: res.alreadyFinalized ? "Already in your prayer library." : "Added to your prayer library.",
+        },
+      }));
+    } catch (err) {
+      const raw = (err as Error)?.message ?? "unknown";
+      const safe = mapWisdomError(raw);
+      setFinalizeStates((m) => ({
+        ...m,
+        [prayerId]: { status: "error", message: safe.body ?? safe.title },
+      }));
+    }
+  };
+
+
   return (
     <div className="relative flex h-[calc(100vh-3rem)] w-full gap-4 xl:gap-6">
       <div
