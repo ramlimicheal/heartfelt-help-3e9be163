@@ -268,15 +268,17 @@ function WisdomChat() {
     abortRef.current = controller;
 
     try {
+      // The composer sends the user-selected memory directive on every turn.
+      // The backend enforces DNR at the RPC layer (persist_unified_turn) and
+      // the DB layer (signals/persona_facts triggers). session_only is
+      // preserved through the RPC and blocked from cross-session acceptance
+      // by the persona server functions and updatePersonaFactStatus guard.
+      // We never silently upgrade session_only or do_not_remember to normal.
       for await (const ev of streamUnifiedTurn({
         sessionId: sid,
         triggeringUserMessageId: messageId,
         userText: text,
-        // DNR is enforced end-to-end by the backend (RLS, RPCs, and the
-        // persist_unified_turn contract). No user-facing toggle exists yet;
-        // this route always sends `"normal"`. A user-facing memory directive
-        // is scheduled for Phase 2. See docs/WISDOM_MODE_AND_SURFACE_AUDIT.md.
-        memoryDirective: "normal",
+        memoryDirective,
         clientRequestedMode: effectiveMode,
       }, controller.signal)) {
         applyEvent(setTurns, wisdomId, ev);
