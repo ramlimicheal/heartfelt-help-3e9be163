@@ -346,6 +346,14 @@ function WisdomChat() {
     if (search.sessionId) {
       bootRef.current = true;
       void openSession(search.sessionId);
+      // Non-autosubmit continuation: if the session viewer pushed a
+      // suggested prompt into sessionStorage, drop it into the composer
+      // and focus — never auto-submit.
+      const pending = consumePendingInput();
+      if (pending && pending.sessionId === search.sessionId) {
+        setInput(pending.prompt);
+        requestAnimationFrame(() => textareaRef.current?.focus());
+      }
       // Strip the query param so back/forward doesn't retrigger.
       void navigate({ to: "/wisdom", search: {}, replace: true });
       return;
