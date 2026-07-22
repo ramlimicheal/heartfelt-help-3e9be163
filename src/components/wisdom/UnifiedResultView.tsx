@@ -2,10 +2,37 @@
  * Canonical renderer for a validated UnifiedResult.
  * Used by the live composer (/wisdom) and the session viewer (/wisdom/$sessionId).
  * Presentation-only: no fetching, no side effects.
+ *
+ * Curse Breaker uses the v2 layered renderer (Phase 3B). Legacy v1 turns
+ * are handled by the compatibility renderer in wisdom.curse-breaker.tsx.
  */
 import type { UnifiedResult } from "@/lib/wisdom/unified.schemas";
+import { CurseBreakerV2View } from "./CurseBreakerV2View";
 
-export function UnifiedResultView({ result }: { result: UnifiedResult }) {
+export function UnifiedResultView({
+  result,
+  wisdomTurnId,
+}: {
+  result: UnifiedResult;
+  wisdomTurnId?: string;
+}) {
+  // Curse Breaker v2 owns its own rendering end-to-end (including the
+  // pastoral action controls). We do NOT lead with the user_facing_response
+  // paragraph here — the layered view begins with "What Wisdom noticed".
+  if (result.mode === "curse_breaker") {
+    return (
+      <div className="space-y-3">
+        <CurseBreakerV2View result={result} wisdomTurnId={wisdomTurnId} />
+        <PrayerDraft title={result.prayer_draft.title} lines={result.prayer_draft.lines} />
+        <div className="rounded-xl border border-panel-border/60 bg-surface/40 p-3">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Primary practice</div>
+          <div className="mt-1 text-[13px] font-medium">{result.primary_practice.title}</div>
+          <p className="mt-1 text-[12px] text-muted-foreground">{result.primary_practice.rationale}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <p className="text-foreground/90">{result.user_facing_response}</p>
@@ -21,26 +48,7 @@ export function UnifiedResultView({ result }: { result: UnifiedResult }) {
         />
       )}
 
-      {result.mode === "curse_breaker" && (
-        <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Stronghold discerned</div>
-          <div className="mt-1 text-[13px] font-medium">{result.stronghold_category}</div>
-          {result.renunciations.length > 0 && (
-            <ul className="mt-2 space-y-1 text-[12px] text-foreground/80">
-              {result.renunciations.map((r, i) => (
-                <li key={i} className="pl-3 border-l-2 border-primary/40 italic">{r}</li>
-              ))}
-            </ul>
-          )}
-          {result.distinguishing_question && (
-            <p className="mt-2 rounded-lg border border-primary/30 bg-background/40 px-3 py-2 text-[12px]">
-              <span className="font-medium">Distinguishing question:</span> {result.distinguishing_question}
-            </p>
-          )}
-        </div>
-      )}
-
-      {(result.mode === "pattern" || result.mode === "curse_breaker") && (
+      {result.mode === "pattern" && (
         <PrayerDraft title={result.prayer_draft.title} lines={result.prayer_draft.lines} />
       )}
       {result.mode === "deep_wisdom" && (

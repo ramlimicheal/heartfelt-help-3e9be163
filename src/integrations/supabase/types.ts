@@ -205,6 +205,57 @@ export type Database = {
           },
         ]
       }
+      curse_breaker_interpretations: {
+        Row: {
+          created_at: string
+          id: string
+          interpretation_client_id: string
+          revision: string | null
+          session_id: string
+          status: Database["public"]["Enums"]["curse_breaker_interpretation_status"]
+          updated_at: string
+          user_id: string
+          wisdom_turn_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interpretation_client_id: string
+          revision?: string | null
+          session_id: string
+          status?: Database["public"]["Enums"]["curse_breaker_interpretation_status"]
+          updated_at?: string
+          user_id: string
+          wisdom_turn_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interpretation_client_id?: string
+          revision?: string | null
+          session_id?: string
+          status?: Database["public"]["Enums"]["curse_breaker_interpretation_status"]
+          updated_at?: string
+          user_id?: string
+          wisdom_turn_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curse_breaker_interpretations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curse_breaker_interpretations_wisdom_turn_id_fkey"
+            columns: ["wisdom_turn_id"]
+            isOneToOne: false
+            referencedRelation: "wisdom_turns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       discernments: {
         Row: {
           created_at: string
@@ -1737,6 +1788,7 @@ export type Database = {
           result_schema_version: number
           session_id: string
           status: Database["public"]["Enums"]["wisdom_turn_status"]
+          taxonomy_version: number
           tokens_in: number | null
           tokens_out: number | null
           triggering_user_message_id: string
@@ -1767,6 +1819,7 @@ export type Database = {
           result_schema_version?: number
           session_id: string
           status?: Database["public"]["Enums"]["wisdom_turn_status"]
+          taxonomy_version?: number
           tokens_in?: number | null
           tokens_out?: number | null
           triggering_user_message_id: string
@@ -1797,6 +1850,7 @@ export type Database = {
           result_schema_version?: number
           session_id?: string
           status?: Database["public"]["Enums"]["wisdom_turn_status"]
+          taxonomy_version?: number
           tokens_in?: number | null
           tokens_out?: number | null
           triggering_user_message_id?: string
@@ -1892,6 +1946,11 @@ export type Database = {
         | "comparative_early_christian_literature"
       category_verdict: "accepted" | "rejected" | "unsure" | "deferred"
       check_in_result: "kept" | "partial" | "missed" | "deferred"
+      curse_breaker_interpretation_status:
+        | "unresolved"
+        | "accepted"
+        | "revised"
+        | "rejected"
       derivation_type: "direct" | "inferred" | "pattern_matched"
       discernment_kind:
         | "context_note"
@@ -2156,6 +2215,12 @@ export const Constants = {
       ],
       category_verdict: ["accepted", "rejected", "unsure", "deferred"],
       check_in_result: ["kept", "partial", "missed", "deferred"],
+      curse_breaker_interpretation_status: [
+        "unresolved",
+        "accepted",
+        "revised",
+        "rejected",
+      ],
       derivation_type: ["direct", "inferred", "pattern_matched"],
       discernment_kind: [
         "context_note",
