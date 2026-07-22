@@ -26,6 +26,16 @@ import { streamUnifiedTurn, type TurnEvent } from "@/lib/wisdom/unified.stream";
 import { mapWisdomError, type UserSafeError } from "@/lib/wisdom/errorCopy";
 import type { UnifiedResult } from "@/lib/wisdom/unified.schemas";
 import { supabase } from "@/integrations/supabase/client";
+import { UnifiedResultView } from "@/components/wisdom/UnifiedResultView";
+
+type WisdomSearch = {
+  prompt?: string;
+  mode?: "companion" | "pattern" | "deep_wisdom" | "curse_breaker";
+  autostart?: boolean;
+  sessionId?: string;
+};
+
+const ALL_MODES = ["companion", "pattern", "deep_wisdom", "curse_breaker"] as const;
 
 export const Route = createFileRoute("/wisdom/")({
   head: () => ({
