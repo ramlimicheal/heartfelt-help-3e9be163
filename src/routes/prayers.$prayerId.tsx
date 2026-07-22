@@ -12,6 +12,7 @@ const prayerQuery = (prayerId: string) =>
   });
 
 export const Route = createFileRoute("/prayers/$prayerId")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Prayer — Wisdom" },

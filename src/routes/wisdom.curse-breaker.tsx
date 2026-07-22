@@ -14,6 +14,7 @@ const cbQuery = queryOptions({
 });
 
 export const Route = createFileRoute("/wisdom/curse-breaker")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Curse Breaker — Wisdom" },

@@ -10,6 +10,7 @@ const factsQuery = queryOptions({
 });
 
 export const Route = createFileRoute("/you")({
+  ssr: false,
   head: () => ({ meta: [{ title: "You — memory & persona" }] }),
   loader: ({ context }) => {
     context.queryClient.ensureQueryData(factsQuery);

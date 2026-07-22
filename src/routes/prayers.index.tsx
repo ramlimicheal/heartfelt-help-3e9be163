@@ -8,6 +8,7 @@ const prayersQuery = queryOptions({
 });
 
 export const Route = createFileRoute("/prayers/")({
+  ssr: false,
   head: () => ({ meta: [{ title: "Prayers — Wisdom" }] }),
   loader: ({ context }) => {
     context.queryClient.ensureQueryData(prayersQuery);

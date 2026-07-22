@@ -8,6 +8,7 @@ const patternsQuery = queryOptions({
 });
 
 export const Route = createFileRoute("/patterns/")({
+  ssr: false,
   head: () => ({ meta: [{ title: "Patterns — Wisdom" }] }),
   loader: ({ context }) => {
     context.queryClient.ensureQueryData(patternsQuery);
