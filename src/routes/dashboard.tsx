@@ -145,18 +145,14 @@ function WisdomHome() {
                     );
                   })}
                 </div>
-                <button onClick={begin} disabled={text.trim().length === 0 || busy}
+                <button onClick={begin} disabled={text.trim().length === 0}
                   className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-[11px] font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">
-                  {busy ? (<><Loader2 className="size-3 animate-spin" /> Composing…</>)
-                    : ready && !user ? (<><LogIn className="size-3" /> Sign in</>)
+                  {ready && !user ? (<><LogIn className="size-3" /> Sign in</>)
                     : (<>Begin <ArrowUp className="size-3" /></>)}
                 </button>
               </div>
             </div>
 
-            {beginError && (
-              <p role="alert" className="mt-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[11px] text-destructive">{beginError}</p>
-            )}
 
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
               {SUGGESTIONS.slice(0, 4).map(({ Icon, label, prompt, mode: sm }) => (
