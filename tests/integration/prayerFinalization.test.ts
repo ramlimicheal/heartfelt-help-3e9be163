@@ -34,7 +34,7 @@ async function makeSession(user: TestContext["userA"], mode = "pattern") {
 async function makePrayer(user: TestContext["userA"], sessionId: string, title = "Test prayer") {
   const { data, error } = await user.client
     .from("prayers")
-    .insert({ user_id: user.id, session_id: sessionId, title, mode: "pattern" })
+    .insert({ user_id: user.id, session_id: sessionId, title, mode: "full" })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
