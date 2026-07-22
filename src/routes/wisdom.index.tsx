@@ -28,7 +28,7 @@ import { mapWisdomError, type UserSafeError } from "@/lib/wisdom/errorCopy";
 import type { UnifiedResult } from "@/lib/wisdom/unified.schemas";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedResultView } from "@/components/wisdom/UnifiedResultView";
-import { consumeHandoff } from "@/lib/wisdom/handoff";
+import { consumeHandoff, consumePendingInput } from "@/lib/wisdom/handoff";
 
 type WisdomSearch = {
   // Opaque nonce that references a sessionStorage payload. Never contains user text.
