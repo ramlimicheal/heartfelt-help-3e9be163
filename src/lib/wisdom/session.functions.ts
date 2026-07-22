@@ -83,7 +83,7 @@ export const loadSessionHistory = createServerFn({ method: "POST" })
         .order("created_at", { ascending: true }),
       supabase
         .from("wisdom_turns")
-        .select("id,triggering_user_message_id,status,result,created_at,mode")
+        .select("id,triggering_user_message_id,status,result,created_at,mode,memory_directive,artifact_ids")
         .eq("session_id", data.sessionId)
         .eq("user_id", userId)
         .order("created_at", { ascending: true }),
@@ -111,6 +111,8 @@ export const loadSessionHistory = createServerFn({ method: "POST" })
         result: (t.result as UnifiedResult | null) ?? null,
         createdAt: t.created_at as string,
         mode: t.mode as string,
+        memoryDirective: (t.memory_directive as string | null) ?? "normal",
+        artifactIds: (t.artifact_ids as TurnArtifactIds | null) ?? null,
       })),
     };
   });
