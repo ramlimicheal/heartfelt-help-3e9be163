@@ -70,12 +70,15 @@ export const Route = createFileRoute("/wisdom/")({
 
 type Mode = "companion" | "pattern" | "deep_wisdom" | "curse_breaker";
 
-const MODES: { id: Mode; label: string; hint: string; disabled?: boolean; disabledHint?: string }[] = [
-  { id: "companion", label: "Companion", hint: "Presence first, discernment second." },
-  { id: "pattern", label: "Pattern", hint: "Name what keeps repeating." },
-  { id: "deep_wisdom", label: "Deep Wisdom", hint: "Test a spiritual interpretation." },
-  { id: "curse_breaker", label: "Curse Breaker", hint: "Discern a possible stronghold." },
+type TagKind = "affirm" | "attend" | "alert" | "insight" | "prayer";
+
+const MODES: { id: Mode; label: string; hint: string; tag: TagKind; disabled?: boolean; disabledHint?: string }[] = [
+  { id: "companion",     label: "Companion",     hint: "Presence first, discernment second.", tag: "prayer" },
+  { id: "pattern",       label: "Pattern",       hint: "Name what keeps repeating.",           tag: "insight" },
+  { id: "deep_wisdom",   label: "Deep Wisdom",   hint: "Test a spiritual interpretation.",     tag: "attend" },
+  { id: "curse_breaker", label: "Curse Breaker", hint: "Discern a possible stronghold.",       tag: "alert" },
 ];
+
 
 const SUGGESTIONS = [
   { Icon: Compass, label: "Name a pattern I keep returning to", prompt: "Something keeps happening that I don't fully understand — ", mode: "pattern" as Mode },
