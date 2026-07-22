@@ -133,13 +133,10 @@ export const deleteSession = createServerFn({ method: "POST" })
     if (!sess.data || sess.data.user_id !== userId) {
       throw new Error("session not found");
     }
-    await supabaseAdmin.from("wisdom_turns").delete().eq("session_id", data.sessionId).eq("user_id", userId);
-    await supabaseAdmin.from("messages").delete().eq("session_id", data.sessionId).eq("user_id", userId);
-    const del = await supabaseAdmin
-      .from("sessions")
-      .delete()
-      .eq("id", data.sessionId)
-      .eq("user_id", userId);
+    const del = await supabaseAdmin.rpc("delete_session_cascade", {
+      p_session_id: data.sessionId,
+      p_expected_user: userId,
+    });
     if (del.error) throw new Error(del.error.message);
     return { ok: true };
   });
