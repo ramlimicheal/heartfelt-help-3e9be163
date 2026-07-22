@@ -72,7 +72,9 @@ function WisdomHome() {
   });
 
   // Canonical path: never call legacy pipeline runners directly.
-  // Hand off to /wisdom, which submits every mode through streamUnifiedTurn → /api/wisdom/turn.
+  // Private user text is transferred to /wisdom via an in-tab
+  // sessionStorage payload keyed by an opaque nonce; only the nonce
+  // and a non-sensitive mode identifier appear in the URL.
   const begin = () => {
     const prompt = text.trim();
     if (!prompt) return;
@@ -80,9 +82,10 @@ function WisdomHome() {
       navigate({ to: "/auth", search: { redirect: "/dashboard" } });
       return;
     }
+    const nonce = writeHandoff({ prompt, mode });
     navigate({
       to: "/wisdom",
-      search: { prompt, mode, autostart: "1" as unknown as boolean },
+      search: { handoff: nonce, mode },
     });
   };
 
