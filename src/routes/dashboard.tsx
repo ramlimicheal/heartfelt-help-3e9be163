@@ -70,7 +70,7 @@ function WisdomHome() {
     staleTime: 30_000,
   });
 
-  // Canonical path: never call runWisdomPipeline / runCurseBreakerPipeline directly.
+  // Canonical path: never call legacy pipeline runners directly.
   // Hand off to /wisdom, which submits every mode through streamUnifiedTurn → /api/wisdom/turn.
   const begin = () => {
     const prompt = text.trim();
