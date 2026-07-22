@@ -208,6 +208,22 @@ body {
   filter: drop-shadow(0 0 8px currentColor);
 }
 
+/* Minimal, unobtrusive scrollbars — hairline, muted, no track chrome */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--foreground) 18%, transparent) transparent;
+}
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--foreground) 15%, transparent);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklab, var(--foreground) 30%, transparent);
+}
+*::-webkit-scrollbar-corner { background: transparent; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
