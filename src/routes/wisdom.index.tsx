@@ -384,6 +384,48 @@ function WisdomChat() {
           )}
         </div>
 
+        {/* Insight strip — keeps the canvas fluid instead of reserving a fixed right rail */}
+        <div className="mt-3 grid w-full grid-cols-1 gap-2 lg:grid-cols-3">
+          <InsightCard label="Session" head={isEmpty ? "Live" : `${exchangeCount} exchange${exchangeCount === 1 ? "" : "s"}`}>
+            <p className="text-[11.5px] text-muted-foreground">
+              {isEmpty ? "Waiting for your first message." : `Mode · ${activeModeMeta?.label}`}
+            </p>
+          </InsightCard>
+
+          {d?.patterns.mostRecent ? (
+            <InsightCard label="Emerging pattern" head={d.patterns.mostRecent.title}>
+              <p className="text-[11.5px] text-muted-foreground">
+                {d.patterns.mostRecent.lifecycle} · updated {new Date(d.patterns.mostRecent.updatedAt).toLocaleDateString()}
+              </p>
+            </InsightCard>
+          ) : (
+            <InsightCard label="Emerging pattern" head="Nothing surfaced yet">
+              <p className="text-[11.5px] text-muted-foreground">
+                Patterns appear after you describe a real situation.
+              </p>
+            </InsightCard>
+          )}
+
+          {d?.latestPrayer ? (
+            <InsightCard label="Latest prayer" head={`${d.latestPrayer.movementCount} movements`}>
+              <p className="truncate text-[11.5px] text-muted-foreground">{d.latestPrayer.title}</p>
+              <Link
+                to="/prayers/$prayerId"
+                params={{ prayerId: d.latestPrayer.id }}
+                className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
+              >
+                Open prayer →
+              </Link>
+            </InsightCard>
+          ) : (
+            <InsightCard label="Prayer" head="Not formed yet">
+              <p className="text-[11.5px] text-muted-foreground">
+                Appears after Wisdom understands the situation.
+              </p>
+            </InsightCard>
+          )}
+        </div>
+
         {/* Composer */}
         <div className="mt-3 w-full">
           {!composerEnabled && <PrivateBetaBanner access={access} user={user} />}
@@ -446,52 +488,6 @@ function WisdomChat() {
         </div>
       </div>
 
-      {/* Right rail — single cohesive panel, fluid, sticky */}
-      <aside className="relative z-10 hidden w-80 shrink-0 flex-col xl:w-96 lg:flex">
-        <div className="sticky top-0 flex flex-col overflow-hidden rounded-2xl border border-panel-border bg-surface/50 backdrop-blur">
-          <RailRow label="Session" head={isEmpty ? "Live" : `${exchangeCount} exchange${exchangeCount === 1 ? "" : "s"}`}>
-            <p className="text-[11.5px] text-muted-foreground">
-              {isEmpty ? "Waiting for your first message." : `Mode · ${activeModeMeta?.label}`}
-            </p>
-          </RailRow>
-
-          {d?.patterns.mostRecent ? (
-            <RailRow label="Emerging pattern" head={d.patterns.mostRecent.title}>
-              <p className="text-[11.5px] text-muted-foreground">
-                {d.patterns.mostRecent.lifecycle} · updated {new Date(d.patterns.mostRecent.updatedAt).toLocaleDateString()}
-              </p>
-              <p className="mt-1 line-clamp-2 text-[11.5px] italic text-muted-foreground">
-                Candidate until you confirm or refine it.
-              </p>
-            </RailRow>
-          ) : (
-            <RailRow label="Emerging pattern" head="Nothing surfaced yet">
-              <p className="text-[11.5px] text-muted-foreground">
-                Patterns appear only after you describe a real situation.
-              </p>
-            </RailRow>
-          )}
-
-          {d?.latestPrayer ? (
-            <RailRow label="Latest prayer" head={`${d.latestPrayer.movementCount} movements`}>
-              <p className="line-clamp-2 text-[11.5px] text-muted-foreground">{d.latestPrayer.title}</p>
-              <Link
-                to="/prayers/$prayerId"
-                params={{ prayerId: d.latestPrayer.id }}
-                className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
-              >
-                Open prayer →
-              </Link>
-            </RailRow>
-          ) : (
-            <RailRow label="Prayer" head="Not formed yet" last>
-              <p className="text-[11.5px] text-muted-foreground">
-                Appears after Wisdom understands the situation and verifies its biblical roots.
-              </p>
-            </RailRow>
-          )}
-        </div>
-      </aside>
     </div>
   );
 }
@@ -642,19 +638,17 @@ function EmptyState({ onPick }: { onPick: (prompt: string, mode: Mode) => void }
   );
 }
 
-function RailRow({
+function InsightCard({
   label,
   head,
   children,
-  last,
 }: {
   label: string;
   head: string;
   children: React.ReactNode;
-  last?: boolean;
 }) {
   return (
-    <div className={["px-4 py-3.5", last ? "" : "border-b border-panel-border/60"].join(" ")}>
+    <div className="min-w-0 rounded-2xl border border-panel-border bg-surface/50 px-4 py-3.5 backdrop-blur">
       <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
       <div className="mt-1 truncate text-[13px] font-medium">{head}</div>
       <div className="mt-1.5">{children}</div>
