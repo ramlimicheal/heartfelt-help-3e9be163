@@ -116,7 +116,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
   }, [collapsed]);
   const isFullBleed =
     pathname === "/" || pathname === "/welcome" || pathname === "/onboarding" || pathname === "/auth";
-  const isWisdomChat = pathname === "/wisdom" || pathname === "/wisdom/";
+  const isWisdomChat = pathname === "/wisdom" || pathname.startsWith("/wisdom/");
 
   async function signOut() {
     await queryClient.cancelQueries();
