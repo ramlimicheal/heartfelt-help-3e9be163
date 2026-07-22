@@ -606,10 +606,10 @@ function WisdomChat() {
           </div>
         </div>
 
-        {/* Scroll region — empty state centers vertically, filled state scrolls */}
+        {/* Scroll region — empty state floats above, composer anchors the bottom */}
         <div ref={scrollerRef} className="flex flex-1 flex-col overflow-y-auto pr-1">
           {isEmpty ? (
-            <div className="flex flex-1 items-start justify-start">
+            <div className="flex flex-1 items-center justify-center">
               <EmptyState onPick={(p, m) => { setInput(p); setMode(m); textareaRef.current?.focus(); }} />
             </div>
           ) : (
