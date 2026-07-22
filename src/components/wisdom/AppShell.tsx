@@ -253,7 +253,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
           </nav>
 
 
-          {!collapsed && <RecentSessionsSection user={user} pathname={pathname} />}
+          
 
 
           <div className={["mt-auto space-y-0.5 pb-5", collapsed ? "px-2" : "px-3"].join(" ")}>
