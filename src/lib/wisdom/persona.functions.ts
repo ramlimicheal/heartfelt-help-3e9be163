@@ -24,7 +24,7 @@ async function loadOwnedFact(userId: string, factId: string) {
   const admin = await getAdmin();
   const { data, error } = await admin
     .from("persona_facts")
-    .select("id, user_id, sensitivity, status")
+    .select("id, user_id, sensitivity, status, memory_directive")
     .eq("id", factId)
     .maybeSingle();
   if (error) throw new Error(error.message);
