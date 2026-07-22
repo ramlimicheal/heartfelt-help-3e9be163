@@ -2,8 +2,7 @@
  * Canonical source-tier contract.
  *
  * Mirrors the S1–S8 tier ladder used by the approved biblical corpus
- * (see migration 0007 — public.source_tier) and rendered by the
- * <TierChip /> primitive.
+ * and rendered by the <TierChip /> primitive.
  *
  * Consumers:
  *  - src/components/wisdom/primitives.tsx (TierChip UI)
@@ -11,20 +10,34 @@
  * If you need the type in a new module, import it from here.
  */
 
-export type SourceTier = "S1" | "S2" | "S3" | "S4" | "S5" | "S6" | "S7" | "S8";
+export type SourceTier =
+  | "S1_canonical_direct"
+  | "S2_canonical_synthesis"
+  | "S3_linguistic_historical"
+  | "S4_recognized_interpretation"
+  | "S5_extra_canonical_ancient"
+  | "S6_founder_framework"
+  | "S7_modern_analogy"
+  | "S8_model_hypothesis";
 
 export const SOURCE_TIER_LABEL: Record<SourceTier, string> = {
-  S1: "Scripture (WEB)",
-  S2: "Scripture (translation)",
-  S3: "Original languages",
-  S4: "Reformed / evangelical creed",
-  S5: "Reformed / evangelical commentary",
-  S6: "Historic ecumenical creed",
-  S7: "Broader ecumenical commentary",
-  S8: "Contemporary pastoral",
+  S1_canonical_direct: "S1 · Canonical direct",
+  S2_canonical_synthesis: "S2 · Canonical synthesis",
+  S3_linguistic_historical: "S3 · Linguistic / historical",
+  S4_recognized_interpretation: "S4 · Recognized interpretation",
+  S5_extra_canonical_ancient: "S5 · Extra-canonical ancient",
+  S6_founder_framework: "S6 · Founder framework",
+  S7_modern_analogy: "S7 · Modern analogy",
+  S8_model_hypothesis: "S8 · Model hypothesis",
 };
 
 export const SOURCE_TIER_SHORT: Record<SourceTier, string> = {
-  S1: "S1", S2: "S2", S3: "S3", S4: "S4",
-  S5: "S5", S6: "S6", S7: "S7", S8: "S8",
+  S1_canonical_direct: "S1",
+  S2_canonical_synthesis: "S2",
+  S3_linguistic_historical: "S3",
+  S4_recognized_interpretation: "S4",
+  S5_extra_canonical_ancient: "S5",
+  S6_founder_framework: "S6",
+  S7_modern_analogy: "S7",
+  S8_model_hypothesis: "S8",
 };
