@@ -113,7 +113,7 @@ export function SectionShell({
               )}
               <H
                 id={headingId}
-                className="text-[14.5px] font-medium leading-snug tracking-[-0.005em] text-foreground md:text-[16px]"
+                className="text-[13.5px] font-medium leading-snug tracking-[-0.005em] text-foreground md:text-[14.5px]"
               >
                 {title}
               </H>
@@ -121,7 +121,7 @@ export function SectionShell({
           ) : (
             <H
               id={headingId}
-              className="mt-1 text-[14.5px] font-medium leading-snug tracking-[-0.005em] text-foreground md:text-[16px]"
+              className="mt-1 text-[13.5px] font-medium leading-snug tracking-[-0.005em] text-foreground md:text-[14.5px]"
             >
               {title}
             </H>
