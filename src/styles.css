@@ -118,7 +118,15 @@
   --tier-founder: oklch(0.52 0.005 90);
   --tier-analogy: oklch(0.44 0.005 90);
   --tier-hypothesis: oklch(0.36 0.005 90);
+
+  /* Semantic tags — muted, jewel-toned for dark canvas. */
+  --tag-affirm: oklch(0.74 0.14 155);   /* green — resolved, aligned */
+  --tag-attend: oklch(0.80 0.14 80);    /* amber — watch, tension */
+  --tag-alert: oklch(0.68 0.19 25);     /* red — stronghold, safety */
+  --tag-insight: oklch(0.72 0.11 235);  /* blue — pattern, discernment */
+  --tag-prayer: oklch(0.72 0.13 300);   /* violet — prayer, formation */
 }
+
 
 /* Light — flat parchment. No gradients, no glow. */
 .light {
