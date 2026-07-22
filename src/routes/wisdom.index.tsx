@@ -649,7 +649,8 @@ function WisdomChat() {
         </div>
 
         {/* Composer — anchored at the very bottom of the frame */}
-        <div className="w-full shrink-0 pt-2">
+        <div className="w-full shrink-0 pt-5 pb-3 md:pt-6">
+
           {!composerEnabled && <PrivateBetaBanner access={access} user={user} />}
 
           <div
