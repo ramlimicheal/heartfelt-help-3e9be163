@@ -10,11 +10,15 @@
  * hydrates history through the same server function and continues via
  * streamUnifiedTurn → /api/wisdom/turn.
  */
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { Sparkles } from "lucide-react";
+import { useState } from "react";
 import { loadSessionHistory } from "@/lib/wisdom/session.functions";
+import { finalizePrayer } from "@/lib/wisdom/library.functions";
 import { UnifiedResultView } from "@/components/wisdom/UnifiedResultView";
+import { writePendingInput } from "@/lib/wisdom/handoff";
 import { mapWisdomError } from "@/lib/wisdom/errorCopy";
 
 export const Route = createFileRoute("/wisdom/$sessionId")({
@@ -67,13 +71,62 @@ const historyQuery = (sessionId: string) =>
     queryFn: () => loadSessionHistory({ data: { sessionId } }),
   });
 
+type FinalizeState = { status: "idle" | "pending" | "done" | "error"; message?: string };
+
 function SessionView() {
   const { sessionId } = Route.useParams();
   const { data } = useSuspenseQuery(historyQuery(sessionId));
+  const navigate = useNavigate();
 
   const userMsgs = new Map(
     data.messages.filter((m) => m.role === "user").map((m) => [m.id, m]),
   );
+
+  // Derive session history summary (durable, non-DNR turns only).
+  const durableTurns = data.turns.filter(
+    (t) => t.memoryDirective !== "do_not_remember" && t.status === "completed",
+  );
+  const sessionHistory = durableTurns.length > 0
+    ? {
+        turnCount: durableTurns.length,
+        earliestAt: durableTurns[0]?.createdAt,
+        latestAt: durableTurns[durableTurns.length - 1]?.createdAt,
+        sessionMode: data.session.mode,
+      }
+    : undefined;
+
+  // onContinue: pre-populate the composer on /wisdom without auto-submitting.
+  const handleContinue = (prompt: string) => {
+    writePendingInput({ sessionId, prompt });
+    void navigate({ to: "/wisdom", search: { sessionId } });
+  };
+
+  // Prayer finalization wiring (idempotent, ownership + citation checks
+  // are enforced server-side by finalizePrayer + prayers_finalize_guard).
+  const [finalizeStates, setFinalizeStates] = useState<Record<string, FinalizeState>>({});
+  const finalize = useServerFn(finalizePrayer);
+  const handleFinalizePrayer = async (prayerId: string) => {
+    if (!prayerId) return;
+    const current = finalizeStates[prayerId];
+    if (current?.status === "pending" || current?.status === "done") return;
+    setFinalizeStates((m) => ({ ...m, [prayerId]: { status: "pending" } }));
+    try {
+      const res = await finalize({ data: { prayerId } });
+      setFinalizeStates((m) => ({
+        ...m,
+        [prayerId]: {
+          status: "done",
+          message: res.alreadyFinalized ? "Already in your prayer library." : "Added to your prayer library.",
+        },
+      }));
+    } catch (err) {
+      const safe = mapWisdomError((err as Error)?.message ?? "unknown");
+      setFinalizeStates((m) => ({
+        ...m,
+        [prayerId]: { status: "error", message: safe.body ?? safe.title },
+      }));
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -107,6 +160,11 @@ function SessionView() {
           const userMsg = t.triggeringUserMessageId
             ? userMsgs.get(t.triggeringUserMessageId)
             : undefined;
+          // DNR turns never get durable session-history context or actions.
+          const isDurable = t.memoryDirective !== "do_not_remember";
+          const prayerId = isDurable && t.memoryDirective === "normal"
+            ? (t.artifactIds?.prayer_id ?? undefined)
+            : undefined;
           return (
             <article
               key={t.id}
@@ -114,6 +172,7 @@ function SessionView() {
               data-testid="wisdom-turn"
               data-turn-mode={t.mode}
               data-turn-status={t.status}
+              data-turn-memory={t.memoryDirective}
             >
               {userMsg && (
                 <div className="ml-auto max-w-[min(72ch,85%)] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-[14px] leading-relaxed text-primary-foreground shadow-sm">
@@ -126,7 +185,21 @@ function SessionView() {
                 </span>
                 <div className="flex-1 space-y-3 text-[14px] leading-relaxed text-foreground/90">
                   {t.status === "completed" && t.result ? (
-                    <UnifiedResultView result={t.result} />
+                    <UnifiedResultView
+                      result={t.result}
+                      wisdomTurnId={t.id}
+                      prayerId={prayerId}
+                      orientation={{
+                        createdAt: t.createdAt,
+                        sessionTitle: data.session.title,
+                        memoryDirective: t.memoryDirective as "normal" | "session_only" | "do_not_remember",
+                        streaming: false,
+                      }}
+                      sessionHistory={isDurable ? sessionHistory : undefined}
+                      onContinue={handleContinue}
+                      onFinalizePrayer={handleFinalizePrayer}
+                      finalizeState={prayerId ? finalizeStates[prayerId] : undefined}
+                    />
                   ) : t.status === "failed" ? (
                     <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
                       This turn did not complete. You can start a new one from the composer.
