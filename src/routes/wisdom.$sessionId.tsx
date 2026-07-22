@@ -15,7 +15,7 @@ import {
 import { getSessionSlice, getSessionTelemetry } from "@/lib/wisdom/pipeline.functions";
 
 
-export const Route = createFileRoute("/wisdom/live/$sessionId")({
+export const Route = createFileRoute("/wisdom/$sessionId")({
   head: () => ({
     meta: [
       { title: "Live session — Wisdom" },
