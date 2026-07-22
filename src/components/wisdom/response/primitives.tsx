@@ -89,7 +89,7 @@ export function SectionShell({
       aria-labelledby={headingId}
       data-section={id}
       data-testid={testId ?? `wr-section-${id}`}
-      className="scroll-mt-24 rounded-2xl border border-panel-border bg-surface/40 px-4 py-4 md:px-6 md:py-5"
+      className="scroll-mt-24 rounded-xl border border-panel-border/70 bg-surface/40 px-3.5 py-3 md:px-4 md:py-3.5 transition-colors"
     >
       <header className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
         <div className="min-w-0">
