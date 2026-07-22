@@ -179,14 +179,15 @@ export function WisdomResponse({
             eyebrow="What I'm hearing"
             title={result.what_wisdom_heard || "What I'm hearing"}
           >
-            <p className="text-[15px] leading-relaxed text-foreground/90">
+            <p className="text-[13.5px] leading-[1.65] text-foreground/90 motion-safe:animate-in motion-safe:fade-in-50 motion-safe:duration-500">
               {result.user_facing_response}
             </p>
             {isCompanion && (result as { reflection?: string }).reflection && (
-              <p className="mt-3 border-l-2 border-primary/40 pl-3 text-[14px] italic text-foreground/85">
+              <p className="mt-3 border-l-2 border-primary/40 pl-3 text-[13px] italic leading-relaxed text-foreground/80">
                 {(result as { reflection?: string }).reflection}
               </p>
             )}
+
           </SectionShell>
         )}
 
