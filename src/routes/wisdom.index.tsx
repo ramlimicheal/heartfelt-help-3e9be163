@@ -395,7 +395,6 @@ function WisdomChat() {
 
   const [historyOpen, setHistoryOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
-  const responseRootRef = useRef<HTMLDivElement | null>(null);
   const historyRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!historyOpen) return;
