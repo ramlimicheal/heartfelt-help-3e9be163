@@ -495,6 +495,17 @@ function WisdomChat() {
             </span>
           </div>
           <div className="relative flex items-center gap-2" ref={historyRef}>
+            {!isEmpty && (
+              <button
+                type="button"
+                onClick={() => setMapOpen(true)}
+                aria-label="Open Wisdom Map"
+                className="inline-flex items-center gap-1.5 rounded-full border border-tag-insight/40 bg-tag-insight/10 px-3 py-1 text-[11px] text-tag-insight transition hover:bg-tag-insight/15"
+              >
+                <MapIcon className="size-3" strokeWidth={1.75} />
+                Map
+              </button>
+            )}
             <button
               type="button"
               onClick={newSession}
@@ -517,6 +528,7 @@ function WisdomChat() {
                 </span>
               )}
             </button>
+
             {historyOpen && (
               <div
                 role="menu"
