@@ -656,38 +656,47 @@ function WisdomChat() {
             className="relative overflow-hidden rounded-2xl border border-panel-border/70 bg-surface/40 transition focus-within:border-panel-border focus-within:bg-surface/60"
             aria-disabled={!composerEnabled}
           >
-            {/* Top row: mode chips */}
-            <div className="flex items-center gap-1.5 overflow-x-auto px-3 pt-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {MODES.map((m) => {
-                const active = mode === m.id;
-                const locked = turns.length > 0;
-                const disabled = m.disabled || (locked && !active);
-                const tagColor = `var(--color-tag-${m.tag})`;
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => !disabled && setMode(m.id)}
-                    disabled={disabled}
-                    title={m.disabled ? m.disabledHint : locked ? "Mode locks after the first message. Start a new session to switch." : m.hint}
-                    className={[
-                      "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] transition",
-                      active
-                        ? "bg-background/70 text-foreground"
-                        : "text-muted-foreground hover:text-foreground",
-                      disabled ? "cursor-not-allowed opacity-40" : "",
-                    ].join(" ")}
-                    style={active ? { color: tagColor } : undefined}
-                  >
-                    <span
-                      className="inline-block size-1.5 rounded-full"
-                      style={{ background: tagColor }}
-                      aria-hidden
-                    />
-                    {m.label}
-                  </button>
-                );
-              })}
+            {/* Top row: mode chips — segmented pill (matches Memory control) */}
+            <div className="flex items-center px-3 pt-2.5">
+              <div
+                role="radiogroup"
+                aria-label="Wisdom mode"
+                className="flex items-center gap-0.5 overflow-x-auto rounded-full border border-panel-border/60 bg-background/50 p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              >
+                {MODES.map((m) => {
+                  const active = mode === m.id;
+                  const locked = turns.length > 0;
+                  const disabled = m.disabled || (locked && !active);
+                  const tagColor = `var(--color-tag-${m.tag})`;
+                  return (
+                    <button
+                      key={m.id}
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => !disabled && setMode(m.id)}
+                      disabled={disabled}
+                      title={m.disabled ? m.disabledHint : locked ? "Mode locks after the first message. Start a new session to switch." : m.hint}
+                      className={[
+                        "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] transition-all duration-300 ease-out",
+                        active
+                          ? "bg-surface text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
+                        disabled ? "cursor-not-allowed opacity-40" : "",
+                      ].join(" ")}
+                      style={active ? { color: tagColor } : undefined}
+                    >
+                      <span
+                        className="inline-block size-1.5 rounded-full transition-transform duration-300"
+                        style={{ background: tagColor, transform: active ? "scale(1.2)" : "scale(1)" }}
+                        aria-hidden
+                      />
+                      {m.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+
 
             {/* Text area */}
             <div className="px-3 py-2">
