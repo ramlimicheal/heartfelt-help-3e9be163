@@ -204,7 +204,14 @@ function WisdomChat() {
       setRouteError(mapWisdomError(reason));
       return;
     }
-    const effectiveMode: Mode = modeOverride ?? mode;
+    // Session-mode authority:
+    //   - New session (no sessionId yet) → honor the caller's mode override.
+    //   - Existing session → the DB-locked mode wins. `mode` is hydrated from
+    //     the DB by openSession, and mode_locked_at is enforced server-side.
+    //     A `modeOverride` (e.g. from a handoff or a stale tab click) is
+    //     ignored for existing sessions to avoid silently steering a locked
+    //     conversation into a different mode.
+    const effectiveMode: Mode = sessionId ? mode : (modeOverride ?? mode);
     const chosen = MODES.find((m) => m.id === effectiveMode);
     if (chosen?.disabled) {
       setRouteError(mapWisdomError("curse_breaker_unavailable"));
