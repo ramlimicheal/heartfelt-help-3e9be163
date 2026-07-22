@@ -239,6 +239,10 @@ function WisdomChat() {
         sessionId: sid,
         triggeringUserMessageId: messageId,
         userText: text,
+        // DNR is enforced end-to-end by the backend (RLS, RPCs, and the
+        // persist_unified_turn contract). No user-facing toggle exists yet;
+        // this route always sends `"normal"`. A user-facing memory directive
+        // is scheduled for Phase 2. See docs/WISDOM_MODE_AND_SURFACE_AUDIT.md.
         memoryDirective: "normal",
         clientRequestedMode: effectiveMode,
       }, controller.signal)) {
