@@ -13,8 +13,8 @@
  *   "the first user message" of a session.
  *
  * These helpers are kept pure so they can be unit-tested in isolation
- * (see tests/unit/dnr.test.ts) and reused by the pipeline server fn
- * (see src/lib/wisdom/pipeline.functions.ts).
+ * (see tests/unit/dnr.test.ts) and reused by the unified turn orchestrator
+ * (see src/lib/wisdom/unified.orchestrator.ts).
  */
 
 export type MemoryDirective = "normal" | "session_only" | "do_not_remember";
