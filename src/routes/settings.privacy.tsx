@@ -6,6 +6,7 @@ import { Card } from "@/components/wisdom/primitives";
 import { exportMyData, deleteMyAccount } from "@/lib/wisdom/privacy.functions";
 
 export const Route = createFileRoute("/settings/privacy")({
+  ssr: false,
   head: () => ({ meta: [{ title: "Privacy & memory — Wisdom" }] }),
   component: Privacy,
 });

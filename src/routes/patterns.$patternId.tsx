@@ -10,6 +10,7 @@ const patternQuery = (patternId: string) =>
   });
 
 export const Route = createFileRoute("/patterns/$patternId")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Pattern — Wisdom" },

@@ -8,6 +8,7 @@ const journeyQuery = queryOptions({
 });
 
 export const Route = createFileRoute("/journey")({
+  ssr: false,
   head: () => ({ meta: [{ title: "Journey — Wisdom" }] }),
   loader: ({ context }) => {
     context.queryClient.ensureQueryData(journeyQuery);
