@@ -84,3 +84,77 @@ describe("wisdom handoff — one-time consumption", () => {
     expect(consumeHandoff("")).toBeNull();
   });
 });
+
+describe("wisdom handoff — expiry & malformed payloads", () => {
+  beforeEach(() => __resetHandoffForTests());
+
+  it("returns null and clears storage for an expired handoff (> 5 min old)", () => {
+    const nonce = writeHandoff({ prompt: SENSITIVE, mode: "pattern" });
+    const storage = (globalThis as unknown as { sessionStorage: MemStorage }).sessionStorage;
+    // Rewrite the payload with an aged createdAt so we deterministically
+    // exercise the expiry branch without touching Date.
+    const raw = storage.getItem("wisdom.handoff.v1")!;
+    const parsed = JSON.parse(raw);
+    parsed.createdAt = Date.now() - 6 * 60 * 1000; // 6 minutes ago
+    storage.setItem("wisdom.handoff.v1", JSON.stringify(parsed));
+
+    expect(consumeHandoff(nonce)).toBeNull();
+    expect(storage.getItem("wisdom.handoff.v1")).toBeNull();
+  });
+
+  it("expired handoff cannot be replayed even if storage is repopulated with the same nonce", () => {
+    const nonce = writeHandoff({ prompt: SENSITIVE, mode: "pattern" });
+    const storage = (globalThis as unknown as { sessionStorage: MemStorage }).sessionStorage;
+    const raw = storage.getItem("wisdom.handoff.v1")!;
+    const parsed = JSON.parse(raw);
+    parsed.createdAt = Date.now() - 10 * 60 * 1000;
+    storage.setItem("wisdom.handoff.v1", JSON.stringify(parsed));
+    expect(consumeHandoff(nonce)).toBeNull();
+
+    // Attacker resurrection: write a fresh payload with the SAME nonce.
+    parsed.createdAt = Date.now();
+    storage.setItem("wisdom.handoff.v1", JSON.stringify(parsed));
+    expect(consumeHandoff(nonce)).toBeNull();
+  });
+
+  it("returns null and clears storage for a malformed (unparseable) payload", () => {
+    const storage = (globalThis as unknown as { sessionStorage: MemStorage }).sessionStorage;
+    storage.setItem("wisdom.handoff.v1", "{ not json");
+    expect(consumeHandoff("any-nonce")).toBeNull();
+    expect(storage.getItem("wisdom.handoff.v1")).toBeNull();
+  });
+
+  it("returns null for a structurally invalid payload (missing required fields)", () => {
+    const storage = (globalThis as unknown as { sessionStorage: MemStorage }).sessionStorage;
+    storage.setItem(
+      "wisdom.handoff.v1",
+      JSON.stringify({ nonce: "x", prompt: 42, mode: "pattern", createdAt: Date.now() }),
+    );
+    expect(consumeHandoff("x")).toBeNull();
+    expect(storage.getItem("wisdom.handoff.v1")).toBeNull();
+  });
+
+  it("swallows sessionStorage errors (quota / disabled) without throwing", () => {
+    // Replace the storage with one that throws on every op.
+    const original = (globalThis as unknown as { sessionStorage: unknown }).sessionStorage;
+    const brokenStorage = {
+      get length() { return 0; },
+      clear() { throw new Error("quota"); },
+      getItem() { throw new Error("quota"); },
+      setItem() { throw new Error("quota"); },
+      removeItem() { throw new Error("quota"); },
+      key() { return null; },
+    };
+    (globalThis as unknown as { sessionStorage: unknown }).sessionStorage = brokenStorage;
+    try {
+      // writeHandoff must not throw and must still return a nonce.
+      const nonce = writeHandoff({ prompt: SENSITIVE, mode: "pattern" });
+      expect(typeof nonce).toBe("string");
+      // consumeHandoff must not throw and must return null.
+      expect(consumeHandoff(nonce)).toBeNull();
+    } finally {
+      (globalThis as unknown as { sessionStorage: unknown }).sessionStorage = original;
+    }
+  });
+});
+

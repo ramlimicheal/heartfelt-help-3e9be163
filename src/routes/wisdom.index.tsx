@@ -89,9 +89,42 @@ function newId() {
   return (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 }
 
+type MemoryDirective = "normal" | "session_only" | "do_not_remember";
+
+const MEMORY_CHOICES: {
+  id: MemoryDirective;
+  label: string;
+  short: string;
+  helper: string;
+}[] = [
+  {
+    id: "normal",
+    label: "Remember normally",
+    short: "Remembered",
+    helper:
+      "This message may contribute to durable Wisdom artifacts — patterns, prayers, practices, and persona memory (subject to your consent on the You page).",
+  },
+  {
+    id: "session_only",
+    label: "Session only",
+    short: "Session only",
+    helper:
+      "May be used within this session, but will not become cross-session persona memory or accepted long-term context.",
+  },
+  {
+    id: "do_not_remember",
+    label: "Do not remember",
+    short: "Not remembered",
+    helper:
+      "Used only to answer this turn. No durable signals, patterns, prayers, practices, persona facts, or formation events are created.",
+  },
+];
+
 function WisdomChat() {
   const [mode, setMode] = useState<Mode>("pattern");
   const [input, setInput] = useState("");
+  // Per-message memory directive. Default is explicit: "normal".
+  const [memoryDirective, setMemoryDirective] = useState<MemoryDirective>("normal");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -235,15 +268,17 @@ function WisdomChat() {
     abortRef.current = controller;
 
     try {
+      // The composer sends the user-selected memory directive on every turn.
+      // The backend enforces DNR at the RPC layer (persist_unified_turn) and
+      // the DB layer (signals/persona_facts triggers). session_only is
+      // preserved through the RPC and blocked from cross-session acceptance
+      // by the persona server functions and updatePersonaFactStatus guard.
+      // We never silently upgrade session_only or do_not_remember to normal.
       for await (const ev of streamUnifiedTurn({
         sessionId: sid,
         triggeringUserMessageId: messageId,
         userText: text,
-        // DNR is enforced end-to-end by the backend (RLS, RPCs, and the
-        // persist_unified_turn contract). No user-facing toggle exists yet;
-        // this route always sends `"normal"`. A user-facing memory directive
-        // is scheduled for Phase 2. See docs/WISDOM_MODE_AND_SURFACE_AUDIT.md.
-        memoryDirective: "normal",
+        memoryDirective,
         clientRequestedMode: effectiveMode,
       }, controller.signal)) {
         applyEvent(setTurns, wisdomId, ev);
@@ -569,6 +604,11 @@ function WisdomChat() {
                 {busy ? <><Loader2 className="size-3 animate-spin" /> Composing…</> : <>Begin <ArrowUp className="size-3" /></>}
               </button>
             </div>
+            <MemoryDirectiveControl
+              value={memoryDirective}
+              onChange={setMemoryDirective}
+              disabled={!composerEnabled || busy}
+            />
           </div>
           <p className="mt-2 px-2 text-center text-[10px] text-muted-foreground">
             Scripture citations are checked against curated passages · nothing is remembered without your permission.
@@ -718,3 +758,69 @@ function PrivateBetaBanner({
     </div>
   );
 }
+
+function MemoryDirectiveControl({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: MemoryDirective;
+  onChange: (v: MemoryDirective) => void;
+  disabled?: boolean;
+}) {
+  const active = MEMORY_CHOICES.find((c) => c.id === value) ?? MEMORY_CHOICES[0];
+  return (
+    <div
+      data-testid="memory-directive-control"
+      className="mt-2 flex flex-col gap-1.5 border-t border-panel-border/60 pt-2"
+    >
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
+          Memory
+        </span>
+        <div
+          role="radiogroup"
+          aria-label="Memory directive for this message"
+          className="flex items-center gap-0.5 rounded-full border border-panel-border bg-background/60 p-0.5"
+        >
+          {MEMORY_CHOICES.map((c) => {
+            const isActive = c.id === value;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                role="radio"
+                aria-checked={isActive}
+                aria-label={c.label}
+                data-testid={`memory-directive-${c.id}`}
+                data-active={isActive ? "true" : "false"}
+                onClick={() => onChange(c.id)}
+                disabled={disabled}
+                title={c.helper}
+                className={[
+                  "rounded-full px-2.5 py-1 text-[11px] transition",
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                  disabled ? "cursor-not-allowed opacity-40" : "",
+                ].join(" ")}
+              >
+                {c.label}
+              </button>
+            );
+          })}
+        </div>
+        <span
+          data-testid="memory-directive-status"
+          className="ml-auto text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
+        >
+          This message: {active.short}
+        </span>
+      </div>
+      <p className="px-1 text-[10.5px] leading-snug text-muted-foreground">
+        {active.helper}
+      </p>
+    </div>
+  );
+}
+

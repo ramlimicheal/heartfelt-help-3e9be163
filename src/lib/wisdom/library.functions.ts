@@ -246,6 +246,49 @@ export const updatePersonaFactStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: z.infer<typeof factUpdate>) => factUpdate.parse(d))
   .handler(async ({ data, context }) => {
+    // Load ownership + guard state first — never trust the client to have
+    // told us the fact's sensitivity or memory directive.
+    const { data: fact, error: loadErr } = await context.supabase
+      .from("persona_facts")
+      .select("id, user_id, sensitivity, memory_directive")
+      .eq("id", data.factId)
+      .maybeSingle();
+    if (loadErr) throw new Error(loadErr.message);
+    if (!fact || fact.user_id !== context.userId) {
+      // Do not leak existence to other users.
+      throw new Error("Fact not found");
+    }
+
+    if (data.status === "accepted") {
+      // Session-only / DNR facts can never become accepted cross-session
+      // persona memory. This closes the "generic status-update" bypass.
+      if (
+        fact.memory_directive === "session_only" ||
+        fact.memory_directive === "do_not_remember"
+      ) {
+        throw new Error(
+          "This fact was captured under a non-durable memory directive and cannot be accepted as long-term persona memory.",
+        );
+      }
+      // Sensitive facts require an explicit confirmation row before accept.
+      // The DB trigger `persona_facts_guard` enforces this too; we surface a
+      // clean error here so the UI can prompt for confirmation.
+      if (fact.sensitivity === "sensitive") {
+        const { data: conf } = await context.supabase
+          .from("persona_fact_confirmations")
+          .select("id")
+          .eq("persona_fact_id", data.factId)
+          .eq("confirmed_by", context.userId)
+          .limit(1)
+          .maybeSingle();
+        if (!conf) {
+          throw new Error(
+            "Sensitive persona facts require an explicit confirmation before acceptance.",
+          );
+        }
+      }
+    }
+
     const { error } = await context.supabase
       .from("persona_facts")
       .update({ status: data.status })
