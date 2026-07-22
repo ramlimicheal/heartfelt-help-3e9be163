@@ -648,11 +648,11 @@ function WisdomChat() {
           )}
         </div>
 
-        {/* Insight strip lives in the right rail now — no duplicate here. */}
-
+        {/* Split-focus separator: anchors the composer as a distinct bottom bar. */}
+        <div className="my-3 h-px w-full bg-gradient-to-r from-transparent via-panel-border to-transparent" />
 
         {/* Composer — slim pill, tag-colored mode chips, circular submit */}
-        <div className="mt-3 w-full">
+        <div className="w-full shrink-0">
           {!composerEnabled && <PrivateBetaBanner access={access} user={user} />}
           <div
             className="relative overflow-hidden rounded-[28px] border border-panel-border bg-surface/70 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur"
