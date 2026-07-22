@@ -461,9 +461,27 @@ function WisdomChat() {
   };
 
 
+  // Right-rail derivations from the latest wisdom result
+  const latestResult = latestWisdom?.result as (UnifiedResult & {
+    proposed_pattern?: { title?: string; description?: string } | null;
+    pattern?: { title?: string; description?: string } | null;
+    prayer?: { title?: string; body?: string; text?: string } | null;
+  }) | undefined;
+  const emergingPattern = latestResult?.proposed_pattern?.title
+    ?? latestResult?.pattern?.title
+    ?? null;
+  const emergingPatternDesc = latestResult?.proposed_pattern?.description
+    ?? latestResult?.pattern?.description
+    ?? null;
+  const latestPrayerText = latestResult?.prayer?.body
+    ?? latestResult?.prayer?.text
+    ?? null;
+  const latestPrayerTitle = latestResult?.prayer?.title ?? null;
+
   return (
-    <div className="relative flex h-[calc(100vh-3rem)] w-full">
-      <div
+    <div className="relative flex h-[calc(100vh-3rem)] w-full gap-4">
+      <div className="relative flex min-w-0 flex-1 flex-col">
+
         aria-hidden
         className="pointer-events-none absolute left-0 top-0 -z-0 h-[90px] w-[280px] overflow-hidden opacity-60"
         style={{
