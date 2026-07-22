@@ -31,6 +31,16 @@ import type { UnifiedResult } from "@/lib/wisdom/unified.schemas";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedResultView } from "@/components/wisdom/UnifiedResultView";
 import { consumeHandoff, consumePendingInput } from "@/lib/wisdom/handoff";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type WisdomSearch = {
   // Opaque nonce that references a sessionStorage payload. Never contains user text.
@@ -210,16 +220,27 @@ function WisdomChat() {
   };
 
   const removeSession = useServerFn(deleteSession);
-  const handleDeleteSession = async (sid: string, e: React.MouseEvent) => {
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const requestDeleteSession = (sid: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     if (busy) return;
-    if (!confirm("Delete this session and all its messages? This cannot be undone.")) return;
+    setPendingDeleteId(sid);
+  };
+  const confirmDeleteSession = async () => {
+    const sid = pendingDeleteId;
+    if (!sid) return;
+    setDeleting(true);
     try {
       await removeSession({ data: { sessionId: sid } });
       if (sessionId === sid) newSession();
       void sessionsQ.refetch();
+      setPendingDeleteId(null);
     } catch {
       setRouteError(mapWisdomError("Could not delete session"));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -585,7 +606,7 @@ function WisdomChat() {
                         </button>
                         <button
                           type="button"
-                          onClick={(e) => handleDeleteSession(s.id, e)}
+                          onClick={(e) => requestDeleteSession(s.id, e)}
                           aria-label="Delete session"
                           title="Delete session"
                           className="mr-1 rounded p-1 text-muted-foreground opacity-0 transition hover:bg-destructive/15 hover:text-destructive focus:opacity-100 group-hover:opacity-100"
@@ -875,6 +896,27 @@ function WisdomChat() {
           </div>
         </div>
       )}
+
+      <AlertDialog open={pendingDeleteId !== null} onOpenChange={(o) => { if (!o && !deleting) setPendingDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this session?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the session and all of its messages. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(e) => { e.preventDefault(); void confirmDeleteSession(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
