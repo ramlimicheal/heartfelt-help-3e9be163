@@ -424,7 +424,7 @@ function OrientationBlock({
           </div>
           <h2
             id="wr-orientation-heading"
-            className="mt-2 text-[17px] font-medium leading-snug tracking-[-0.005em] text-foreground md:text-[19px]"
+            className="mt-2 text-[14px] font-medium leading-snug tracking-[-0.005em] text-foreground md:text-[15px]"
           >
             {orientation?.sessionTitle
               ? orientation.sessionTitle
