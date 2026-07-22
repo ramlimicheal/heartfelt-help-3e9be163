@@ -1079,58 +1079,46 @@ function MemoryDirectiveControl({
   onChange: (v: MemoryDirective) => void;
   disabled?: boolean;
 }) {
-  const active = MEMORY_CHOICES.find((c) => c.id === value) ?? MEMORY_CHOICES[0];
   return (
     <div
       data-testid="memory-directive-control"
-      className="mt-2 flex flex-col gap-1.5 border-t border-panel-border/60 pt-2"
+      className="flex items-center gap-1.5"
     >
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
-          Memory
-        </span>
-        <div
-          role="radiogroup"
-          aria-label="Memory directive for this message"
-          className="flex items-center gap-0.5 rounded-full border border-panel-border bg-background/60 p-0.5"
-        >
-          {MEMORY_CHOICES.map((c) => {
-            const isActive = c.id === value;
-            return (
-              <button
-                key={c.id}
-                type="button"
-                role="radio"
-                aria-checked={isActive}
-                aria-label={c.label}
-                data-testid={`memory-directive-${c.id}`}
-                data-active={isActive ? "true" : "false"}
-                onClick={() => onChange(c.id)}
-                disabled={disabled}
-                title={c.helper}
-                className={[
-                  "rounded-full px-2.5 py-1 text-[11px] transition",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                  disabled ? "cursor-not-allowed opacity-40" : "",
-                ].join(" ")}
-              >
-                {c.label}
-              </button>
-            );
-          })}
-        </div>
-        <span
-          data-testid="memory-directive-status"
-          className="ml-auto text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
-        >
-          This message: {active.short}
-        </span>
+      <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
+        Memory
+      </span>
+      <div
+        role="radiogroup"
+        aria-label="Memory directive for this message"
+        className="flex items-center gap-0.5 rounded-full border border-panel-border/60 bg-background/50 p-0.5"
+      >
+        {MEMORY_CHOICES.map((c) => {
+          const isActive = c.id === value;
+          return (
+            <button
+              key={c.id}
+              type="button"
+              role="radio"
+              aria-checked={isActive}
+              aria-label={c.label}
+              data-testid={`memory-directive-${c.id}`}
+              data-active={isActive ? "true" : "false"}
+              onClick={() => onChange(c.id)}
+              disabled={disabled}
+              title={c.helper}
+              className={[
+                "rounded-full px-2 py-0.5 text-[10px] transition",
+                isActive
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+                disabled ? "cursor-not-allowed opacity-40" : "",
+              ].join(" ")}
+            >
+              {c.label}
+            </button>
+          );
+        })}
       </div>
-      <p className="px-1 text-[10.5px] leading-snug text-muted-foreground">
-        {active.helper}
-      </p>
     </div>
   );
 }
