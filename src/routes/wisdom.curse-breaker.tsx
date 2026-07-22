@@ -31,8 +31,9 @@ export const Route = createFileRoute("/wisdom/curse-breaker")({
 
 function CurseBreakerPage() {
   const { data: turn } = useSuspenseQuery(cbQuery);
+  const parsed: unknown = turn?.resultJson ? JSON.parse(turn.resultJson) : null;
 
-  if (!turn || !turn.result) {
+  if (!turn || !parsed) {
     return (
       <div className="space-y-6">
         <Header />
@@ -49,7 +50,7 @@ function CurseBreakerPage() {
     );
   }
 
-  const r = turn.result as CurseBreakerResult;
+  const r = parsed as CurseBreakerResult;
 
   return (
     <div className="space-y-6">

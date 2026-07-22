@@ -272,7 +272,7 @@ export const getLatestCurseBreakerTurn = createServerFn({ method: "GET" })
     return {
       id: data.id as string,
       sessionId: data.session_id as string,
-      result: (data.result ?? null) as Record<string, unknown> | null,
+      resultJson: JSON.stringify(data.result ?? null),
       createdAt: data.created_at as string,
     };
   });
