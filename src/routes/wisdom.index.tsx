@@ -27,11 +27,17 @@ import { mapWisdomError, type UserSafeError } from "@/lib/wisdom/errorCopy";
 import type { UnifiedResult } from "@/lib/wisdom/unified.schemas";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedResultView } from "@/components/wisdom/UnifiedResultView";
+import { consumeHandoff } from "@/lib/wisdom/handoff";
 
 type WisdomSearch = {
-  prompt?: string;
+  // Opaque nonce that references a sessionStorage payload. Never contains user text.
+  handoff?: string;
+  // Non-sensitive mode identifier. Only honored for NEW sessions; existing
+  // sessions ignore this in favor of the DB-locked mode.
   mode?: "companion" | "pattern" | "deep_wisdom" | "curse_breaker";
-  autostart?: boolean;
+  // Existing session to hydrate. Ownership is verified server-side by
+  // `loadSessionHistory` (RLS + explicit user_id check); the route param
+  // alone is never treated as evidence of ownership.
   sessionId?: string;
 };
 
@@ -51,11 +57,9 @@ export const Route = createFileRoute("/wisdom/")({
   component: WisdomChat,
   validateSearch: (raw: Record<string, unknown>): WisdomSearch => {
     const mode = ALL_MODES.find((m) => m === raw.mode);
-    const autostart = raw.autostart === "1" || raw.autostart === true || raw.autostart === 1;
     return {
-      prompt: typeof raw.prompt === "string" && raw.prompt.length > 0 ? raw.prompt : undefined,
+      handoff: typeof raw.handoff === "string" && raw.handoff.length > 0 ? raw.handoff : undefined,
       mode,
-      autostart: autostart || undefined,
       sessionId: typeof raw.sessionId === "string" ? raw.sessionId : undefined,
     };
   },
@@ -200,7 +204,14 @@ function WisdomChat() {
       setRouteError(mapWisdomError(reason));
       return;
     }
-    const effectiveMode: Mode = modeOverride ?? mode;
+    // Session-mode authority:
+    //   - New session (no sessionId yet) → honor the caller's mode override.
+    //   - Existing session → the DB-locked mode wins. `mode` is hydrated from
+    //     the DB by openSession, and mode_locked_at is enforced server-side.
+    //     A `modeOverride` (e.g. from a handoff or a stale tab click) is
+    //     ignored for existing sessions to avoid silently steering a locked
+    //     conversation into a different mode.
+    const effectiveMode: Mode = sessionId ? mode : (modeOverride ?? mode);
     const chosen = MODES.find((m) => m.id === effectiveMode);
     if (chosen?.disabled) {
       setRouteError(mapWisdomError("curse_breaker_unavailable"));
@@ -228,6 +239,10 @@ function WisdomChat() {
         sessionId: sid,
         triggeringUserMessageId: messageId,
         userText: text,
+        // DNR is enforced end-to-end by the backend (RLS, RPCs, and the
+        // persist_unified_turn contract). No user-facing toggle exists yet;
+        // this route always sends `"normal"`. A user-facing memory directive
+        // is scheduled for Phase 2. See docs/WISDOM_MODE_AND_SURFACE_AUDIT.md.
         memoryDirective: "normal",
         clientRequestedMode: effectiveMode,
       }, controller.signal)) {
@@ -243,35 +258,55 @@ function WisdomChat() {
   };
 
   // Canonical entry from other routes (e.g. /dashboard).
-  // Consumes ?prompt&mode&autostart&sessionId once, then submits via streamUnifiedTurn.
+  //
+  // Sensitive user text is NOT read from the URL. The dashboard writes a
+  // one-time payload to sessionStorage keyed by an opaque nonce, and only
+  // the nonce (+ non-sensitive mode) travels in `search`. `consumeHandoff`
+  // both returns and destroys the payload atomically, and records the
+  // nonce in a consumed set — so remount, Strict Mode double-invocation,
+  // refresh, and back/forward navigation cannot fire a second submit.
+  //
+  // Session-mode authority:
+  //   - New session → use the mode carried by the handoff.
+  //   - Existing sessionId → DB mode wins (loaded by openSession); any
+  //     mode query param is ignored. mode_locked_at is enforced server-side.
   const search = Route.useSearch();
   const navigate = useNavigate();
   const bootRef = useRef(false);
   useEffect(() => {
     if (bootRef.current) return;
     if (!ready) return;
-    // If a specific session is requested, load it.
+
+    // Existing session takes priority; ownership is verified server-side.
     if (search.sessionId) {
       bootRef.current = true;
       void openSession(search.sessionId);
+      // Strip the query param so back/forward doesn't retrigger.
+      void navigate({ to: "/wisdom", search: {}, replace: true });
       return;
     }
-    // Prefill from search params.
-    if (search.prompt) {
-      setInput(search.prompt);
-      if (search.mode) setMode(search.mode);
-    }
-    // Only auto-submit when explicitly asked AND access is allowed.
-    if (search.autostart && search.prompt && user && access.status === "allowed") {
-      bootRef.current = true;
-      const m: Mode = search.mode ?? mode;
-      setMode(m);
-      // Clear the search params so a reload doesn't re-submit the same prompt.
+
+    // Handoff-driven autostart (dashboard → wisdom).
+    if (search.handoff) {
+      // Consume atomically; any second effect run finds nothing.
+      const payload = consumeHandoff(search.handoff);
+      // Always strip the nonce from the URL so it can't be shared/replayed.
       void navigate({ to: "/wisdom", search: {}, replace: true });
-      void submit(search.prompt, m);
+      if (!payload) return;
+      if (!user || access.status !== "allowed") return;
+
+      bootRef.current = true;
+      // Handoff always begins a fresh session so its mode cannot silently
+      // override a previously locked session's mode.
+      setTurns([]);
+      setSessionId(null);
+      setInput("");
+      const m: Mode = payload.mode;
+      setMode(m);
+      void submit(payload.prompt, m);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, user, access.status, search.prompt, search.mode, search.autostart, search.sessionId]);
+  }, [ready, user, access.status, search.handoff, search.sessionId]);
 
 
   const fetchSlice = useServerFn(getDashboardSlice);
