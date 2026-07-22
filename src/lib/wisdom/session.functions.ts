@@ -44,6 +44,8 @@ export type SessionTurn = {
   result: UnifiedResult | null;
   createdAt: string;
   mode: string;
+  memoryDirective: string;
+  artifactIds: Record<string, unknown> | null;
 };
 
 export type SessionHistory = {
