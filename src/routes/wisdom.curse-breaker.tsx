@@ -188,7 +188,7 @@ function LegacyCurseBreakerView({
             {reading.prayerDraft.lines.map((l, i) => (
               <div key={i} className="rounded-xl border border-panel-border/60 bg-gradient-to-br from-surface/60 via-surface/30 to-transparent p-4">
                 <MovementBadge movement={l.movement} />
-                <p className="mt-2 font-serif text-[17px] leading-relaxed">{l.text}</p>
+                <p className="mt-2 text-[17px] leading-relaxed">{l.text}</p>
               </div>
             ))}
           </div>

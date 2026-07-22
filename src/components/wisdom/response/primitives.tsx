@@ -113,7 +113,7 @@ export function SectionShell({
               )}
               <H
                 id={headingId}
-                className="font-serif text-[19px] font-medium leading-tight text-foreground md:text-[22px]"
+                className="text-[19px] font-medium leading-tight text-foreground md:text-[22px]"
               >
                 {title}
               </H>
@@ -121,7 +121,7 @@ export function SectionShell({
           ) : (
             <H
               id={headingId}
-              className="mt-1 font-serif text-[19px] font-medium leading-tight text-foreground md:text-[22px]"
+              className="mt-1 text-[19px] font-medium leading-tight text-foreground md:text-[22px]"
             >
               {title}
             </H>
@@ -199,7 +199,7 @@ export function UncertaintyChip({ level }: { level: UncertaintyLevel }) {
       className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${m.cls}`}
       aria-label={`Certainty: ${m.label}`}
     >
-      <span aria-hidden className="font-mono text-[9px]">{m.symbol}</span>
+      <span aria-hidden className="text-[9px]">{m.symbol}</span>
       {m.label}
     </span>
   );
@@ -364,7 +364,7 @@ export function CitationDrawer({
       {hasDetails && (
         <div className="space-y-2 border-t border-panel-border/40 px-3 py-2 text-[12.5px] text-foreground/85">
           {text && (
-            <blockquote className="border-l-2 border-primary/40 pl-3 font-serif italic leading-relaxed">
+            <blockquote className="border-l-2 border-primary/40 pl-3 italic leading-relaxed">
               “{text}”
             </blockquote>
           )}

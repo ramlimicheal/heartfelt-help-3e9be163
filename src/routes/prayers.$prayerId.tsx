@@ -214,7 +214,7 @@ function LineBlock({ line, missingCitation }: { line: Line; missingCitation: boo
         className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-surface"
       >
         <MovementBadge movement={line.movement} />
-        <p className="flex-1 font-serif text-[17px] leading-snug">{line.text}</p>
+        <p className="flex-1 text-[17px] leading-snug">{line.text}</p>
         {missingCitation && (
           <span className="mt-1 text-[10px] font-medium uppercase tracking-wide text-destructive">
             no citation
