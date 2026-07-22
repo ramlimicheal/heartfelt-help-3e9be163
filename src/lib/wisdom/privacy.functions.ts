@@ -64,7 +64,9 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
       "messages", "sessions", "profiles",
     ] as const;
     for (const t of tables) {
-      await supabaseAdmin.from(t).delete().eq(t === "profiles" ? "id" : "user_id", uid);
+      const col = t === "profiles" ? "id" : "user_id";
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabaseAdmin.from(t) as any).delete().eq(col, uid);
     }
     const { error } = await supabaseAdmin.auth.admin.deleteUser(uid);
     if (error) throw new Error(error.message);

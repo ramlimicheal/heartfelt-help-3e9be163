@@ -69,7 +69,8 @@ function CurseBreakerPage() {
           <ul className="space-y-2">
             {r.competing_hypotheses.map((h, i) => (
               <li key={i} className="rounded-lg border border-panel-border/60 bg-surface/40 px-3 py-2">
-                <p className="text-sm">{h.text}</p>
+                <p className="text-sm font-medium">{h.name}</p>
+                {h.description && <p className="mt-1 text-sm text-muted-foreground">{h.description}</p>}
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   {Math.round(h.confidence * 100)}% confidence
                 </p>
