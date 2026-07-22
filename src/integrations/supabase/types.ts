@@ -1894,6 +1894,10 @@ export type Database = {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
       }
+      delete_session_cascade: {
+        Args: { p_expected_user: string; p_session_id: string }
+        Returns: undefined
+      }
       fail_unified_turn: {
         Args: {
           p_error_code: string
