@@ -31,6 +31,16 @@ import type { UnifiedResult } from "@/lib/wisdom/unified.schemas";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedResultView } from "@/components/wisdom/UnifiedResultView";
 import { consumeHandoff, consumePendingInput } from "@/lib/wisdom/handoff";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type WisdomSearch = {
   // Opaque nonce that references a sessionStorage payload. Never contains user text.
