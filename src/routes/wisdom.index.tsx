@@ -642,15 +642,26 @@ function EmptyState({ onPick }: { onPick: (prompt: string, mode: Mode) => void }
   );
 }
 
-function RailCard({ label, head, children }: { label: string; head: string; children: React.ReactNode }) {
+function RailRow({
+  label,
+  head,
+  children,
+  last,
+}: {
+  label: string;
+  head: string;
+  children: React.ReactNode;
+  last?: boolean;
+}) {
   return (
-    <div className="rounded-2xl border border-panel-border bg-surface/50 p-4">
+    <div className={["px-4 py-3.5", last ? "" : "border-b border-panel-border/60"].join(" ")}>
       <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
-      <div className="mt-1 text-[13px] font-medium">{head}</div>
-      <div className="mt-2">{children}</div>
+      <div className="mt-1 truncate text-[13px] font-medium">{head}</div>
+      <div className="mt-1.5">{children}</div>
     </div>
   );
 }
+
 
 function PrivateBetaBanner({
   access,
