@@ -23,7 +23,7 @@ import { listRecentSessions, loadSessionHistory, deleteSession } from "@/lib/wis
 import { finalizePrayer } from "@/lib/wisdom/library.functions";
 import { useSession } from "@/hooks/useSession";
 import { useWisdomAccess } from "@/hooks/useWisdomAccess";
-import { FlickeringGrid } from "@/registry/magicui/flickering-grid";
+
 import { ShineBorder } from "@/registry/magicui/shine-border";
 import { streamUnifiedTurn, type TurnEvent } from "@/lib/wisdom/unified.stream";
 import { mapWisdomError, type UserSafeError } from "@/lib/wisdom/errorCopy";
