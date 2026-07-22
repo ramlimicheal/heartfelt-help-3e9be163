@@ -81,8 +81,19 @@ const SUGGESTIONS = [
   { Icon: Hand, label: "Reflect on a repeated setback", prompt: "I said I wouldn't again, and I did. Here's what happened — ", mode: "pattern" as Mode },
 ];
 
-type UserTurn = { kind: "user"; id: string; text: string };
-type WisdomTurn = { kind: "wisdom"; id: string; turnId?: string; result?: UnifiedResult; error?: string; phase: "processing" | "done" | "error" };
+type UserTurn = { kind: "user"; id: string; text: string; createdAt: string; memoryDirective: MemoryDirective };
+type WisdomTurn = {
+  kind: "wisdom";
+  id: string;
+  turnId?: string;
+  result?: UnifiedResult;
+  error?: string;
+  phase: "processing" | "done" | "error";
+  createdAt: string;
+  memoryDirective: MemoryDirective;
+  prayerId?: string;
+  mode: Mode;
+};
 type Turn = UserTurn | WisdomTurn;
 
 function newId() {
