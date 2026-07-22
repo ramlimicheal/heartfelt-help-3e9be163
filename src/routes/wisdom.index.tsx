@@ -605,47 +605,48 @@ function WisdomChat() {
           )}
         </div>
 
-        {/* Insight strip — keeps the canvas fluid instead of reserving a fixed right rail */}
-        <div className="mt-3 grid w-full grid-cols-1 gap-2 lg:grid-cols-3">
-          <InsightCard label="Session" head={isEmpty ? "Live" : `${exchangeCount} exchange${exchangeCount === 1 ? "" : "s"}`}>
-            <p className="text-[11.5px] text-muted-foreground">
-              {isEmpty ? "Waiting for your first message." : `Mode · ${activeModeMeta?.label}`}
-            </p>
-          </InsightCard>
+        {/* Insight strip — only in the new-session state; during an active
+            conversation the Wisdom Map on the right takes over this role. */}
+        {isEmpty && (
+          <div className="mt-3 grid w-full grid-cols-1 gap-2 lg:grid-cols-3">
+            <InsightCard label="Session" head="Live">
+              <p className="text-[11.5px] text-muted-foreground">Waiting for your first message.</p>
+            </InsightCard>
 
-          {d?.patterns.mostRecent ? (
-            <InsightCard label="Emerging pattern" head={d.patterns.mostRecent.title}>
-              <p className="text-[11.5px] text-muted-foreground">
-                {d.patterns.mostRecent.lifecycle} · updated {new Date(d.patterns.mostRecent.updatedAt).toLocaleDateString()}
-              </p>
-            </InsightCard>
-          ) : (
-            <InsightCard label="Emerging pattern" head="Nothing surfaced yet">
-              <p className="text-[11.5px] text-muted-foreground">
-                Patterns appear after you describe a real situation.
-              </p>
-            </InsightCard>
-          )}
+            {d?.patterns.mostRecent ? (
+              <InsightCard label="Emerging pattern" head={d.patterns.mostRecent.title}>
+                <p className="text-[11.5px] text-muted-foreground">
+                  {d.patterns.mostRecent.lifecycle} · updated {new Date(d.patterns.mostRecent.updatedAt).toLocaleDateString()}
+                </p>
+              </InsightCard>
+            ) : (
+              <InsightCard label="Emerging pattern" head="Nothing surfaced yet">
+                <p className="text-[11.5px] text-muted-foreground">
+                  Patterns appear after you describe a real situation.
+                </p>
+              </InsightCard>
+            )}
 
-          {d?.latestPrayer ? (
-            <InsightCard label="Latest prayer" head={`${d.latestPrayer.movementCount} movements`}>
-              <p className="truncate text-[11.5px] text-muted-foreground">{d.latestPrayer.title}</p>
-              <Link
-                to="/prayers/$prayerId"
-                params={{ prayerId: d.latestPrayer.id }}
-                className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
-              >
-                Open prayer →
-              </Link>
-            </InsightCard>
-          ) : (
-            <InsightCard label="Prayer" head="Not formed yet">
-              <p className="text-[11.5px] text-muted-foreground">
-                Appears after Wisdom understands the situation.
-              </p>
-            </InsightCard>
-          )}
-        </div>
+            {d?.latestPrayer ? (
+              <InsightCard label="Latest prayer" head={`${d.latestPrayer.movementCount} movements`}>
+                <p className="truncate text-[11.5px] text-muted-foreground">{d.latestPrayer.title}</p>
+                <Link
+                  to="/prayers/$prayerId"
+                  params={{ prayerId: d.latestPrayer.id }}
+                  className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
+                >
+                  Open prayer →
+                </Link>
+              </InsightCard>
+            ) : (
+              <InsightCard label="Prayer" head="Not formed yet">
+                <p className="text-[11.5px] text-muted-foreground">
+                  Appears after Wisdom understands the situation.
+                </p>
+              </InsightCard>
+            )}
+          </div>
+        )}
 
         {/* Composer */}
         <div className="mt-3 w-full">
