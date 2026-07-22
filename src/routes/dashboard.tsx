@@ -19,6 +19,7 @@ import { COPY } from "@/lib/wisdom/copy/v1";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
 import type { DashboardSlice } from "@/lib/wisdom/dashboard.schemas";
 import { useSession } from "@/hooks/useSession";
+import { writeHandoff } from "@/lib/wisdom/handoff";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
