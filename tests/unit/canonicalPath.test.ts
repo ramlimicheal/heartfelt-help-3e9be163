@@ -60,17 +60,17 @@ describe("canonical wisdom path", () => {
 
   it("dashboard never puts user-entered text in the URL", () => {
     const src = readFileSync("src/routes/dashboard.tsx", "utf8");
-    // The navigate() call must not carry `prompt` or `autostart` in search.
-    // Extract every navigate({...}) block that targets /wisdom.
-    const blocks = src.match(/navigate\(\{[\s\S]*?to:\s*["']\/wisdom["'][\s\S]*?\}\)/g) ?? [];
-    expect(blocks.length).toBeGreaterThan(0);
-    for (const b of blocks) {
+    // Split on `navigate({` and inspect only the blocks that route to /wisdom.
+    const parts = src.split(/navigate\(\{/).slice(1);
+    const wisdomBlocks = parts
+      .map((p) => p.slice(0, p.indexOf("})")))
+      .filter((b) => /to:\s*["']\/wisdom["']/.test(b));
+    expect(wisdomBlocks.length).toBeGreaterThan(0);
+    for (const b of wisdomBlocks) {
       expect(b).not.toMatch(/\bprompt\b/);
       expect(b).not.toMatch(/\bautostart\b/);
-      // The variable `text` holds the user story; it must not be serialized.
       expect(b).not.toMatch(/\btext\b/);
     }
-    // And handoff must be used.
     expect(src).toMatch(/writeHandoff\(/);
   });
 
