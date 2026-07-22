@@ -356,7 +356,7 @@ function WisdomChat() {
               <EmptyState onPick={(p, m) => { setInput(p); setMode(m); textareaRef.current?.focus(); }} />
             </div>
           ) : (
-            <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 py-6 2xl:max-w-6xl">
+            <div className="flex w-full flex-col gap-6 py-6">
               {turns.map((t) => t.kind === "user"
                 ? <UserBubble key={t.id} text={t.text} />
                 : <WisdomBubble key={t.id} turn={t} />
@@ -385,7 +385,7 @@ function WisdomChat() {
         </div>
 
         {/* Composer */}
-        <div className="mx-auto mt-3 w-full max-w-5xl 2xl:max-w-6xl">
+        <div className="mt-3 w-full">
           {!composerEnabled && <PrivateBetaBanner access={access} user={user} />}
           <div
             className="relative overflow-hidden rounded-2xl border border-panel-border bg-surface/70 p-3 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur"
@@ -514,7 +514,7 @@ function applyEvent(
 
 function UserBubble({ text }: { text: string }) {
   return (
-    <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-[14px] leading-relaxed text-primary-foreground shadow-sm">
+    <div className="ml-auto max-w-[min(72ch,85%)] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-[14px] leading-relaxed text-primary-foreground shadow-sm">
       {text}
     </div>
   );
@@ -523,7 +523,7 @@ function UserBubble({ text }: { text: string }) {
 function WisdomBubble({ turn }: { turn: WisdomTurn }) {
   const r = turn.result;
   return (
-    <div className="flex max-w-[92%] gap-3">
+    <div className="flex max-w-[min(88ch,92%)] gap-3">
       <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
         <Sparkles className="size-3.5" strokeWidth={1.75} />
       </span>
@@ -612,7 +612,7 @@ function PrayerDraft({ title, lines }: { title: string; lines: Array<{ movement:
 
 function EmptyState({ onPick }: { onPick: (prompt: string, mode: Mode) => void }) {
   return (
-    <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center py-10 text-center">
+    <div className="flex h-full w-full flex-col items-center justify-center py-10 text-center">
       <span className="grid size-12 place-items-center rounded-2xl bg-primary/15 text-primary shadow-[0_0_40px_-8px_var(--primary-glow)]">
         <Sparkles className="size-5" strokeWidth={1.75} />
       </span>
@@ -620,11 +620,11 @@ function EmptyState({ onPick }: { onPick: (prompt: string, mode: Mode) => void }
         What is happening beneath the surface,
         <span className="text-muted-foreground"> that you'd like to see clearly?</span>
       </h1>
-      <p className="mt-3 max-w-md text-[13px] leading-relaxed text-muted-foreground">
+      <p className="mt-3 max-w-xl text-[13px] leading-relaxed text-muted-foreground">
         Bring a real situation. Wisdom listens for the pattern, then mirrors it through
         Scripture—never as a verdict.
       </p>
-      <div className="mt-8 grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className="mt-8 grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
         {SUGGESTIONS.map(({ Icon, label, prompt, mode }) => (
           <button
             key={label}
