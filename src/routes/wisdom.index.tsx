@@ -469,14 +469,24 @@ function WisdomChat() {
   }) | undefined;
   const emergingPattern = latestResult?.proposed_pattern?.title
     ?? latestResult?.pattern?.title
+    ?? d?.patterns.mostRecent?.title
     ?? null;
   const emergingPatternDesc = latestResult?.proposed_pattern?.description
     ?? latestResult?.pattern?.description
-    ?? null;
+    ?? (d?.patterns.mostRecent
+      ? `${d.patterns.mostRecent.lifecycle} · updated ${new Date(d.patterns.mostRecent.updatedAt).toLocaleDateString()}`
+      : null);
   const latestPrayerText = latestResult?.prayer?.body
     ?? latestResult?.prayer?.text
     ?? null;
-  const latestPrayerTitle = latestResult?.prayer?.title ?? null;
+  const latestPrayerTitle = latestResult?.prayer?.title
+    ?? d?.latestPrayer?.title
+    ?? null;
+  const latestPrayerMeta = !latestPrayerText && d?.latestPrayer
+    ? `${d.latestPrayer.movementCount} movement${d.latestPrayer.movementCount === 1 ? "" : "s"}`
+    : null;
+  const latestPrayerLinkId = !latestPrayerText ? d?.latestPrayer?.id ?? null : null;
+
 
   return (
     <div className="relative flex h-[calc(100vh-3rem)] w-full gap-4">
@@ -633,48 +643,8 @@ function WisdomChat() {
           )}
         </div>
 
-        {/* Insight strip — only in the new-session state; during an active
-            conversation the Wisdom Map on the right takes over this role. */}
-        {isEmpty && (
-          <div className="mt-3 grid w-full grid-cols-1 gap-2 lg:grid-cols-3">
-            <InsightCard label="Session" head="Live">
-              <p className="text-[11.5px] text-muted-foreground">Waiting for your first message.</p>
-            </InsightCard>
+        {/* Insight strip lives in the right rail now — no duplicate here. */}
 
-            {d?.patterns.mostRecent ? (
-              <InsightCard label="Emerging pattern" head={d.patterns.mostRecent.title}>
-                <p className="text-[11.5px] text-muted-foreground">
-                  {d.patterns.mostRecent.lifecycle} · updated {new Date(d.patterns.mostRecent.updatedAt).toLocaleDateString()}
-                </p>
-              </InsightCard>
-            ) : (
-              <InsightCard label="Emerging pattern" head="Nothing surfaced yet">
-                <p className="text-[11.5px] text-muted-foreground">
-                  Patterns appear after you describe a real situation.
-                </p>
-              </InsightCard>
-            )}
-
-            {d?.latestPrayer ? (
-              <InsightCard label="Latest prayer" head={`${d.latestPrayer.movementCount} movements`}>
-                <p className="truncate text-[11.5px] text-muted-foreground">{d.latestPrayer.title}</p>
-                <Link
-                  to="/prayers/$prayerId"
-                  params={{ prayerId: d.latestPrayer.id }}
-                  className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
-                >
-                  Open prayer →
-                </Link>
-              </InsightCard>
-            ) : (
-              <InsightCard label="Prayer" head="Not formed yet">
-                <p className="text-[11.5px] text-muted-foreground">
-                  Appears after Wisdom understands the situation.
-                </p>
-              </InsightCard>
-            )}
-          </div>
-        )}
 
         {/* Composer — slim pill, tag-colored mode chips, circular submit */}
         <div className="mt-3 w-full">
@@ -844,11 +814,26 @@ function WisdomChat() {
                 “{latestPrayerText}”
               </div>
             </>
+          ) : latestPrayerTitle && latestPrayerLinkId ? (
+            <>
+              <div className="mt-1.5 text-[13px] font-medium text-foreground">{latestPrayerTitle}</div>
+              {latestPrayerMeta && (
+                <div className="mt-0.5 text-[11px] text-muted-foreground">{latestPrayerMeta}</div>
+              )}
+              <Link
+                to="/prayers/$prayerId"
+                params={{ prayerId: latestPrayerLinkId }}
+                className="mt-1.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
+              >
+                Open prayer →
+              </Link>
+            </>
           ) : (
             <div className="mt-1.5 text-[12px] text-muted-foreground/80">
               A prayer will form alongside the response.
             </div>
           )}
+
         </div>
       </aside>
 
