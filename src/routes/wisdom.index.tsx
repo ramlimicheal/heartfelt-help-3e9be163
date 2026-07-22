@@ -604,6 +604,11 @@ function WisdomChat() {
                 {busy ? <><Loader2 className="size-3 animate-spin" /> Composing…</> : <>Begin <ArrowUp className="size-3" /></>}
               </button>
             </div>
+            <MemoryDirectiveControl
+              value={memoryDirective}
+              onChange={setMemoryDirective}
+              disabled={!composerEnabled || busy}
+            />
           </div>
           <p className="mt-2 px-2 text-center text-[10px] text-muted-foreground">
             Scripture citations are checked against curated passages · nothing is remembered without your permission.
