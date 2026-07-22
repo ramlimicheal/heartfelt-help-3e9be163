@@ -33,9 +33,9 @@ function PrayersList() {
 
       {list.length === 0 ? (
         <div className="rounded-2xl border border-panel-border bg-panel/60 px-6 py-10 text-center">
-          <p className="text-lg">No prayer has been formed yet.</p>
+          <p className="text-lg">No finalized prayer yet.</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            A prayer will appear here after Wisdom understands the situation and verifies its biblical roots.
+            Drafts stay inside the session that produced them. When you finalize a prayer, it appears here as a durable library entry.
           </p>
           <Link to="/wisdom" className="mt-4 inline-block rounded-full bg-primary px-4 py-1.5 text-sm text-primary-foreground">
             Open Wisdom
@@ -52,13 +52,13 @@ function PrayersList() {
             >
               <p className="text-lg leading-snug">{p.title}</p>
               <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
-                {p.mode} · {p.lineCount} line{p.lineCount === 1 ? "" : "s"}
-                {p.finalizedAt ? " · finalized" : " · draft"}
+                {p.mode} · {p.lineCount} line{p.lineCount === 1 ? "" : "s"} · finalized
               </p>
             </Link>
           ))}
         </section>
       )}
+
     </div>
   );
 }
