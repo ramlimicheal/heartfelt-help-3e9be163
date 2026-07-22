@@ -27,11 +27,17 @@ import { mapWisdomError, type UserSafeError } from "@/lib/wisdom/errorCopy";
 import type { UnifiedResult } from "@/lib/wisdom/unified.schemas";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedResultView } from "@/components/wisdom/UnifiedResultView";
+import { consumeHandoff } from "@/lib/wisdom/handoff";
 
 type WisdomSearch = {
-  prompt?: string;
+  // Opaque nonce that references a sessionStorage payload. Never contains user text.
+  handoff?: string;
+  // Non-sensitive mode identifier. Only honored for NEW sessions; existing
+  // sessions ignore this in favor of the DB-locked mode.
   mode?: "companion" | "pattern" | "deep_wisdom" | "curse_breaker";
-  autostart?: boolean;
+  // Existing session to hydrate. Ownership is verified server-side by
+  // `loadSessionHistory` (RLS + explicit user_id check); the route param
+  // alone is never treated as evidence of ownership.
   sessionId?: string;
 };
 
@@ -51,11 +57,9 @@ export const Route = createFileRoute("/wisdom/")({
   component: WisdomChat,
   validateSearch: (raw: Record<string, unknown>): WisdomSearch => {
     const mode = ALL_MODES.find((m) => m === raw.mode);
-    const autostart = raw.autostart === "1" || raw.autostart === true || raw.autostart === 1;
     return {
-      prompt: typeof raw.prompt === "string" && raw.prompt.length > 0 ? raw.prompt : undefined,
+      handoff: typeof raw.handoff === "string" && raw.handoff.length > 0 ? raw.handoff : undefined,
       mode,
-      autostart: autostart || undefined,
       sessionId: typeof raw.sessionId === "string" ? raw.sessionId : undefined,
     };
   },
