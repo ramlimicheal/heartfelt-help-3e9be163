@@ -247,35 +247,55 @@ function WisdomChat() {
   };
 
   // Canonical entry from other routes (e.g. /dashboard).
-  // Consumes ?prompt&mode&autostart&sessionId once, then submits via streamUnifiedTurn.
+  //
+  // Sensitive user text is NOT read from the URL. The dashboard writes a
+  // one-time payload to sessionStorage keyed by an opaque nonce, and only
+  // the nonce (+ non-sensitive mode) travels in `search`. `consumeHandoff`
+  // both returns and destroys the payload atomically, and records the
+  // nonce in a consumed set — so remount, Strict Mode double-invocation,
+  // refresh, and back/forward navigation cannot fire a second submit.
+  //
+  // Session-mode authority:
+  //   - New session → use the mode carried by the handoff.
+  //   - Existing sessionId → DB mode wins (loaded by openSession); any
+  //     mode query param is ignored. mode_locked_at is enforced server-side.
   const search = Route.useSearch();
   const navigate = useNavigate();
   const bootRef = useRef(false);
   useEffect(() => {
     if (bootRef.current) return;
     if (!ready) return;
-    // If a specific session is requested, load it.
+
+    // Existing session takes priority; ownership is verified server-side.
     if (search.sessionId) {
       bootRef.current = true;
       void openSession(search.sessionId);
+      // Strip the query param so back/forward doesn't retrigger.
+      void navigate({ to: "/wisdom", search: {}, replace: true });
       return;
     }
-    // Prefill from search params.
-    if (search.prompt) {
-      setInput(search.prompt);
-      if (search.mode) setMode(search.mode);
-    }
-    // Only auto-submit when explicitly asked AND access is allowed.
-    if (search.autostart && search.prompt && user && access.status === "allowed") {
-      bootRef.current = true;
-      const m: Mode = search.mode ?? mode;
-      setMode(m);
-      // Clear the search params so a reload doesn't re-submit the same prompt.
+
+    // Handoff-driven autostart (dashboard → wisdom).
+    if (search.handoff) {
+      // Consume atomically; any second effect run finds nothing.
+      const payload = consumeHandoff(search.handoff);
+      // Always strip the nonce from the URL so it can't be shared/replayed.
       void navigate({ to: "/wisdom", search: {}, replace: true });
-      void submit(search.prompt, m);
+      if (!payload) return;
+      if (!user || access.status !== "allowed") return;
+
+      bootRef.current = true;
+      // Handoff always begins a fresh session so its mode cannot silently
+      // override a previously locked session's mode.
+      setTurns([]);
+      setSessionId(null);
+      setInput("");
+      const m: Mode = payload.mode;
+      setMode(m);
+      void submit(payload.prompt, m);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, user, access.status, search.prompt, search.mode, search.autostart, search.sessionId]);
+  }, [ready, user, access.status, search.handoff, search.sessionId]);
 
 
   const fetchSlice = useServerFn(getDashboardSlice);
