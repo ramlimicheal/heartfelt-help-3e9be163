@@ -23,7 +23,7 @@ import { listRecentSessions, loadSessionHistory, deleteSession } from "@/lib/wis
 import { finalizePrayer } from "@/lib/wisdom/library.functions";
 import { useSession } from "@/hooks/useSession";
 import { useWisdomAccess } from "@/hooks/useWisdomAccess";
-import { FlickeringGrid } from "@/registry/magicui/flickering-grid";
+
 import { ShineBorder } from "@/registry/magicui/shine-border";
 import { streamUnifiedTurn, type TurnEvent } from "@/lib/wisdom/unified.stream";
 import { mapWisdomError, type UserSafeError } from "@/lib/wisdom/errorCopy";
@@ -510,26 +510,10 @@ function WisdomChat() {
 
 
   return (
-    <div className="relative flex h-[calc(100vh-3rem)] w-full gap-4">
+    <div className="relative flex h-[calc(100dvh-7rem)] w-full gap-4">
       {/* Main column — fluid, centered content, composer anchored bottom */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute left-0 top-0 -z-0 h-[90px] w-[280px] overflow-hidden opacity-60"
-          style={{
-            maskImage: "radial-gradient(ellipse at top left, black 0%, transparent 75%)",
-            WebkitMaskImage: "radial-gradient(ellipse at top left, black 0%, transparent 75%)",
-          }}
-        >
-          <FlickeringGrid
-            className="h-full w-full [&_canvas]:!h-full [&_canvas]:!w-full"
-            squareSize={2}
-            gridGap={7}
-            flickerChance={0.18}
-            color="#E8DFC8"
-            maxOpacity={0.35}
-          />
-        </div>
+
 
         {/* Top bar with session status + history */}
         <div className="mb-3 flex items-center justify-between gap-3">
@@ -745,7 +729,7 @@ function WisdomChat() {
               />
             </div>
           </div>
-          <p className="mt-2 px-2 text-center text-[10px] text-muted-foreground">
+          <p className="mt-1.5 px-2 text-center text-[10px] leading-tight text-muted-foreground">
             Scripture citations are checked against curated passages · nothing is remembered without your permission.
           </p>
         </div>
@@ -777,10 +761,7 @@ function WisdomChat() {
             <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Live</span>
             {mapMode === "streaming" ? (
               <span className="inline-flex items-center gap-1.5 text-[10px] text-tag-attend">
-                <span className="relative inline-flex size-1.5">
-                  <span className="absolute inset-0 animate-ping rounded-full bg-tag-attend/70" />
-                  <span className="relative inline-block size-1.5 rounded-full bg-tag-attend" />
-                </span>
+                <span className="inline-block size-1.5 rounded-full bg-tag-attend" />
                 Listening
               </span>
             ) : mapMode === "ready" ? (
