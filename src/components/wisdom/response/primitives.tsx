@@ -113,7 +113,7 @@ export function SectionShell({
               )}
               <H
                 id={headingId}
-                className="text-[19px] font-medium leading-tight text-foreground md:text-[22px]"
+                className="text-[14.5px] font-medium leading-snug tracking-[-0.005em] text-foreground md:text-[16px]"
               >
                 {title}
               </H>
@@ -121,7 +121,7 @@ export function SectionShell({
           ) : (
             <H
               id={headingId}
-              className="mt-1 text-[19px] font-medium leading-tight text-foreground md:text-[22px]"
+              className="mt-1 text-[14.5px] font-medium leading-snug tracking-[-0.005em] text-foreground md:text-[16px]"
             >
               {title}
             </H>
@@ -135,7 +135,8 @@ export function SectionShell({
       {(!collapsible || open) && (
         <div
           id={bodyId}
-          className="text-[14px] leading-relaxed text-foreground/90 motion-safe:animate-in motion-safe:fade-in-50 motion-safe:duration-300"
+          className="text-[13.5px] leading-[1.65] text-foreground/90 motion-safe:animate-in motion-safe:fade-in-50 motion-safe:slide-in-from-bottom-1 motion-safe:duration-500"
+
         >
           {children}
         </div>

@@ -179,14 +179,15 @@ export function WisdomResponse({
             eyebrow="What I'm hearing"
             title={result.what_wisdom_heard || "What I'm hearing"}
           >
-            <p className="text-[15px] leading-relaxed text-foreground/90">
+            <p className="text-[13.5px] leading-[1.65] text-foreground/90 motion-safe:animate-in motion-safe:fade-in-50 motion-safe:duration-500">
               {result.user_facing_response}
             </p>
             {isCompanion && (result as { reflection?: string }).reflection && (
-              <p className="mt-3 border-l-2 border-primary/40 pl-3 text-[14px] italic text-foreground/85">
+              <p className="mt-3 border-l-2 border-primary/40 pl-3 text-[13px] italic leading-relaxed text-foreground/80">
                 {(result as { reflection?: string }).reflection}
               </p>
             )}
+
           </SectionShell>
         )}
 
@@ -423,12 +424,13 @@ function OrientationBlock({
           </div>
           <h2
             id="wr-orientation-heading"
-            className="mt-2 text-[22px] font-medium leading-tight text-foreground md:text-[26px]"
+            className="mt-2 text-[17px] font-medium leading-snug tracking-[-0.005em] text-foreground md:text-[19px]"
           >
             {orientation?.sessionTitle
               ? orientation.sessionTitle
               : (result.what_wisdom_heard || "This response")}
           </h2>
+
           <p className="mt-1 text-[11.5px] uppercase tracking-[0.14em] text-muted-foreground">
             {created ? created.toLocaleString() : "Just now"}
             {sessionHistory && sessionHistory.turnCount > 1
