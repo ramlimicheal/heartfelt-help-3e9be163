@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUp,
   BookOpen,
+  Clock,
   Compass,
   Hand,
   HandHelping,
@@ -12,6 +13,7 @@ import {
   ShieldAlert,
   Sparkles,
   Trash2,
+
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
