@@ -729,7 +729,7 @@ function WisdomChat() {
               />
             </div>
           </div>
-          <p className="mt-2 px-2 text-center text-[10px] text-muted-foreground">
+          <p className="mt-1.5 px-2 text-center text-[10px] leading-tight text-muted-foreground">
             Scripture citations are checked against curated passages · nothing is remembered without your permission.
           </p>
         </div>
