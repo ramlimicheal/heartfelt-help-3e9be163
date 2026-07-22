@@ -173,12 +173,14 @@ describe("Phase 2B — prayer finalization DB integrity", () => {
 
   it("library filter: only finalized prayers appear in the listing query", async () => {
     const passageId = await pickPassage();
-    const sess = await makeSession(ctx.userA);
-    // Draft prayer (no citations, cannot finalize).
-    const draftId = await makePrayer(ctx.userA, sess, "Draft only");
+    // Unique-index prayers_one_draft_per_session forbids two unfinalized
+    // prayers in one session — use separate sessions per prayer.
+    const draftSess = await makeSession(ctx.userA);
+    const draftId = await makePrayer(ctx.userA, draftSess, "Draft only");
     await makeLine(ctx.userA, draftId, 1, "Uncited.");
     // Finalized prayer.
-    const finalId = await makePrayer(ctx.userA, sess, "Truly finalized");
+    const finalSess = await makeSession(ctx.userA);
+    const finalId = await makePrayer(ctx.userA, finalSess, "Truly finalized");
     const fl = await makeLine(ctx.userA, finalId, 1, "Cited.");
     await citeLine(ctx.userA, fl, passageId);
     const fin = await attemptFinalize(ctx.userA, finalId);
