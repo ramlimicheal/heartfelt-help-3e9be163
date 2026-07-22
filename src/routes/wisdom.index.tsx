@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUp,
   BookOpen,
+  Clock,
   Compass,
   Hand,
   HandHelping,
@@ -12,6 +13,7 @@ import {
   ShieldAlert,
   Sparkles,
   Trash2,
+
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
@@ -228,8 +230,22 @@ function WisdomChat() {
   });
   const d = slice.data;
 
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const historyRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!historyOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!historyRef.current?.contains(e.target as Node)) setHistoryOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [historyOpen]);
+
+  const activeModeMeta = MODES.find((m) => m.id === mode);
+  const exchangeCount = turns.filter((t) => t.kind === "user").length;
+
   return (
-    <div className="relative flex h-[calc(100vh-6rem)] gap-4 md:gap-6">
+    <div className="relative flex h-[calc(100vh-6rem)] gap-4 xl:gap-6">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-[220px] overflow-hidden"
@@ -252,57 +268,95 @@ function WisdomChat() {
         />
       </div>
 
-      <aside className="hidden w-[220px] shrink-0 flex-col gap-2 overflow-y-auto md:flex">
-        <button
-          type="button"
-          onClick={newSession}
-          className="rounded-lg border border-panel-border bg-surface/50 px-3 py-2 text-left text-[12px] font-medium hover:bg-surface"
-        >
-          + New session
-        </button>
-        <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground px-1 mt-1">Past sessions</div>
-        <div className="flex flex-col gap-1">
-          {(sessionsQ.data ?? []).map((s) => (
-            <div
-              key={s.id}
-              className={[
-                "group relative flex items-center gap-1 rounded-md transition",
-                sessionId === s.id
-                  ? "bg-primary/15 text-foreground"
-                  : "text-muted-foreground hover:bg-surface/60 hover:text-foreground",
-              ].join(" ")}
-            >
-              <button
-                onClick={() => openSession(s.id)}
-                className="min-w-0 flex-1 truncate px-2 py-1.5 text-left text-[12px]"
-                title={s.title ?? new Date(s.updatedAt).toLocaleString()}
-              >
-                <div className="truncate">{s.title ?? `${s.mode} · ${new Date(s.updatedAt).toLocaleDateString()}`}</div>
-                <div className="text-[9.5px] uppercase tracking-wider opacity-60">{s.mode}</div>
-              </button>
-              <button
-                type="button"
-                onClick={(e) => handleDeleteSession(s.id, e)}
-                aria-label="Delete session"
-                title="Delete session"
-                className="mr-1 rounded p-1 text-muted-foreground opacity-0 transition hover:bg-destructive/15 hover:text-destructive focus:opacity-100 group-hover:opacity-100"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ))}
-          {(sessionsQ.data ?? []).length === 0 && (
-            <div className="px-2 text-[11px] text-muted-foreground">No past sessions yet.</div>
-          )}
-        </div>
-      </aside>
-
+      {/* Main column — fluid, centered content, composer anchored bottom */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-        <div ref={scrollerRef} className="flex-1 overflow-y-auto pr-2">
+        {/* Top bar with session status + history */}
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+            <span className="inline-block size-1.5 shrink-0 rounded-full bg-primary/70" aria-hidden />
+            <span className="truncate">
+              {sessionId ? `${activeModeMeta?.label} · ${exchangeCount} exchange${exchangeCount === 1 ? "" : "s"}` : "New session"}
+            </span>
+          </div>
+          <div className="relative flex items-center gap-2" ref={historyRef}>
+            <button
+              type="button"
+              onClick={newSession}
+              className="rounded-full border border-panel-border bg-surface/60 px-3 py-1 text-[11px] text-muted-foreground transition hover:text-foreground"
+            >
+              + New
+            </button>
+            <button
+              type="button"
+              onClick={() => setHistoryOpen((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-panel-border bg-surface/60 px-3 py-1 text-[11px] text-muted-foreground transition hover:text-foreground"
+              aria-haspopup="menu"
+              aria-expanded={historyOpen}
+            >
+              <Clock className="size-3" />
+              History
+              {(sessionsQ.data?.length ?? 0) > 0 && (
+                <span className="ml-0.5 rounded-full bg-primary/15 px-1.5 text-[10px] text-primary">
+                  {sessionsQ.data!.length}
+                </span>
+              )}
+            </button>
+            {historyOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 top-full z-30 mt-2 max-h-[60vh] w-72 overflow-y-auto rounded-2xl border border-panel-border bg-surface/95 p-2 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.5)] backdrop-blur"
+              >
+                <div className="px-2 pb-1 pt-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground">
+                  Past sessions
+                </div>
+                {(sessionsQ.data ?? []).length === 0 ? (
+                  <div className="px-2 py-3 text-[11px] text-muted-foreground">No past sessions yet.</div>
+                ) : (
+                  <div className="flex flex-col gap-0.5">
+                    {(sessionsQ.data ?? []).map((s) => (
+                      <div
+                        key={s.id}
+                        className={[
+                          "group relative flex items-center gap-1 rounded-md transition",
+                          sessionId === s.id
+                            ? "bg-primary/15 text-foreground"
+                            : "text-muted-foreground hover:bg-surface hover:text-foreground",
+                        ].join(" ")}
+                      >
+                        <button
+                          onClick={() => { openSession(s.id); setHistoryOpen(false); }}
+                          className="min-w-0 flex-1 truncate px-2 py-1.5 text-left text-[12px]"
+                          title={s.title ?? new Date(s.updatedAt).toLocaleString()}
+                        >
+                          <div className="truncate">{s.title ?? `${s.mode} · ${new Date(s.updatedAt).toLocaleDateString()}`}</div>
+                          <div className="text-[9.5px] uppercase tracking-wider opacity-60">{s.mode}</div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteSession(s.id, e)}
+                          aria-label="Delete session"
+                          title="Delete session"
+                          className="mr-1 rounded p-1 text-muted-foreground opacity-0 transition hover:bg-destructive/15 hover:text-destructive focus:opacity-100 group-hover:opacity-100"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Scroll region — empty state centers vertically, filled state scrolls */}
+        <div ref={scrollerRef} className="flex flex-1 flex-col overflow-y-auto pr-1">
           {isEmpty ? (
-            <EmptyState onPick={(p, m) => { setInput(p); setMode(m); textareaRef.current?.focus(); }} />
+            <div className="flex flex-1 items-center justify-center">
+              <EmptyState onPick={(p, m) => { setInput(p); setMode(m); textareaRef.current?.focus(); }} />
+            </div>
           ) : (
-            <div className="mx-auto flex max-w-3xl flex-col gap-6 py-6">
+            <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 py-6">
               {turns.map((t) => t.kind === "user"
                 ? <UserBubble key={t.id} text={t.text} />
                 : <WisdomBubble key={t.id} turn={t} />
@@ -330,7 +384,8 @@ function WisdomChat() {
           )}
         </div>
 
-        <div className="mx-auto w-full max-w-3xl">
+        {/* Composer */}
+        <div className="mx-auto mt-3 w-full max-w-3xl">
           {!composerEnabled && <PrivateBetaBanner access={access} user={user} />}
           <div
             className="relative overflow-hidden rounded-2xl border border-panel-border bg-surface/70 p-3 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur"
@@ -371,8 +426,8 @@ function WisdomChat() {
               </div>
               <span className="hidden text-[10px] uppercase tracking-[0.14em] text-muted-foreground md:inline">
                 {turns.length > 0
-                  ? `Locked · ${MODES.find((m) => m.id === mode)?.label}`
-                  : MODES.find((m) => m.id === mode)?.hint}
+                  ? `Locked · ${activeModeMeta?.label}`
+                  : activeModeMeta?.hint}
               </span>
               <button
                 type="button"
@@ -391,52 +446,56 @@ function WisdomChat() {
         </div>
       </div>
 
-      <aside className="hidden w-[300px] shrink-0 flex-col gap-3 overflow-y-auto lg:flex">
-        <RailCard label="Session" head="Live">
-          <div className="text-[12px] text-muted-foreground">
-            {isEmpty ? "Waiting for your first message." : `${turns.filter(t => t.kind === "user").length} exchange${turns.filter(t => t.kind === "user").length === 1 ? "" : "s"} · mode ${mode}`}
-          </div>
-        </RailCard>
+      {/* Right rail — single cohesive panel, fluid, sticky */}
+      <aside className="relative z-10 hidden w-72 shrink-0 flex-col xl:w-80 lg:flex">
+        <div className="sticky top-0 flex flex-col overflow-hidden rounded-2xl border border-panel-border bg-surface/50 backdrop-blur">
+          <RailRow label="Session" head={isEmpty ? "Live" : `${exchangeCount} exchange${exchangeCount === 1 ? "" : "s"}`}>
+            <p className="text-[11.5px] text-muted-foreground">
+              {isEmpty ? "Waiting for your first message." : `Mode · ${activeModeMeta?.label}`}
+            </p>
+          </RailRow>
 
-        {d?.patterns.mostRecent ? (
-          <RailCard label="Emerging pattern" head={d.patterns.mostRecent.title}>
-            <p className="text-[11.5px] text-muted-foreground">
-              {d.patterns.mostRecent.lifecycle} · updated {new Date(d.patterns.mostRecent.updatedAt).toLocaleDateString()}
-            </p>
-            <p className="mt-2 line-clamp-3 text-[11.5px] italic text-muted-foreground">
-              This remains a candidate until you confirm or refine it.
-            </p>
-          </RailCard>
-        ) : (
-          <RailCard label="Emerging pattern" head="Nothing surfaced yet">
-            <p className="text-[11.5px] text-muted-foreground">
-              Patterns appear only after you describe a real situation.
-            </p>
-          </RailCard>
-        )}
+          {d?.patterns.mostRecent ? (
+            <RailRow label="Emerging pattern" head={d.patterns.mostRecent.title}>
+              <p className="text-[11.5px] text-muted-foreground">
+                {d.patterns.mostRecent.lifecycle} · updated {new Date(d.patterns.mostRecent.updatedAt).toLocaleDateString()}
+              </p>
+              <p className="mt-1 line-clamp-2 text-[11.5px] italic text-muted-foreground">
+                Candidate until you confirm or refine it.
+              </p>
+            </RailRow>
+          ) : (
+            <RailRow label="Emerging pattern" head="Nothing surfaced yet">
+              <p className="text-[11.5px] text-muted-foreground">
+                Patterns appear only after you describe a real situation.
+              </p>
+            </RailRow>
+          )}
 
-        {d?.latestPrayer ? (
-          <RailCard label="Latest prayer" head={`${d.latestPrayer.movementCount} movements`}>
-            <p className="line-clamp-2 text-[11.5px] text-muted-foreground">{d.latestPrayer.title}</p>
-            <Link
-              to="/prayers/$prayerId"
-              params={{ prayerId: d.latestPrayer.id }}
-              className="mt-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
-            >
-              Open prayer →
-            </Link>
-          </RailCard>
-        ) : (
-          <RailCard label="Prayer" head="Not formed yet">
-            <p className="text-[11.5px] text-muted-foreground">
-              A prayer will appear after Wisdom understands the situation and verifies its biblical roots.
-            </p>
-          </RailCard>
-        )}
+          {d?.latestPrayer ? (
+            <RailRow label="Latest prayer" head={`${d.latestPrayer.movementCount} movements`}>
+              <p className="line-clamp-2 text-[11.5px] text-muted-foreground">{d.latestPrayer.title}</p>
+              <Link
+                to="/prayers/$prayerId"
+                params={{ prayerId: d.latestPrayer.id }}
+                className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
+              >
+                Open prayer →
+              </Link>
+            </RailRow>
+          ) : (
+            <RailRow label="Prayer" head="Not formed yet" last>
+              <p className="text-[11.5px] text-muted-foreground">
+                Appears after Wisdom understands the situation and verifies its biblical roots.
+              </p>
+            </RailRow>
+          )}
+        </div>
       </aside>
     </div>
   );
 }
+
 
 function applyEvent(
   setTurns: React.Dispatch<React.SetStateAction<Turn[]>>,
@@ -583,15 +642,26 @@ function EmptyState({ onPick }: { onPick: (prompt: string, mode: Mode) => void }
   );
 }
 
-function RailCard({ label, head, children }: { label: string; head: string; children: React.ReactNode }) {
+function RailRow({
+  label,
+  head,
+  children,
+  last,
+}: {
+  label: string;
+  head: string;
+  children: React.ReactNode;
+  last?: boolean;
+}) {
   return (
-    <div className="rounded-2xl border border-panel-border bg-surface/50 p-4">
+    <div className={["px-4 py-3.5", last ? "" : "border-b border-panel-border/60"].join(" ")}>
       <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
-      <div className="mt-1 text-[13px] font-medium">{head}</div>
-      <div className="mt-2">{children}</div>
+      <div className="mt-1 truncate text-[13px] font-medium">{head}</div>
+      <div className="mt-1.5">{children}</div>
     </div>
   );
 }
+
 
 function PrivateBetaBanner({
   access,
