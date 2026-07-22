@@ -480,30 +480,26 @@ function WisdomChat() {
 
   return (
     <div className="relative flex h-[calc(100vh-3rem)] w-full gap-4">
-      <div className="relative flex min-w-0 flex-1 flex-col">
-
-        aria-hidden
-        className="pointer-events-none absolute left-0 top-0 -z-0 h-[90px] w-[280px] overflow-hidden opacity-60"
-        style={{
-          maskImage: "radial-gradient(ellipse at top left, black 0%, transparent 75%)",
-          WebkitMaskImage: "radial-gradient(ellipse at top left, black 0%, transparent 75%)",
-        }}
-      >
-        <FlickeringGrid
-          className="h-full w-full [&_canvas]:!h-full [&_canvas]:!w-full"
-          squareSize={2}
-          gridGap={7}
-          flickerChance={0.18}
-          color="#E8DFC8"
-          maxOpacity={0.35}
-        />
-      </div>
-
-
-
-
       {/* Main column — fluid, centered content, composer anchored bottom */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-0 top-0 -z-0 h-[90px] w-[280px] overflow-hidden opacity-60"
+          style={{
+            maskImage: "radial-gradient(ellipse at top left, black 0%, transparent 75%)",
+            WebkitMaskImage: "radial-gradient(ellipse at top left, black 0%, transparent 75%)",
+          }}
+        >
+          <FlickeringGrid
+            className="h-full w-full [&_canvas]:!h-full [&_canvas]:!w-full"
+            squareSize={2}
+            gridGap={7}
+            flickerChance={0.18}
+            color="#E8DFC8"
+            maxOpacity={0.35}
+          />
+        </div>
+
         {/* Top bar with session status + history */}
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
