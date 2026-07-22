@@ -122,6 +122,20 @@ function WisdomChat() {
     setInput("");
   };
 
+  const removeSession = useServerFn(deleteSession);
+  const handleDeleteSession = async (sid: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (busy) return;
+    if (!confirm("Delete this session and all its messages? This cannot be undone.")) return;
+    try {
+      await removeSession({ data: { sessionId: sid } });
+      if (sessionId === sid) newSession();
+      void sessionsQ.refetch();
+    } catch {
+      setRouteError(mapWisdomError("Could not delete session"));
+    }
+  };
+
   // Create a session lazily on first send (mode is authoritative once locked).
   const ensureSession = async (chosenMode: Mode): Promise<string | null> => {
     if (sessionId) return sessionId;
