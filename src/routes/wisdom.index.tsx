@@ -245,7 +245,7 @@ function WisdomChat() {
   const exchangeCount = turns.filter((t) => t.kind === "user").length;
 
   return (
-    <div className="relative flex h-[calc(100vh-6rem)] gap-4 xl:gap-6">
+    <div className="relative flex h-[calc(100vh-3rem)] w-full gap-4 xl:gap-6">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-[220px] overflow-hidden"
@@ -356,7 +356,7 @@ function WisdomChat() {
               <EmptyState onPick={(p, m) => { setInput(p); setMode(m); textareaRef.current?.focus(); }} />
             </div>
           ) : (
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 py-6">
+            <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 py-6 2xl:max-w-6xl">
               {turns.map((t) => t.kind === "user"
                 ? <UserBubble key={t.id} text={t.text} />
                 : <WisdomBubble key={t.id} turn={t} />
@@ -385,7 +385,7 @@ function WisdomChat() {
         </div>
 
         {/* Composer */}
-        <div className="mx-auto mt-3 w-full max-w-3xl">
+        <div className="mx-auto mt-3 w-full max-w-5xl 2xl:max-w-6xl">
           {!composerEnabled && <PrivateBetaBanner access={access} user={user} />}
           <div
             className="relative overflow-hidden rounded-2xl border border-panel-border bg-surface/70 p-3 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur"
@@ -447,7 +447,7 @@ function WisdomChat() {
       </div>
 
       {/* Right rail — single cohesive panel, fluid, sticky */}
-      <aside className="relative z-10 hidden w-72 shrink-0 flex-col xl:w-80 lg:flex">
+      <aside className="relative z-10 hidden w-80 shrink-0 flex-col xl:w-96 lg:flex">
         <div className="sticky top-0 flex flex-col overflow-hidden rounded-2xl border border-panel-border bg-surface/50 backdrop-blur">
           <RailRow label="Session" head={isEmpty ? "Live" : `${exchangeCount} exchange${exchangeCount === 1 ? "" : "s"}`}>
             <p className="text-[11.5px] text-muted-foreground">
