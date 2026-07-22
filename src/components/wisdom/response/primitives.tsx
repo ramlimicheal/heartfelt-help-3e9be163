@@ -89,7 +89,7 @@ export function SectionShell({
       aria-labelledby={headingId}
       data-section={id}
       data-testid={testId ?? `wr-section-${id}`}
-      className="scroll-mt-24 rounded-2xl border border-panel-border bg-surface/40 px-4 py-4 md:px-6 md:py-5"
+      className="scroll-mt-24 rounded-xl border border-panel-border/70 bg-surface/40 px-3.5 py-3 md:px-4 md:py-3.5 transition-colors"
     >
       <header className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
         <div className="min-w-0">
@@ -113,7 +113,7 @@ export function SectionShell({
               )}
               <H
                 id={headingId}
-                className="text-[14.5px] font-medium leading-snug tracking-[-0.005em] text-foreground md:text-[16px]"
+                className="text-[13.5px] font-medium leading-snug tracking-[-0.005em] text-foreground md:text-[14.5px]"
               >
                 {title}
               </H>
@@ -121,7 +121,7 @@ export function SectionShell({
           ) : (
             <H
               id={headingId}
-              className="mt-1 text-[14.5px] font-medium leading-snug tracking-[-0.005em] text-foreground md:text-[16px]"
+              className="mt-1 text-[13.5px] font-medium leading-snug tracking-[-0.005em] text-foreground md:text-[14.5px]"
             >
               {title}
             </H>
@@ -135,8 +135,7 @@ export function SectionShell({
       {(!collapsible || open) && (
         <div
           id={bodyId}
-          className="text-[13.5px] leading-[1.65] text-foreground/90 motion-safe:animate-in motion-safe:fade-in-50 motion-safe:slide-in-from-bottom-1 motion-safe:duration-500"
-
+          className="text-[12.5px] leading-[1.6] text-foreground/85 motion-safe:animate-in motion-safe:fade-in-50 motion-safe:slide-in-from-bottom-1 motion-safe:duration-500"
         >
           {children}
         </div>
