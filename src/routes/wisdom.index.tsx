@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -26,6 +26,16 @@ import { streamUnifiedTurn, type TurnEvent } from "@/lib/wisdom/unified.stream";
 import { mapWisdomError, type UserSafeError } from "@/lib/wisdom/errorCopy";
 import type { UnifiedResult } from "@/lib/wisdom/unified.schemas";
 import { supabase } from "@/integrations/supabase/client";
+import { UnifiedResultView } from "@/components/wisdom/UnifiedResultView";
+
+type WisdomSearch = {
+  prompt?: string;
+  mode?: "companion" | "pattern" | "deep_wisdom" | "curse_breaker";
+  autostart?: boolean;
+  sessionId?: string;
+};
+
+const ALL_MODES = ["companion", "pattern", "deep_wisdom", "curse_breaker"] as const;
 
 export const Route = createFileRoute("/wisdom/")({
   head: () => ({
@@ -39,6 +49,16 @@ export const Route = createFileRoute("/wisdom/")({
     ],
   }),
   component: WisdomChat,
+  validateSearch: (raw: Record<string, unknown>): WisdomSearch => {
+    const mode = ALL_MODES.find((m) => m === raw.mode);
+    const autostart = raw.autostart === "1" || raw.autostart === true || raw.autostart === 1;
+    return {
+      prompt: typeof raw.prompt === "string" && raw.prompt.length > 0 ? raw.prompt : undefined,
+      mode,
+      autostart: autostart || undefined,
+      sessionId: typeof raw.sessionId === "string" ? raw.sessionId : undefined,
+    };
+  },
 });
 
 type Mode = "companion" | "pattern" | "deep_wisdom" | "curse_breaker";
@@ -166,7 +186,7 @@ function WisdomChat() {
 
   const isEmpty = turns.length === 0;
 
-  const submit = async (retryOf?: string) => {
+  const submit = async (retryOf?: string, modeOverride?: Mode) => {
     const text = retryOf ?? input.trim();
     if (!text) return;
     // Hard double-submit guard (state can race across handlers)
@@ -180,7 +200,8 @@ function WisdomChat() {
       setRouteError(mapWisdomError(reason));
       return;
     }
-    const chosen = MODES.find((m) => m.id === mode);
+    const effectiveMode: Mode = modeOverride ?? mode;
+    const chosen = MODES.find((m) => m.id === effectiveMode);
     if (chosen?.disabled) {
       setRouteError(mapWisdomError("curse_breaker_unavailable"));
       return;
@@ -188,7 +209,7 @@ function WisdomChat() {
 
     inflightRef.current = true;
     setRouteError(null);
-    const sid = await ensureSession(mode);
+    const sid = await ensureSession(effectiveMode);
     if (!sid) { inflightRef.current = false; return; }
 
     const messageId = newId();
@@ -208,7 +229,7 @@ function WisdomChat() {
         triggeringUserMessageId: messageId,
         userText: text,
         memoryDirective: "normal",
-        clientRequestedMode: mode,
+        clientRequestedMode: effectiveMode,
       }, controller.signal)) {
         applyEvent(setTurns, wisdomId, ev);
       }
@@ -220,6 +241,38 @@ function WisdomChat() {
       abortRef.current = null;
     }
   };
+
+  // Canonical entry from other routes (e.g. /dashboard).
+  // Consumes ?prompt&mode&autostart&sessionId once, then submits via streamUnifiedTurn.
+  const search = Route.useSearch();
+  const navigate = useNavigate();
+  const bootRef = useRef(false);
+  useEffect(() => {
+    if (bootRef.current) return;
+    if (!ready) return;
+    // If a specific session is requested, load it.
+    if (search.sessionId) {
+      bootRef.current = true;
+      void openSession(search.sessionId);
+      return;
+    }
+    // Prefill from search params.
+    if (search.prompt) {
+      setInput(search.prompt);
+      if (search.mode) setMode(search.mode);
+    }
+    // Only auto-submit when explicitly asked AND access is allowed.
+    if (search.autostart && search.prompt && user && access.status === "allowed") {
+      bootRef.current = true;
+      const m: Mode = search.mode ?? mode;
+      setMode(m);
+      // Clear the search params so a reload doesn't re-submit the same prompt.
+      void navigate({ to: "/wisdom", search: {}, replace: true });
+      void submit(search.prompt, m);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, user, access.status, search.prompt, search.mode, search.autostart, search.sessionId]);
+
 
   const fetchSlice = useServerFn(getDashboardSlice);
   const slice = useQuery({
@@ -547,64 +600,6 @@ function WisdomBubble({ turn }: { turn: WisdomTurn }) {
   );
 }
 
-function UnifiedResultView({ result }: { result: UnifiedResult }) {
-  return (
-    <div className="space-y-3">
-      <p className="text-foreground/90">{result.user_facing_response}</p>
-
-      {result.mode === "curse_breaker" && (
-        <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Stronghold discerned</div>
-          <div className="mt-1 text-[13px] font-medium">{result.stronghold_category}</div>
-          {result.renunciations.length > 0 && (
-            <ul className="mt-2 space-y-1 text-[12px] text-foreground/80">
-              {result.renunciations.map((r, i) => (
-                <li key={i} className="pl-3 border-l-2 border-primary/40 italic">{r}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {(result.mode === "pattern" || result.mode === "curse_breaker") && (
-        <PrayerDraft title={result.prayer_draft.title} lines={result.prayer_draft.lines} />
-      )}
-      {result.mode === "deep_wisdom" && (
-        <PrayerDraft title={result.prayer_lineage_draft.title} lines={result.prayer_lineage_draft.lines} />
-      )}
-
-      {result.mode !== "companion" && (
-        <div className="rounded-xl border border-panel-border/60 bg-surface/40 p-3">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Primary practice</div>
-          <div className="mt-1 text-[13px] font-medium">{result.primary_practice.title}</div>
-          <p className="mt-1 text-[12px] text-muted-foreground">{result.primary_practice.rationale}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PrayerDraft({ title, lines }: { title: string; lines: Array<{ movement: string; text: string; citations: Array<{ passage_id: string; derivation: string; explanation: string }> }> }) {
-  return (
-    <div className="rounded-xl border border-panel-border/60 bg-surface/40 p-3">
-      <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Prayer draft</div>
-      <div className="mt-1 text-[13px] font-medium">{title}</div>
-      <div className="mt-2 space-y-2">
-        {lines.map((l, i) => (
-          <div key={i} className="border-l-2 border-primary/50 pl-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{l.movement}</div>
-            <p className="text-[13px] italic">{l.text}</p>
-            {l.citations.length > 0 && (
-              <div className="mt-1 text-[10.5px] text-muted-foreground">
-                {l.citations.length} citation{l.citations.length === 1 ? "" : "s"}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function EmptyState({ onPick }: { onPick: (prompt: string, mode: Mode) => void }) {
   return (

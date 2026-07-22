@@ -10,15 +10,12 @@ import {
   Compass,
   Hand,
   HandHelping,
-  Loader2,
   LogIn,
   ShieldAlert,
   Sparkles,
   RefreshCw,
 } from "lucide-react";
 import { COPY } from "@/lib/wisdom/copy/v1";
-import { startWisdomSession, runWisdomPipeline } from "@/lib/wisdom/pipeline.functions";
-import { runCurseBreakerPipeline } from "@/lib/wisdom/curseBreaker.functions";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
 import type { DashboardSlice } from "@/lib/wisdom/dashboard.schemas";
 import { useSession } from "@/hooks/useSession";
@@ -33,29 +30,22 @@ export const Route = createFileRoute("/dashboard")({
   component: WisdomHome,
 });
 
-const SUGGESTIONS = [
-  { Icon: Compass, label: "Name a pattern I keep returning to", prompt: "Something keeps happening that I don't fully understand — ", mode: "pattern" as const },
-  { Icon: HandHelping, label: "Help me pray about something honestly", prompt: "I want to pray about this, but I'm not sure what I'm really asking for — ", mode: "pattern" as const },
-  { Icon: BookOpen, label: "Test a spiritual interpretation", prompt: "I've been wondering whether this is spiritual or just — ", mode: "deep" as const },
-  { Icon: Hand, label: "Reflect on a repeated setback", prompt: "I said I wouldn't again, and I did. Here's what happened — ", mode: "pattern" as const },
-  { Icon: ShieldAlert, label: "A pattern that keeps returning across generations", prompt: COPY.curseBreaker.heroTilePrompt, mode: "curse_breaker" as const },
+type CanonicalMode = "companion" | "pattern" | "deep_wisdom" | "curse_breaker";
+
+const SUGGESTIONS: Array<{ Icon: typeof Compass; label: string; prompt: string; mode: CanonicalMode }> = [
+  { Icon: Compass, label: "Name a pattern I keep returning to", prompt: "Something keeps happening that I don't fully understand — ", mode: "pattern" },
+  { Icon: HandHelping, label: "Help me pray about something honestly", prompt: "I want to pray about this, but I'm not sure what I'm really asking for — ", mode: "pattern" },
+  { Icon: BookOpen, label: "Test a spiritual interpretation", prompt: "I've been wondering whether this is spiritual or just — ", mode: "deep_wisdom" },
+  { Icon: Hand, label: "Reflect on a repeated setback", prompt: "I said I wouldn't again, and I did. Here's what happened — ", mode: "pattern" },
+  { Icon: ShieldAlert, label: "A pattern that keeps returning across generations", prompt: COPY.curseBreaker.heroTilePrompt, mode: "curse_breaker" },
 ];
 
-const MODES = [
+const MODES: Array<{ id: CanonicalMode; label: string; hint: string }> = [
   { id: "companion", label: COPY.modes.companion.label, hint: COPY.modes.companion.hint },
   { id: "pattern", label: COPY.modes.pattern.label, hint: COPY.modes.pattern.hint },
-  { id: "deep", label: COPY.modes.deep.label, hint: COPY.modes.deep.hint },
+  { id: "deep_wisdom", label: COPY.modes.deep.label, hint: COPY.modes.deep.hint },
   { id: "curse_breaker", label: COPY.modes.curse_breaker.label, hint: COPY.modes.curse_breaker.hint },
-] as const;
-
-type ModeId = (typeof MODES)[number]["id"];
-
-const MODE_TO_DB: Record<ModeId, "companion" | "pattern" | "deep_wisdom" | "curse_breaker"> = {
-  companion: "companion",
-  pattern: "pattern",
-  deep: "deep_wisdom",
-  curse_breaker: "curse_breaker",
-};
+];
 
 const FORMATION_LABEL: Record<DashboardSlice["formation"]["state"], string> = {
   no_check_in: "No check-in yet",
@@ -68,14 +58,9 @@ const FORMATION_LABEL: Record<DashboardSlice["formation"]["state"], string> = {
 function WisdomHome() {
   const navigate = useNavigate();
   const [text, setText] = useState("");
-  const [mode, setMode] = useState<ModeId>("pattern");
-  const [busy, setBusy] = useState(false);
-  const [beginError, setBeginError] = useState<string | null>(null);
+  const [mode, setMode] = useState<CanonicalMode>("pattern");
   const { user, ready } = useSession();
 
-  const startFn = useServerFn(startWisdomSession);
-  const runWisdom = useServerFn(runWisdomPipeline);
-  const runCb = useServerFn(runCurseBreakerPipeline);
   const fetchSlice = useServerFn(getDashboardSlice);
 
   const slice = useQuery({
@@ -85,18 +70,19 @@ function WisdomHome() {
     staleTime: 30_000,
   });
 
-  const begin = async () => {
-    if (!text.trim() || busy) return;
-    if (ready && !user) { navigate({ to: "/auth", search: { redirect: "/dashboard" } }); return; }
-    setBusy(true); setBeginError(null);
-    try {
-      const { sessionId } = await startFn({ data: { mode: MODE_TO_DB[mode], text: text.trim() } });
-      if (mode === "curse_breaker") { await runCb({ data: { sessionId } }); navigate({ to: "/wisdom/curse-breaker" }); }
-      else { await runWisdom({ data: { sessionId } }); navigate({ to: "/wisdom/$sessionId", params: { sessionId } }); }
-    } catch (e) {
-      setBeginError(e instanceof Error ? e.message : String(e));
-      setBusy(false);
+  // Canonical path: never call legacy pipeline runners directly.
+  // Hand off to /wisdom, which submits every mode through streamUnifiedTurn → /api/wisdom/turn.
+  const begin = () => {
+    const prompt = text.trim();
+    if (!prompt) return;
+    if (ready && !user) {
+      navigate({ to: "/auth", search: { redirect: "/dashboard" } });
+      return;
     }
+    navigate({
+      to: "/wisdom",
+      search: { prompt, mode, autostart: "1" as unknown as boolean },
+    });
   };
 
   const [clock, setClock] = useState<{ timeStr: string; greeting: string } | null>(null);
@@ -116,6 +102,7 @@ function WisdomHome() {
   const timeStr = clock?.timeStr ?? "";
   const greeting = clock?.greeting ?? "Peace to you";
   const displayName = (user?.email?.split("@")[0] ?? "friend").replace(/[._-]/g, " ");
+
 
   return (
     <div className="min-h-[calc(100vh-6rem)] pb-8">
@@ -158,18 +145,14 @@ function WisdomHome() {
                     );
                   })}
                 </div>
-                <button onClick={begin} disabled={text.trim().length === 0 || busy}
+                <button onClick={begin} disabled={text.trim().length === 0}
                   className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-[11px] font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">
-                  {busy ? (<><Loader2 className="size-3 animate-spin" /> Composing…</>)
-                    : ready && !user ? (<><LogIn className="size-3" /> Sign in</>)
+                  {ready && !user ? (<><LogIn className="size-3" /> Sign in</>)
                     : (<>Begin <ArrowUp className="size-3" /></>)}
                 </button>
               </div>
             </div>
 
-            {beginError && (
-              <p role="alert" className="mt-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[11px] text-destructive">{beginError}</p>
-            )}
 
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
               {SUGGESTIONS.slice(0, 4).map(({ Icon, label, prompt, mode: sm }) => (
