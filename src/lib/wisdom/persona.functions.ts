@@ -72,6 +72,17 @@ export const acceptPersonaFact = createServerFn({ method: "POST" })
     const fact = await loadOwnedFact(context.userId, data.factId);
     const admin = await getAdmin();
 
+    // Session-only / DNR facts can never become accepted cross-session
+    // persona memory. Blocks the "bypass via generic accept" path.
+    if (
+      fact.memory_directive === "session_only" ||
+      fact.memory_directive === "do_not_remember"
+    ) {
+      throw new Error(
+        "This fact was captured under a non-durable memory directive and cannot be accepted as long-term persona memory.",
+      );
+    }
+
     if (fact.sensitivity === "sensitive") {
       // Require confirmation first; caller should invoke confirmSensitivePersonaFact.
       const { data: conf } = await admin
