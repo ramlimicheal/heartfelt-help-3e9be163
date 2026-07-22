@@ -57,7 +57,7 @@ export function enforceCurseBreakerSafety(result: CurseBreakerResult): CurseBrea
   if (hasTrauma && !helpNotes.some((n) => /trauma|therap|counsel|mental[- ]?health/i.test(n))) {
     helpNotes.push(DEFAULT_TRAUMA_HELP_NOTE);
   }
-  if (hasPhys && !helpNotes.some((n) => /medic|doctor|physician|health\b/i.test(n))) {
+  if (hasPhys && !helpNotes.some((n) => /\b(medic|doctor|physician|physical health)\b/i.test(n))) {
     helpNotes.push(DEFAULT_PHYSIOLOGICAL_HELP_NOTE);
   }
 
