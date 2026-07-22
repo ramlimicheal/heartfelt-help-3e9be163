@@ -596,7 +596,7 @@ function WisdomChat() {
                         </button>
                         <button
                           type="button"
-                          onClick={(e) => handleDeleteSession(s.id, e)}
+                          onClick={(e) => requestDeleteSession(s.id, e)}
                           aria-label="Delete session"
                           title="Delete session"
                           className="mr-1 rounded p-1 text-muted-foreground opacity-0 transition hover:bg-destructive/15 hover:text-destructive focus:opacity-100 group-hover:opacity-100"
