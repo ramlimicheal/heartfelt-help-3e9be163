@@ -648,15 +648,12 @@ function WisdomChat() {
           )}
         </div>
 
-        {/* Split-focus separator: anchors the composer as a distinct bottom bar. */}
-        <div className="my-3 h-px w-full bg-gradient-to-r from-transparent via-panel-border to-transparent" />
-
-        {/* Composer — minimal, no border animation */}
-        <div className="w-full shrink-0 space-y-2">
+        {/* Composer — floating bottom island, minimal, no border animation */}
+        <div className="w-full shrink-0 px-2 pb-3 pt-2">
           {!composerEnabled && <PrivateBetaBanner access={access} user={user} />}
 
           <div
-            className="relative overflow-hidden rounded-2xl border border-panel-border/70 bg-surface/40 transition focus-within:border-panel-border focus-within:bg-surface/60"
+            className="relative overflow-hidden rounded-2xl border border-panel-border/80 bg-surface/60 shadow-[0_6px_24px_-8px_color-mix(in_oklab,_var(--foreground)_8%,_transparent)] backdrop-blur-sm transition focus-within:border-panel-border focus-within:bg-surface/80"
             aria-disabled={!composerEnabled}
           >
             {/* Top row: mode chips */}
@@ -725,7 +722,7 @@ function WisdomChat() {
             </div>
           </div>
 
-          <p className="px-1 text-center text-[10px] leading-tight text-muted-foreground/70">
+          <p className="px-1 pt-1.5 text-center text-[10px] leading-tight text-muted-foreground/70">
             Scripture citations are checked against curated passages · nothing is remembered without your permission.
           </p>
         </div>
