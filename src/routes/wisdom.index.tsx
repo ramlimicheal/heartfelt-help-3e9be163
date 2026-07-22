@@ -11,6 +11,7 @@ import {
   Lock,
   ShieldAlert,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
