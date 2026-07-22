@@ -567,64 +567,6 @@ function WisdomBubble({ turn }: { turn: WisdomTurn }) {
   );
 }
 
-function UnifiedResultView({ result }: { result: UnifiedResult }) {
-  return (
-    <div className="space-y-3">
-      <p className="text-foreground/90">{result.user_facing_response}</p>
-
-      {result.mode === "curse_breaker" && (
-        <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Stronghold discerned</div>
-          <div className="mt-1 text-[13px] font-medium">{result.stronghold_category}</div>
-          {result.renunciations.length > 0 && (
-            <ul className="mt-2 space-y-1 text-[12px] text-foreground/80">
-              {result.renunciations.map((r, i) => (
-                <li key={i} className="pl-3 border-l-2 border-primary/40 italic">{r}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {(result.mode === "pattern" || result.mode === "curse_breaker") && (
-        <PrayerDraft title={result.prayer_draft.title} lines={result.prayer_draft.lines} />
-      )}
-      {result.mode === "deep_wisdom" && (
-        <PrayerDraft title={result.prayer_lineage_draft.title} lines={result.prayer_lineage_draft.lines} />
-      )}
-
-      {result.mode !== "companion" && (
-        <div className="rounded-xl border border-panel-border/60 bg-surface/40 p-3">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Primary practice</div>
-          <div className="mt-1 text-[13px] font-medium">{result.primary_practice.title}</div>
-          <p className="mt-1 text-[12px] text-muted-foreground">{result.primary_practice.rationale}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PrayerDraft({ title, lines }: { title: string; lines: Array<{ movement: string; text: string; citations: Array<{ passage_id: string; derivation: string; explanation: string }> }> }) {
-  return (
-    <div className="rounded-xl border border-panel-border/60 bg-surface/40 p-3">
-      <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Prayer draft</div>
-      <div className="mt-1 text-[13px] font-medium">{title}</div>
-      <div className="mt-2 space-y-2">
-        {lines.map((l, i) => (
-          <div key={i} className="border-l-2 border-primary/50 pl-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{l.movement}</div>
-            <p className="text-[13px] italic">{l.text}</p>
-            {l.citations.length > 0 && (
-              <div className="mt-1 text-[10.5px] text-muted-foreground">
-                {l.citations.length} citation{l.citations.length === 1 ? "" : "s"}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function EmptyState({ onPick }: { onPick: (prompt: string, mode: Mode) => void }) {
   return (
