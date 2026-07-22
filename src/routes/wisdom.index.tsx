@@ -167,13 +167,23 @@ function WisdomChat() {
       const rebuilt: Turn[] = [];
       for (const t of hist.turns) {
         const um = t.triggeringUserMessageId ? userMsgs.get(t.triggeringUserMessageId) : undefined;
-        if (um) rebuilt.push({ kind: "user", id: um.id, text: um.content });
+        if (um) rebuilt.push({
+          kind: "user",
+          id: um.id,
+          text: um.content,
+          createdAt: um.createdAt,
+          memoryDirective: (um.memoryDirective as MemoryDirective) ?? "normal",
+        });
         rebuilt.push({
           kind: "wisdom",
           id: t.id,
           turnId: t.id,
           result: t.result ?? undefined,
           phase: t.status === "completed" ? "done" : t.status === "failed" ? "error" : "processing",
+          createdAt: t.createdAt,
+          memoryDirective: (t.memoryDirective as MemoryDirective) ?? "normal",
+          prayerId: (t.artifactIds?.prayer_id as string | undefined) ?? undefined,
+          mode: (t.mode as Mode),
         });
       }
       setTurns(rebuilt);
