@@ -186,7 +186,7 @@ function WisdomChat() {
 
   const isEmpty = turns.length === 0;
 
-  const submit = async (retryOf?: string) => {
+  const submit = async (retryOf?: string, modeOverride?: Mode) => {
     const text = retryOf ?? input.trim();
     if (!text) return;
     // Hard double-submit guard (state can race across handlers)
@@ -200,7 +200,8 @@ function WisdomChat() {
       setRouteError(mapWisdomError(reason));
       return;
     }
-    const chosen = MODES.find((m) => m.id === mode);
+    const effectiveMode: Mode = modeOverride ?? mode;
+    const chosen = MODES.find((m) => m.id === effectiveMode);
     if (chosen?.disabled) {
       setRouteError(mapWisdomError("curse_breaker_unavailable"));
       return;
@@ -208,7 +209,7 @@ function WisdomChat() {
 
     inflightRef.current = true;
     setRouteError(null);
-    const sid = await ensureSession(mode);
+    const sid = await ensureSession(effectiveMode);
     if (!sid) { inflightRef.current = false; return; }
 
     const messageId = newId();
@@ -228,7 +229,7 @@ function WisdomChat() {
         triggeringUserMessageId: messageId,
         userText: text,
         memoryDirective: "normal",
-        clientRequestedMode: mode,
+        clientRequestedMode: effectiveMode,
       }, controller.signal)) {
         applyEvent(setTurns, wisdomId, ev);
       }
@@ -240,6 +241,38 @@ function WisdomChat() {
       abortRef.current = null;
     }
   };
+
+  // Canonical entry from other routes (e.g. /dashboard).
+  // Consumes ?prompt&mode&autostart&sessionId once, then submits via streamUnifiedTurn.
+  const search = Route.useSearch();
+  const navigate = useNavigateRoute();
+  const bootRef = useRef(false);
+  useEffect(() => {
+    if (bootRef.current) return;
+    if (!ready) return;
+    // If a specific session is requested, load it.
+    if (search.sessionId) {
+      bootRef.current = true;
+      void openSession(search.sessionId);
+      return;
+    }
+    // Prefill from search params.
+    if (search.prompt) {
+      setInput(search.prompt);
+      if (search.mode) setMode(search.mode);
+    }
+    // Only auto-submit when explicitly asked AND access is allowed.
+    if (search.autostart && search.prompt && user && access.status === "allowed") {
+      bootRef.current = true;
+      const m: Mode = search.mode ?? mode;
+      setMode(m);
+      // Clear the search params so a reload doesn't re-submit the same prompt.
+      void navigate({ to: "/wisdom", search: {}, replace: true });
+      void submit(search.prompt, m);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, user, access.status, search.prompt, search.mode, search.autostart, search.sessionId]);
+
 
   const fetchSlice = useServerFn(getDashboardSlice);
   const slice = useQuery({
