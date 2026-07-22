@@ -49,6 +49,16 @@ export const Route = createFileRoute("/wisdom/")({
     ],
   }),
   component: WisdomChat,
+  validateSearch: (raw: Record<string, unknown>): WisdomSearch => {
+    const mode = ALL_MODES.find((m) => m === raw.mode);
+    const autostart = raw.autostart === "1" || raw.autostart === true || raw.autostart === 1;
+    return {
+      prompt: typeof raw.prompt === "string" && raw.prompt.length > 0 ? raw.prompt : undefined,
+      mode,
+      autostart: autostart || undefined,
+      sessionId: typeof raw.sessionId === "string" ? raw.sessionId : undefined,
+    };
+  },
 });
 
 type Mode = "companion" | "pattern" | "deep_wisdom" | "curse_breaker";
