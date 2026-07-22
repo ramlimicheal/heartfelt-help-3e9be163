@@ -423,12 +423,13 @@ function OrientationBlock({
           </div>
           <h2
             id="wr-orientation-heading"
-            className="mt-2 text-[22px] font-medium leading-tight text-foreground md:text-[26px]"
+            className="mt-2 text-[17px] font-medium leading-snug tracking-[-0.005em] text-foreground md:text-[19px]"
           >
             {orientation?.sessionTitle
               ? orientation.sessionTitle
               : (result.what_wisdom_heard || "This response")}
           </h2>
+
           <p className="mt-1 text-[11.5px] uppercase tracking-[0.14em] text-muted-foreground">
             {created ? created.toLocaleString() : "Just now"}
             {sessionHistory && sessionHistory.turnCount > 1
