@@ -61,7 +61,15 @@
   --color-tier-founder: var(--tier-founder);
   --color-tier-analogy: var(--tier-analogy);
   --color-tier-hypothesis: var(--tier-hypothesis);
+
+  /* Semantic status tags — consistent across modes, evidence, safety, map. */
+  --color-tag-affirm: var(--tag-affirm);
+  --color-tag-attend: var(--tag-attend);
+  --color-tag-alert: var(--tag-alert);
+  --color-tag-insight: var(--tag-insight);
+  --color-tag-prayer: var(--tag-prayer);
 }
+
 
 /* Dark — default. Paper & Ink: near-black canvas, ivory ink, no accent hue. */
 :root {
