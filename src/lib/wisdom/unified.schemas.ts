@@ -249,18 +249,151 @@ export const zDeepWisdomResult = zSharedResultBase.extend({
 });
 export type DeepWisdomResult = z.infer<typeof zDeepWisdomResult>;
 
-// ── Curse Breaker ────────────────────────────────────────────────────
+// ── Curse Breaker v2 (Phase 3B — layered discernment) ────────────────
+//
+// Vocabulary for contributing influences. NEVER contains spiritual
+// verdicts. Verdicts (biblical_curse, spiritual_attack, generational_sin,
+// stronghold) can only appear in `user_reported_spiritual_concern`, and
+// only when the user themselves named them (server-side guard enforces
+// user-origin evidence).
+export const CB_CONTRIBUTING_KINDS = [
+  "habit_or_choice",
+  "belief_or_shame",
+  "relationship_pressure",
+  "family_learning",
+  "social_normalization",
+  "material_conditions",
+  "trauma_related",
+  "physiological",
+  "formation_gap",
+  "insufficient_evidence",
+] as const;
+export type CurseBreakerContributingKind = typeof CB_CONTRIBUTING_KINDS[number];
+
+// Kinds that require qualified-help guidance whenever they appear.
+export const CB_KINDS_REQUIRING_QUALIFIED_HELP: readonly CurseBreakerContributingKind[] = [
+  "trauma_related",
+  "physiological",
+];
+
+// Kinds that MUST NEVER appear as a Wisdom-generated contributing
+// influence. If a model emits one it is stripped server-side; downgraded
+// to `insufficient_evidence` when nothing else remains.
+export const CB_FORBIDDEN_VERDICT_KINDS = [
+  "biblical_curse",
+  "spiritual_attack",
+  "generational_sin",
+  "stronghold",
+  "direct_biblical_curse_or_stronghold",
+] as const;
+
+export const zObservedPattern = z.preprocess((value) => {
+  if (!value || typeof value !== "object") return { summary: "", evidence_quotes: [] };
+  const r = value as Record<string, unknown>;
+  return {
+    summary: typeof r.summary === "string" ? r.summary : (typeof r.text === "string" ? r.text : ""),
+    evidence_quotes: Array.isArray(r.evidence_quotes)
+      ? r.evidence_quotes
+      : Array.isArray(r.evidence) ? r.evidence : [],
+  };
+}, z.object({
+  summary: z.string().max(800).default(""),
+  evidence_quotes: z.array(z.string().max(400)).max(8).default([]),
+}));
+
+export const zContributingInfluence = z.preprocess((value) => {
+  if (!value || typeof value !== "object") return value;
+  const r = { ...(value as Record<string, unknown>) };
+  const rawKind = String(r.kind ?? r.type ?? "insufficient_evidence").toLowerCase();
+  r.kind = (CB_CONTRIBUTING_KINDS as readonly string[]).includes(rawKind)
+    ? rawKind
+    : "insufficient_evidence";
+  r.id = String(r.id ?? r.slug ?? Math.random().toString(36).slice(2, 10));
+  return r;
+}, z.object({
+  id: z.string().min(1).max(64),
+  kind: z.enum(CB_CONTRIBUTING_KINDS),
+  label: z.string().min(1).max(160).default("Contributing influence"),
+  explanation: z.string().max(800).default(""),
+  supporting_evidence: z.array(z.string().max(400)).max(8).default([]),
+  counter_evidence: z.array(z.string().max(400)).max(8).default([]),
+  uncertainty: z.string().max(400).default(""),
+  needs_qualified_help: z.boolean().default(false),
+}));
+
+export const zUserReportedSpiritualConcern = z.object({
+  concern: z.string().min(1).max(160),
+  evidence_from_user: z.string().min(1).max(600),
+});
+
+export const zPastoralInterpretation = z.preprocess((value) => {
+  if (!value || typeof value !== "object") return value;
+  const r = { ...(value as Record<string, unknown>) };
+  r.id = String(r.id ?? r.slug ?? Math.random().toString(36).slice(2, 10));
+  return r;
+}, z.object({
+  id: z.string().min(1).max(64),
+  summary: z.string().min(1).max(600),
+  supporting_evidence: z.array(z.string().max(400)).max(8).default([]),
+  counter_evidence: z.array(z.string().max(400)).max(8).default([]),
+  uncertainty: z.string().max(400).default(""),
+  biblical_lens: zCitation,
+}));
+
+export const zNextFaithfulAction = z.preprocess((value) => {
+  if (!value || typeof value !== "object") return { text: "", escalation_hint: undefined };
+  return value;
+}, z.object({
+  text: z.string().max(600).default(""),
+  escalation_hint: z.enum(["pastoral","medical","mental_health","legal","emergency"]).optional(),
+}));
+
 export const zCurseBreakerResult = zSharedResultBase.extend({
   mode: z.literal("curse_breaker"),
-  stronghold_category: z.string().max(160).default("unnamed pattern"),
+  // Version discriminator. New results MUST be 2. Legacy rows without this
+  // field are treated as v1 by the compatibility renderer.
+  taxonomy_version: z.literal(2).default(2),
+
+  // v2 layered fields (all with safe defaults so a partial model output
+  // still parses and the server-side safety filter can complete it).
+  observed_pattern: zObservedPattern.default({ summary: "", evidence_quotes: [] }),
+  contributing_influences: z.array(zContributingInfluence).max(10).default([]),
+  user_reported_spiritual_concern: z.array(zUserReportedSpiritualConcern).max(6).default([]),
+  pastoral_interpretations: z.array(zPastoralInterpretation).max(6).default([]),
+  insufficient_evidence: z.boolean().default(false),
+  uncertainty_notes: z.array(z.string().max(400)).max(10).default([]),
+  next_faithful_action: zNextFaithfulAction.default({ text: "" }),
+  qualified_help_notes: z.array(z.string().max(400)).max(6).default([]),
+
+  // Retained legacy fields (kept nullable/tolerant so v1 rows still parse
+  // via schemaFor() when replayed). Prayer draft is required.
+  stronghold_category: z.string().max(160).optional(),
   event_chain: z.array(zEventChainLink).max(24).default([]),
-  competing_hypotheses: z.array(zHypothesis).min(1).max(4),
+  competing_hypotheses: z.array(zHypothesis).max(4).default([]),
   distinguishing_question: z.string().max(600).default(""),
   renunciations: z.array(z.string().max(400)).max(12).default([]),
   prayer_draft: zPrayerDraft,
   primary_practice: zPrimaryPractice,
 });
 export type CurseBreakerResult = z.infer<typeof zCurseBreakerResult>;
+export type ContributingInfluence = z.infer<typeof zContributingInfluence>;
+export type PastoralInterpretation = z.infer<typeof zPastoralInterpretation>;
+export type UserReportedSpiritualConcern = z.infer<typeof zUserReportedSpiritualConcern>;
+
+// Plain-language user labels for contributing-influence kinds. Not exposed
+// to the model; UI-only.
+export const CB_CONTRIBUTING_LABEL: Record<CurseBreakerContributingKind, string> = {
+  habit_or_choice: "Habit or choice",
+  belief_or_shame: "Belief or shame",
+  relationship_pressure: "Relationship pressure",
+  family_learning: "Family learning",
+  social_normalization: "Social normalization",
+  material_conditions: "Material conditions",
+  trauma_related: "Trauma-related",
+  physiological: "Physiological",
+  formation_gap: "Formation gap",
+  insufficient_evidence: "Insufficient evidence",
+};
 
 export const zUnifiedResult = z.discriminatedUnion("mode", [
   zCompanionResult,

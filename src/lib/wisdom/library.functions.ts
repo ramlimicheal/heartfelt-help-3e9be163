@@ -441,7 +441,7 @@ export const getLatestCurseBreakerTurn = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data } = await context.supabase
       .from("wisdom_turns")
-      .select("id,session_id,status,result,created_at,mode")
+      .select("id,session_id,status,result,created_at,mode,taxonomy_version")
       .eq("user_id", context.userId)
       .eq("mode", "curse_breaker")
       .eq("status", "completed")
@@ -453,6 +453,8 @@ export const getLatestCurseBreakerTurn = createServerFn({ method: "GET" })
       id: data.id as string,
       sessionId: data.session_id as string,
       resultJson: JSON.stringify(data.result ?? null),
+      taxonomyVersion: ((data.taxonomy_version as number | null) ?? 1),
       createdAt: data.created_at as string,
     };
   });
+

@@ -330,6 +330,17 @@ export async function runUnifiedTurn(
     throw e;
   }
 
+  // ── Curse Breaker v2 safety filter (Phase 3B) ─────────────────
+  // Strips forbidden spiritual verdicts, enforces qualified-help notes for
+  // trauma/physiology, requires user-origin evidence for spiritual concern,
+  // and pins taxonomy_version=2. Applied AFTER schema + grounding so the
+  // filter operates on validated data.
+  if (result.mode === "curse_breaker") {
+    const { enforceCurseBreakerSafety } = await import("./curseBreakerSafety");
+    Object.assign(result, enforceCurseBreakerSafety(result));
+  }
+
+
   // ── DNR gate: do_not_remember produces NO durable inference artifacts. ──
   const isDnr = input.memoryDirective === "do_not_remember";
 

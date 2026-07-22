@@ -324,7 +324,10 @@ export function buildProductionDeps(db: Db, extras: ProductionExtras): Orchestra
         payload_hash: extras.payloadHash,
         input_payload: extras.inputPayload as never,
         result_schema_version: extras.resultSchemaVersion,
-      }).select("id").single();
+        // Phase 3B: Curse Breaker turns run through the v2 layered pipeline.
+        // Other modes remain at the DB default (1) — behavior unchanged.
+        taxonomy_version: row.mode === "curse_breaker" ? 2 : 1,
+      } as never).select("id").single();
       if (error || !data) throw new Error(`wisdom_turns insert: ${error?.message}`);
       return { id: data.id as string };
     },
