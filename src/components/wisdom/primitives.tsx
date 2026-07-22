@@ -1,5 +1,5 @@
-import type { SourceTier } from "@/lib/wisdom/schemas";
-import { SOURCE_TIER_LABEL, SOURCE_TIER_SHORT } from "@/lib/wisdom/schemas";
+import type { SourceTier } from "@/lib/wisdom/contracts/sourceTier";
+import { SOURCE_TIER_LABEL, SOURCE_TIER_SHORT } from "@/lib/wisdom/contracts/sourceTier";
 import {
   Feather,
   Flame,
