@@ -715,6 +715,70 @@ function WisdomChat() {
         </div>
       </div>
 
+      {/* Right rail — persistent Wisdom Map on wide desktops. */}
+      <aside
+        className="relative z-10 hidden shrink-0 xl:flex xl:w-[340px] 2xl:w-[380px]"
+        aria-label="Wisdom Map rail"
+      >
+        <div className="sticky top-0 flex h-[calc(100vh-3rem)] w-full flex-col rounded-2xl border border-panel-border/60 bg-surface/30 p-3.5 backdrop-blur">
+          <WisdomMap
+            result={latestWisdom?.result}
+            mode={mapMode}
+            responseRoot={scrollerRef.current}
+            streamingStage={mapMode === "streaming" ? "Wisdom is listening" : undefined}
+          />
+        </div>
+      </aside>
+
+      {/* Mobile / laptop map trigger — floating, unobtrusive. */}
+      {!isEmpty && (
+        <button
+          type="button"
+          onClick={() => setMapOpen(true)}
+          aria-label="Open Wisdom Map"
+          className="fixed bottom-24 right-4 z-40 inline-flex items-center gap-1.5 rounded-full border border-panel-border bg-surface/95 px-3.5 py-2 text-[11px] font-medium text-foreground shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6)] backdrop-blur transition hover:bg-background xl:hidden"
+        >
+          <MapIcon className="size-3.5 text-primary" strokeWidth={1.75} />
+          Wisdom Map
+        </button>
+      )}
+
+      {/* Mobile / laptop drawer */}
+      {mapOpen && (
+        <div className="fixed inset-0 z-50 xl:hidden" role="dialog" aria-modal="true" aria-label="Wisdom Map">
+          <button
+            type="button"
+            aria-label="Close Wisdom Map"
+            onClick={() => setMapOpen(false)}
+            className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+          />
+          <div className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col rounded-t-3xl border-t border-panel-border bg-surface p-4 shadow-[0_-20px_60px_-20px_rgba(0,0,0,0.6)] sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[380px] sm:max-h-none sm:rounded-none sm:border-l sm:border-t-0">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                Wisdom Map
+              </span>
+              <button
+                type="button"
+                onClick={() => setMapOpen(false)}
+                aria-label="Close"
+                className="grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-background hover:text-foreground"
+              >
+                <X className="size-4" strokeWidth={1.75} />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <WisdomMap
+                result={latestWisdom?.result}
+                mode={mapMode}
+                responseRoot={scrollerRef.current}
+                onClose={() => setMapOpen(false)}
+                streamingStage={mapMode === "streaming" ? "Wisdom is listening" : undefined}
+                compact
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
