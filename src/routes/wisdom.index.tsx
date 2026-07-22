@@ -245,7 +245,7 @@ function WisdomChat() {
   // Canonical entry from other routes (e.g. /dashboard).
   // Consumes ?prompt&mode&autostart&sessionId once, then submits via streamUnifiedTurn.
   const search = Route.useSearch();
-  const navigate = useNavigateRoute();
+  const navigate = useNavigate();
   const bootRef = useRef(false);
   useEffect(() => {
     if (bootRef.current) return;
