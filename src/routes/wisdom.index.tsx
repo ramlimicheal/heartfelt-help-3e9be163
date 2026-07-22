@@ -989,7 +989,7 @@ function WisdomBubble({
 
 function EmptyState({ onPick }: { onPick: (prompt: string, mode: Mode) => void }) {
   return (
-    <div className="flex w-full flex-col items-start pt-10 text-left sm:pt-14 md:pt-20">
+    <div className="flex w-full flex-col items-start text-left">
       <span className="grid size-11 place-items-center rounded-2xl bg-primary/15 text-primary shadow-[0_0_40px_-8px_var(--primary-glow)]">
         <Sparkles className="size-4" strokeWidth={1.75} />
       </span>
