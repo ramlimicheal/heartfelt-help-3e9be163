@@ -22,7 +22,9 @@ describe("Phase 2B — finalizePrayer server function", () => {
   it("uses requireSupabaseAuth middleware and Zod input validation", () => {
     const h = finalizeHandler();
     expect(h).toMatch(/\.middleware\(\[requireSupabaseAuth\]\)/);
-    expect(h).toMatch(/prayerId:\s*z\.string\(\)\.uuid\(\)/);
+    expect(h).toMatch(/inputValidator/);
+    // finalizeInput schema defined immediately above with prayerId: uuid.
+    expect(library).toMatch(/finalizeInput\s*=\s*z\.object\(\{\s*prayerId:\s*z\.string\(\)\.uuid\(\)/);
   });
 
   it("loads the prayer server-side and rejects cross-user access", () => {
