@@ -104,3 +104,31 @@ export const loadSessionHistory = createServerFn({ method: "POST" })
       })),
     };
   });
+
+const deleteInput = z.object({ sessionId: z.string().uuid() });
+
+export const deleteSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: z.infer<typeof deleteInput>) => deleteInput.parse(d))
+  .handler(async ({ data, context }): Promise<{ ok: true }> => {
+    const { supabase, userId } = context;
+    const sess = await supabase
+      .from("sessions")
+      .select("id,user_id")
+      .eq("id", data.sessionId)
+      .maybeSingle();
+    if (!sess.data || sess.data.user_id !== userId) {
+      throw new Error("session not found");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Best-effort cascade: remove dependents that may not have ON DELETE CASCADE.
+    await supabaseAdmin.from("wisdom_turns").delete().eq("session_id", data.sessionId).eq("user_id", userId);
+    await supabaseAdmin.from("messages").delete().eq("session_id", data.sessionId).eq("user_id", userId);
+    const del = await supabaseAdmin
+      .from("sessions")
+      .delete()
+      .eq("id", data.sessionId)
+      .eq("user_id", userId);
+    if (del.error) throw new Error(del.error.message);
+    return { ok: true };
+  });
