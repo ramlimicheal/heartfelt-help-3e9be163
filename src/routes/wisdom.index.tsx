@@ -18,6 +18,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardSlice } from "@/lib/wisdom/dashboard.functions";
 import { listRecentSessions, loadSessionHistory, deleteSession } from "@/lib/wisdom/session.functions";
+import { finalizePrayer } from "@/lib/wisdom/library.functions";
 import { useSession } from "@/hooks/useSession";
 import { useWisdomAccess } from "@/hooks/useWisdomAccess";
 import { FlickeringGrid } from "@/registry/magicui/flickering-grid";
