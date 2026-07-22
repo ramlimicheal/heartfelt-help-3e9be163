@@ -510,7 +510,7 @@ function WisdomChat() {
 
 
   return (
-    <div className="relative flex h-[calc(100dvh-5rem)] w-full gap-4">
+    <div className="relative flex h-[calc(100dvh-3rem)] w-full gap-4">
       {/* Main column — fluid, centered content, composer anchored bottom */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
 
@@ -649,7 +649,8 @@ function WisdomChat() {
         </div>
 
         {/* Composer — anchored at the very bottom of the frame */}
-        <div className="w-full shrink-0 pt-5 pb-3 md:pt-6">
+        <div className="w-full shrink-0 pt-4 pb-0 md:pt-5">
+
 
           {!composerEnabled && <PrivateBetaBanner access={access} user={user} />}
 
